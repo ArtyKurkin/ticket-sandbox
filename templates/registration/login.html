@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Вход — Ticket Sandbox{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <h1>Вход в тренажер<span style="color:#6d7cff">.</span></h1>
+    <p>
+      Практическая песочница для отработки типовых тикетов:
+      диагностика, исправление проблемы и понятный ответ клиенту.
+    </p>
+  </section>
+
+  <div class="card" style="max-width: 460px;">
+    <form method="post">
+      {% csrf_token %}
+
+      {{ form.as_p }}
+
+      <button class="button" type="submit">Войти</button>
+    </form>
+  </div>
+{% endblock %}

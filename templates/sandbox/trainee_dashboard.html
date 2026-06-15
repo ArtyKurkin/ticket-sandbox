@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% load ru_plural %}
+
+{% block title %}Учебная тикетница{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <h1>Учебная тикетница<span class="hero-dot">.</span></h1>
+    <p>
+      Здесь собраны учебные обращения по очередям. Открывай доступные тикеты,
+      проводи диагностику и готовь ответ клиенту.
+    </p>
+    <p class="hero-level">
+      Текущий уровень:
+      <span class="status status-primary">
+        {{ request.user.trainee_profile.get_level_display }}
+      </span>
+    </p>
+  </section>
+
+  {% if unread_feedback_attempts %}
+    <div class="card feedback-alerts">
+      <div class="feedback-alerts-header">
+        <div>
+          <h2>Новые комментарии наставника</h2>
+          <p>Наставник оставил обратную связь. Открой тикет и поправь ответ.</p>
+        </div>
+        <span class="status status-danger">
+          {{ unread_feedback_attempts|length }}
+        </span>
+      </div>
+
+      <div class="feedback-alerts-list">
+        {% for attempt in unread_feedback_attempts %}
+          <a
+            class="feedback-alert-item"
+            href="{% url 'sandbox:task_detail' attempt.id %}"
+          >
+            <span>
+              #{{ attempt.id|stringformat:"06d" }} · {{ attempt.task.ticket_title|default:attempt.task.title }}
+            </span>
+            <span class="feedback-alert-link">Открыть</span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% for section in queue_sections %}
+    <div class="card queue-card">
+      <div class="queue-card-header">
+        <div>
+          <h2 class="queue-title">Очередь {{ section.queue.name }}</h2>
+          <p class="queue-description">
+            {{ section.queue.description|default:"Учебные тикеты для отработки практических навыков" }}
+          </p>
+          <div class="queue-progress">
+            <div class="queue-progress-text">
+              Технически выполнено:
+              {{ section.completed_count }} из {{ section.total_count }}
+            </div>
+
+            <progress
+              class="queue-progress-bar"
+              value="{{ section.completed_count }}"
+              max="{{ section.total_count }}"
+            ></progress>
+          </div>
+        </div>
+
+
+        <span class="status">
+          {{ section.total_count }} {{ section.total_count|ru_plural:"тикет,тикета,тикетов" }}
+        </span>
+      </div>
+      <table class="table ticket-table trainee-ticket-table">
+        <thead>
+          <tr>
+            <th>№</th>
+            <th>Тикет</th>
+            <th>Клиент</th>
+            <th>Статус</th>
+            <th>Проверки</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for attempt in section.attempts %}
+            <tr class="{% if not attempt.is_available %}is-locked{% endif %}">
+              <td class="ticket-number-cell">
+                #{{ attempt.task.order|stringformat:"02d" }}
+              </td>
+
+              <td class="ticket-title-cell">
+                <strong>{{ attempt.task.ticket_title|default:attempt.task.title }}</strong>
+              </td>
+
+              <td>
+                {{ attempt.task.client_name }}
+              </td>
+
+              <td class="ticket-progress-cell">
+                <div class="compact-progress">
+                  <span class="status {{ attempt.learning_status_class }}">
+                    {{ attempt.learning_status_label }}
+                  </span>
+
+                  <span class="progress-icons">
+                    <span
+                      class="progress-icon {{ attempt.technical_icon_class }}"
+                      data-tooltip="{{ attempt.technical_tooltip }}"
+                      tabindex="0"
+                      aria-label="{{ attempt.technical_tooltip }}"
+                    >
+                      <i data-lucide="{{ attempt.technical_icon }}"></i>
+                    </span>
+
+                    <span
+                      class="progress-icon {{ attempt.manual_icon_class }}"
+                      data-tooltip="{{ attempt.manual_tooltip }}"
+                      tabindex="0"
+                      aria-label="{{ attempt.manual_tooltip }}"
+                    >
+                      <i data-lucide="{{ attempt.manual_icon }}"></i>
+                    </span>
+
+                    {% if attempt.has_unread_mentor_feedback %}
+                      <span
+                        class="progress-icon progress-icon-warning"
+                        data-tooltip="Новый комментарий наставника"
+                        tabindex="0"
+                        aria-label="Новый комментарий наставника"
+                      >
+                        <i data-lucide="message-square-text"></i>
+                      </span>
+                    {% endif %}
+                  </span>
+                </div>
+              </td>
+
+              <td>
+                {{ attempt.attempts_count }}
+              </td>
+
+              <td class="ticket-action-cell">
+                {% if attempt.is_available %}
+                  <a class="button" href="{% url 'sandbox:task_detail' attempt.id %}">
+                    Открыть
+                  </a>
+                {% else %}
+                  <button class="button secondary" disabled>
+                    Закрыто
+                  </button>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+  
+      
+    </div>
+  {% empty %}
+    <div class="card">
+      <h2>Пока нет доступных очередей</h2>
+      <p>Наставник еще не добавил активные задания.</p>
+    </div>
+  {% endfor %}
+{% endblock %}

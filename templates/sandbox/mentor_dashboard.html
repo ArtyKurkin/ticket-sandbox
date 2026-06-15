@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Дашборд наставника{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <h1>Панель наставника<span class="hero-dot">.</span></h1>
+    <p>
+      Здесь виден прогресс стажеров, количество проверок,
+      перезапуски заданий и текущий статус прохождения.
+    </p>
+  </section>
+
+  <div class="mentor-stats">
+    <div class="mentor-stat-card">
+      <span>Всего попыток</span>
+      <strong>{{ dashboard_stats.total }}</strong>
+    </div>
+
+    <div class="mentor-stat-card">
+      <span>Новые</span>
+      <strong>{{ dashboard_stats.new }}</strong>
+    </div>
+
+    <div class="mentor-stat-card">
+      <span>В работе</span>
+      <strong>{{ dashboard_stats.in_progress }}</strong>
+    </div>
+
+    <div class="mentor-stat-card">
+      <span>На проверке</span>
+      <strong>{{ dashboard_stats.on_review }}</strong>
+    </div>
+
+    <div class="mentor-stat-card">
+      <span>Доработать</span>
+      <strong>{{ dashboard_stats.failed }}</strong>
+    </div>
+
+    <div class="mentor-stat-card">
+      <span>Пройдено</span>
+      <strong>{{ dashboard_stats.passed }}</strong>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Прогресс стажеров</h2>
+
+    <form method="get" class="mentor-filters">
+      <div class="mentor-filter-field">
+        <label for="q">Поиск</label>
+        <input
+          id="q"
+          type="search"
+          name="q"
+          value="{{ search_query }}"
+          placeholder="Стажер, тикет, очередь..."
+        >
+      </div>
+
+      <div class="mentor-filter-field">
+        <label for="queue">Очередь</label>
+        <select id="queue" name="queue">
+          <option value="">Все очереди</option>
+          {% for queue in queue_options %}
+            <option
+              value="{{ queue.slug }}"
+              {% if queue.slug == selected_queue %}selected{% endif %}
+            >
+              {{ queue.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mentor-filter-field">
+        <label for="status">Статус</label>
+        <select id="status" name="status">
+          <option value="">Все статусы</option>
+          {% for value, label in status_options %}
+            <option
+              value="{{ value }}"
+              {% if value == selected_status %}selected{% endif %}
+            >
+              {{ label }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mentor-filter-actions">
+        <button class="button button-primary" type="submit">
+          Применить
+        </button>
+
+        <a class="button button-secondary" href="{% url 'sandbox:dashboard' %}">
+          Сбросить
+        </a>
+      </div>
+    </form>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Стажер</th>
+          <th>Очередь</th>
+          <th>Задание</th>
+          <th>Статус</th>
+          <th>Ручная проверка</th>
+          <th>Проверки</th>
+          <th>Перезапуски</th>
+          <th>Последняя проверка</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for attempt in attempts %}
+          <tr>
+            <td>{{ attempt.user.username }}</td>
+            <td>{{ attempt.task.queue.name }}</td>
+            <td>
+              <a
+                class="table-link"
+                href="{% url 'sandbox:task_detail' attempt.id %}"
+              >
+                {{ attempt.task.order }}. {{ attempt.task.title }}
+              </a>
+            </td>
+
+            <td>
+              {% if attempt.status == "passed" %}
+                <span class="status status-success">
+                  <i data-lucide="circle-check-big"></i>
+                  {{ attempt.get_status_display }}
+                </span>
+              {% elif attempt.status == "failed" %}
+                <span class="status status-danger">
+                  <i data-lucide="triangle-alert"></i>
+                  {{ attempt.get_status_display }}
+                </span>
+              {% elif attempt.status == "in_progress" or attempt.status == "on_review" %}
+                <span class="status status-warning">
+                  <i data-lucide="loader-circle"></i>
+                  {{ attempt.get_status_display }}
+                </span>
+              {% else %}
+                <span class="status status-muted">
+                  <i data-lucide="circle"></i>
+                  {{ attempt.get_status_display }}
+                </span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if attempt.mentor_decision == "approved" %}
+                <span class="status status-success">
+                  <i data-lucide="circle-check-big"></i>
+                  Принято
+                </span>
+              {% elif attempt.mentor_decision == "needs_revision" %}
+                <span class="status status-danger">
+                  <i data-lucide="triangle-alert"></i>
+                  Нужна доработка
+                </span>
+              {% else %}
+                <span class="status status-muted">
+                  <i data-lucide="circle"></i>
+                  Не проверено
+                </span>
+              {% endif %}
+            </td>
+
+            <td>{{ attempt.attempts_count }}</td>
+            <td>{{ attempt.restart_count }}</td>
+
+            <td>
+              {% if attempt.recent_check_runs %}
+                {% with check_run=attempt.recent_check_runs.0 %}
+                  <div class="mentor-check-result">
+                    {% if check_run.result == "passed" %}
+                      <span class="status status-success">
+                        <i data-lucide="circle-check-big"></i>
+                        Пройдена
+                      </span>
+                    {% else %}
+                      <span class="status status-danger">
+                        <i data-lucide="triangle-alert"></i>
+                        Не пройдена
+                      </span>
+                    {% endif %}
+
+                    <span class="muted-text">
+                      {{ check_run.created_at|date:"d.m.Y H:i" }}
+                    </span>
+                  </div>
+                {% endwith %}
+              {% else %}
+                <span class="muted-text">Проверок пока не было</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8">Пока нет прохождений заданий.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% load static %}
+
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Ticket Sandbox{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+
+  {# Рекомендуется закреплять версию, а не использовать @latest #}
+  <script src="https://unpkg.com/lucide@0.564.0/dist/umd/lucide.min.js" defer></script>
+  <script src="{% static 'js/app.js' %}" defer></script>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a class="logo" href="{% url 'sandbox:dashboard' %}">
+        ticket<span>&gt;sandbox</span>
+      </a>
+
+      {% if request.user.is_authenticated %}
+        <div class="user-panel">
+          <span class="user-chip">
+            <i data-lucide="user-round"></i>
+            <span>{{ request.user.first_name|default:request.user.username }}</span>
+          </span>
+
+          <form class="logout-form" method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="button secondary button-small">
+              <i data-lucide="log-out"></i>
+              <span class="button-label">Выйти</span>
+            </button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="container">
+    {% if messages %}
+      <div class="messages">
+        {% for message in messages %}
+          <div class="flash-message flash-message-{{ message.tags }}">
+            {% if message.tags == "success" %}
+              <i data-lucide="circle-check-big"></i>
+            {% elif message.tags == "error" %}
+              <i data-lucide="triangle-alert"></i>
+            {% else %}
+              <i data-lucide="info"></i>
+            {% endif %}
+            <span>{{ message }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

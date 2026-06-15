@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+SERVICE=$2
+
+case "$1" in
+    status)
+        service "$SERVICE" status
+        ;;
+    restart)
+        service "$SERVICE" restart
+        ;;
+    start)
+        service "$SERVICE" start
+        ;;
+    stop)
+        service "$SERVICE" stop
+        ;;
+    *)
+        echo "Unsupported command"
+        ;;
+esac

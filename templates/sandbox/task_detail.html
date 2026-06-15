@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+
+{% block title %}Тикет #{{ attempt.id|stringformat:"06d" }}{% endblock %}
+
+{% block content %}
+<section class="ticket-layout">
+  <div class="ticket-main">
+    <div class="card">
+      <div class="ticket-header">
+        <div>
+          <span class="status status-primary">
+            <i data-lucide="receipt-text"></i>
+            Тикет #{{ attempt.id|stringformat:"06d" }}
+          </span>
+
+          <h1 class="ticket-title">
+            {{ attempt.task.ticket_title|default:attempt.task.title }}
+          </h1>
+
+          <div class="ticket-meta">
+            <span>
+              <i data-lucide="folder-kanban"></i>
+              Очередь: {{ attempt.task.queue.name }}
+            </span>
+            <span>
+              <i data-lucide="triangle-alert"></i>
+              Приоритет: {{ attempt.task.get_priority_display }}
+            </span>
+            <span>
+              <i data-lucide="user-round"></i>
+              Клиент: {{ attempt.task.client_name }}
+            </span>
+
+            {% if is_mentor_view %}
+              <span>
+                <i data-lucide="graduation-cap"></i>
+                Стажер: {{ attempt.user.username }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if attempt.status == "passed" %}
+          <span class="status status-success">
+            <i data-lucide="circle-check-big"></i>
+            Пройдено
+          </span>
+        {% elif attempt.status == "failed" %}
+          <span class="status status-danger">
+            <i data-lucide="triangle-alert"></i>
+            Доработать
+          </span>
+        {% elif attempt.status == "on_review" %}
+          <span class="status status-primary">
+            <i data-lucide="badge-info"></i>
+            На проверке
+          </span>
+        {% elif attempt.status == "in_progress" %}
+          <span class="status status-primary">
+            <i data-lucide="briefcase-business"></i>
+            В работе
+          </span>
+        {% else %}
+          <span class="status status-muted">
+            <i data-lucide="info"></i>
+            Новый
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if attempt.is_extra_attempt %}
+      <div class="card">
+        <div class="card-title-bar">
+          <i data-lucide="refresh-cw"></i>
+          <h2>Дополнительная попытка</h2>
+        </div>
+
+        <span class="status status-warning">
+          <i data-lucide="badge-info"></i>
+          Не идет в зачет
+        </span>
+
+        <p class="muted-text">
+          Это тренировочная попытка. Задание уже было засчитано ранее,
+          поэтому эта попытка не влияет на прогресс и не отправляется наставнику
+          на ручную проверку.
+        </p>
+      </div>
+    {% endif %}
+    
+    {% if not attempt.is_current %}
+      <div class="card">
+        <div class="card-title-bar">
+          <i data-lucide="history"></i>
+          <h2>Историческая попытка</h2>
+        </div>
+
+        <span class="status status-muted">
+          <i data-lucide="lock"></i>
+          Только просмотр
+        </span>
+
+        <p class="muted-text">
+          Это старая попытка прохождения задания. Действия с окружением недоступны:
+          запуск, перезапуск и отправка на проверку выполняются только в текущей попытке.
+        </p>
+      </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-title-bar">
+        <i data-lucide="mail-open"></i>
+        <h2>Сообщение клиента</h2>
+      </div>
+
+      <div class="ticket-message">
+        <div class="ticket-message-avatar" aria-hidden="true">
+          <i data-lucide="user-round"></i>
+        </div>
+
+        <div class="ticket-message-body">
+          <div class="ticket-message-author">
+            {{ attempt.task.client_name }}
+            <span>{{ attempt.task.client_email }}</span>
+          </div>
+
+          <div class="ticket-message-text">
+            {{ attempt.task.description|linebreaksbr }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if is_mentor_view or attempt.status == "passed" or not attempt.is_current %}
+      <div class="card">
+        <div class="card-title-bar">
+          <i data-lucide="circle-check-big"></i>
+          <h2>Ответ клиенту</h2>
+        </div>
+
+        <pre>{{ attempt.client_answer|default:"Ответ не был указан." }}</pre>
+
+        <div class="card-title-bar card-title-bar-spaced">
+          <i data-lucide="receipt-text"></i>
+          <h2>Внутренний комментарий</h2>
+        </div>
+
+        <pre>{{ attempt.trainee_report|default:"Комментарий не был указан." }}</pre>
+      </div>
+    {% else %}
+      <div class="card">
+        <div class="card-title-bar">
+          <i data-lucide="send-horizontal"></i>
+          <h2>Ответ и диагностика</h2>
+        </div>
+        
+          {% if attempt.task.requires_manual_review %}
+            <div class="status-row">
+              <span class="status status-primary">
+                <i data-lucide="user-check"></i>
+                После автопроверки нужна ручная проверка наставника
+              </span>
+            </div>
+          {% endif %}
+
+        <form method="post" action="{% url 'sandbox:check_task' attempt.id %}">
+          {% csrf_token %}
+
+          <p>Ответ клиенту</p>
+          <textarea
+            name="client_answer"
+            placeholder="Напиши ответ клиенту так, как отправил бы его в реальном тикете"
+          >{{ attempt.client_answer }}</textarea>
+
+          <p class="field-label">Внутренний комментарий</p>
+          <textarea
+            name="trainee_report"
+            placeholder="Кратко опиши диагностику: что проверил, что нашел, что исправил"
+          >{{ attempt.trainee_report }}</textarea>
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="button success"
+              data-loading-text="Проверяем решение..."
+            >
+              <i data-lucide="send-horizontal"></i>
+              <span class="button-label">Отправить на проверку</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    {% endif %}
+
+    {% if not is_mentor_view and attempt.mentor_decision != "not_reviewed" and attempt.mentor_feedback %}
+      <div class="card">
+        <div class="card-title-bar">
+          <i data-lucide="message-square-text"></i>
+          <h2>Комментарий наставника</h2>
+        </div>
+
+        {% if attempt.mentor_decision == "approved" %}
+          <span class="status status-success">
+            <i data-lucide="circle-check-big"></i>
+            Принято
+          </span>
+        {% elif attempt.mentor_decision == "needs_revision" %}
+          <span class="status status-danger">
+            <i data-lucide="triangle-alert"></i>
+            Нужна доработка
+          </span>
+        {% else %}
+          <span class="status status-muted">
+            <i data-lucide="circle"></i>
+            Не проверено
+          </span>
+        {% endif %}
+
+        <pre>{{ attempt.mentor_feedback }}</pre>
+      </div>
+    {% endif %}
+  </div>
+
+  <aside class="ticket-sidebar">
+    {% if is_mentor_view %}
+      {% if attempt.is_extra_attempt %}
+        <div class="card">
+          <div class="card-title-bar">
+            <i data-lucide="refresh-cw"></i>
+            <h2>Тренировочная попытка</h2>
+          </div>
+
+          <span class="status status-warning">
+            <i data-lucide="badge-info"></i>
+            Не проверяется наставником
+          </span>
+
+          <p class="muted-text">
+            Это дополнительная попытка стажера. Она не идет в зачет и не должна
+            попадать в ручную проверку.
+          </p>
+        </div>
+      {% else %}
+        <div class="card">
+          <div class="card-title-bar">
+            <i data-lucide="message-square-text"></i>
+            <h2>Комментарий наставника</h2>
+          </div>
+
+          <form method="post" action="{% url 'sandbox:save_mentor_feedback' attempt.id %}">
+            {% csrf_token %}
+
+            <p class="field-label">Решение наставника</p>
+            <div class="select-wrap">
+              <select
+                id="mentor-decision"
+                name="mentor_decision"
+                class="form-select"
+              >
+                {% for value, label in mentor_decision_options %}
+                  <option
+                    value="{{ value }}"
+                    {% if attempt.mentor_decision == value %}selected{% endif %}
+                  >
+                    {{ label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <p class="field-label">Комментарий</p>
+            <textarea
+              name="mentor_feedback"
+              placeholder="Напиши обратную связь по ответу, диагностике или подходу к тикету"
+            >{{ attempt.mentor_feedback }}</textarea>
+
+            <div class="form-actions">
+              <button
+                type="submit"
+                class="button success"
+                data-loading-text="Сохраняем комментарий..."
+              >
+                <i data-lucide="save"></i>
+                <span class="button-label">Сохранить комментарий</span>
+              </button>
+            </div>
+          </form>
+
+          {% if attempt.mentor_reviewed_by %}
+            <p class="muted-text">
+              Последняя ручная проверка:
+              {{ attempt.mentor_reviewed_by.username }},
+              {{ attempt.mentor_reviewed_at|date:"d.m.Y H:i" }}
+            </p>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <div class="card">
+      <div class="card-title-bar">
+        <i data-lucide="briefcase-business"></i>
+        <h2>Работа с тикетом</h2>
+      </div>
+
+      <div class="ticket-actions">
+        {% if is_mentor_view %}
+          <div class="status status-primary status-full">
+            <i data-lucide="eye"></i>
+            Режим просмотра наставника
+          </div>
+
+        {% elif attempt.technical_locked %}
+          <div class="status status-success status-full">
+            <i data-lucide="circle-check-big"></i>
+            Техническая часть выполнена
+          </div>
+
+          {% if attempt.is_current %}
+            <form
+              method="post"
+              action="{% url 'sandbox:rerun_task' attempt.id %}"
+              onsubmit="return confirm('Создать дополнительную тренировочную попытку? Она не повлияет на зачет по заданию.');"
+            >
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="button secondary"
+                data-loading-text="Создаем новую попытку..."
+              >
+                <i data-lucide="refresh-cw"></i>
+                <span class="button-label">Пройти задание заново</span>
+              </button>
+            </form>
+          {% endif %}
+
+          {% if attempt.needs_text_revision %}
+            <p class="muted-text">
+              Наставник отправил ответ на доработку. Исправь только текст ответа клиенту,
+              повторно запускать окружение и check.sh не нужно.
+            </p>
+          {% elif attempt.waiting_for_mentor_review %}
+            <p class="muted-text">
+              Техническая проверка пройдена. Ответ ожидает ручной проверки наставником.
+            </p>
+          {% elif attempt.is_extra_attempt %}
+            <p class="muted-text">
+              Это дополнительная тренировочная попытка. Она не влияет на зачет
+              и не отправляется наставнику на ручную проверку.
+            </p>
+          {% else %}
+            <p class="muted-text">
+              Окружение заблокировано от случайного перезапуска, чтобы не сбросить прогресс.
+            </p>
+          {% endif %}
+
+        {% elif attempt.is_current %}
+          <form method="post" action="{% url 'sandbox:start_task' attempt.id %}">
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="button"
+              data-loading-text="Запускаем окружение..."
+            >
+              <i data-lucide="play"></i>
+              <span class="button-label">Начать работу</span>
+            </button>
+          </form>
+
+          <form method="post" action="{% url 'sandbox:restart_task' attempt.id %}">
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="button danger"
+              data-loading-text="Перезапускаем окружение..."
+            >
+              <i data-lucide="rotate-ccw"></i>
+              <span class="button-label">Перезапустить</span>
+            </button>
+          </form>
+        {% endif %}
+
+        <a
+          class="button secondary full-width"
+          href="{% url 'sandbox:dashboard' %}"
+          onclick="removeTerminalFrames()"
+        >
+          <i data-lucide="arrow-left"></i>
+          <span class="button-label">
+            {% if is_mentor_view %}
+              Назад в панель наставника
+            {% else %}
+              Назад в очередь
+            {% endif %}
+          </span>
+        </a>
+      </div>
+    </div>
+
+    {% if attempt.is_current and request.user.is_staff and attempt.shell_command %}
+      <div class="card">
+        <div class="card-title-bar">
+          <i data-lucide="terminal"></i>
+          <h2>Сервер</h2>
+        </div>
+
+        <div class="copy-command-header">
+          <p>Команда подключения к окружению:</p>
+
+          <button
+            type="button"
+            class="button secondary copy-command-button"
+            data-copy-target="shell-command"
+            data-copy-label="Скопировать"
+            data-copied-label="Скопировано"
+          >
+            <i data-lucide="copy"></i>
+            <span class="button-label">Скопировать</span>
+          </button>
+        </div>
+
+        <pre id="shell-command">{{ attempt.shell_command }}</pre>
+      </div>
+    {% endif %}
+
+    {% if attempt.is_current and attempt.terminal_url and not attempt.technical_locked %}
+      <div id="terminal-card" class="card terminal-card">
+        <div class="terminal-header">
+          <div class="card-title-bar card-title-bar-compact">
+            <i data-lucide="terminal"></i>
+            <h2>Терминал сервера</h2>
+          </div>
+
+          <div class="terminal-actions">
+            <button
+              id="terminal-expand-button"
+              class="button secondary terminal-toggle-button"
+              type="button"
+              onclick="openTerminalModal()"
+            >
+              <i data-lucide="expand"></i>
+              <span class="button-label">Развернуть</span>
+            </button>
+
+            <button
+              id="terminal-collapse-button"
+              class="button secondary terminal-toggle-button terminal-collapse-button"
+              type="button"
+              onclick="closeTerminalModal()"
+            >
+              <i data-lucide="arrow-left-to-line"></i>
+              <span class="button-label">Свернуть</span>
+            </button>
+          </div>
+        </div>
+
+        {% if is_mentor_view %}
+          <p class="terminal-mentor-note muted-text">
+            Ты откроешь терминал учебного окружения стажёра. Команды будут выполняться в его task-контейнере.
+          </p>
+        {% endif %}
+
+        <div class="terminal-frame-wrap">
+          <iframe src="{{ attempt.terminal_url }}" class="terminal-frame"></iframe>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-title-bar">
+        <i data-lucide="circle-check-big"></i>
+        <h2>Проверка</h2>
+      </div>
+
+      <div class="metric-line">
+        <i data-lucide="circle-check-big"></i>
+        <span>Проверок: {{ attempt.attempts_count }}</span>
+      </div>
+
+      <div class="metric-line">
+        <i data-lucide="rotate-ccw"></i>
+        <span>Перезапусков: {{ attempt.restart_count }}</span>
+      </div>
+
+      <div class="card-title-bar card-title-bar-spaced-sm">
+        <i data-lucide="receipt-text"></i>
+        <h3>Последний результат</h3>
+      </div>
+
+      <pre>{{ attempt.last_check_output|default:"Проверок пока не было." }}</pre>
+
+      <div class="card-title-bar card-title-bar-spaced-sm">
+        <i data-lucide="history"></i>
+        <h3>История проверок</h3>
+      </div>
+
+      {% if check_runs %}
+        <div class="check-history">
+          {% for check_run in check_runs %}
+            <div class="check-history-item">
+              <div class="check-history-header">
+                {% if check_run.result == "passed" %}
+                  <span class="status status-success">
+                    <i data-lucide="circle-check-big"></i>
+                    Пройдена
+                  </span>
+                {% else %}
+                  <span class="status status-danger">
+                    <i data-lucide="triangle-alert"></i>
+                    Не пройдена
+                  </span>
+                {% endif %}
+
+                <span class="check-history-date">
+                  {{ check_run.created_at|date:"d.m.Y H:i" }}
+                </span>
+              </div>
+
+              <div class="metric-line">
+                <i data-lucide="terminal"></i>
+                <span>Exit code: {{ check_run.exit_code }}</span>
+              </div>
+
+              <pre>{{ check_run.output }}</pre>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted-text">Истории проверок пока нет.</p>
+      {% endif %}
+    </div>
+  </aside>
+</section>
+{% endblock %}

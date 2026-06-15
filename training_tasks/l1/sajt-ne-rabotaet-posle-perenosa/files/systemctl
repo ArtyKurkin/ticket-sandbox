@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+SERVICE=$2
+
+if [[ "$SERVICE" == "mysql" ]] || [[ "$SERVICE" == "mysqld" ]]; then
+
+  if [ -f /var/lib/mysql/site_db/user_sessions_broken.flag ]; then
+
+    if [[ "$1" == "start" ]] || [[ "$1" == "restart" ]]; then
+
+      echo "Job for mysql.service failed."
+
+      exit 1
+    fi
+
+    if [[ "$1" == "status" ]]; then
+
+      echo "× mysql.service - MySQL Community Server"
+      echo "     Active: failed"
+
+      exit 3
+    fi
+  fi
+fi
+
+case "$1" in
+  status)
+    service "$SERVICE" status
+    ;;
+  restart)
+    service "$SERVICE" restart
+    ;;
+  start)
+    service "$SERVICE" start
+    ;;
+  stop)
+    service "$SERVICE" stop
+    ;;
+  *)
+    echo "Unsupported command"
+    exit 1
+    ;;
+esac
