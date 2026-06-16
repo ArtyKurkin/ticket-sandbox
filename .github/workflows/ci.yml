@@ -10,7 +10,7 @@ jobs:
 
     env:
       SECRET_KEY: test-secret-key
-      DEBUG: "False"
+      DEBUG: "True"
       DB_ENGINE: django.db.backends.sqlite3
       DB_NAME: ":memory:"
       TERMINAL_GATEWAY_ENABLED: "true"
