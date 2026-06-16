@@ -1,0 +1,24 @@
+[Unit]
+Description=Ticket Sandbox gunicorn service
+After=network.target docker.service postgresql.service
+Requires=docker.service
+
+[Service]
+User=ticket-sandbox
+Group=ticket-sandbox
+WorkingDirectory=/opt/ticket-sandbox
+EnvironmentFile=/opt/ticket-sandbox/.env
+
+ExecStart=/opt/ticket-sandbox/.venv/bin/gunicorn config.wsgi:application \
+    --bind 127.0.0.1:8000 \
+    --workers 3 \
+    --timeout 120
+
+Restart=always
+RestartSec=5
+
+RuntimeDirectory=ticket-sandbox
+LogsDirectory=ticket-sandbox
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,4 @@
-.PHONY: up migrate run build-images cleanup makemigrations shell check migrations-check test validate nginx-test nginx-start nginx-reload nginx-stop nginx-logs test-terminal test-actions test-docker test-dashboards
+.PHONY: up migrate run build-images cleanup makemigrations shell check migrations-check test validate nginx-test nginx-start nginx-reload nginx-stop nginx-logs test-terminal test-actions test-docker test-dashboards serve
 
 up:
 	docker compose up -d
@@ -59,3 +59,6 @@ nginx-stop:
 
 nginx-logs:
 	tail -f logs/nginx-error.log logs/nginx-access.log
+
+serve:
+	gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3

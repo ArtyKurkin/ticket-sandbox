@@ -1,0 +1,11 @@
+# Пример cron для регулярной очистки старых task/terminal-контейнеров Ticket Sandbox.
+# Запуск каждый день в 04:00.
+#
+# Перед использованием проверь пути:
+# - /opt/ticket-sandbox — директория проекта;
+# - /opt/ticket-sandbox/.venv/bin/python — Python из venv;
+# - /var/log/ticket-sandbox/cleanup.log — файл лога.
+#
+# У пользователя, от имени которого запускается cron, должен быть доступ к Docker daemon.
+
+0 4 * * * cd /opt/ticket-sandbox && /opt/ticket-sandbox/.venv/bin/python manage.py cleanup_task_containers >> /var/log/ticket-sandbox/cleanup.log 2>&1

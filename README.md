@@ -829,3 +829,197 @@ deploy/nginx/ticket-sandbox.conf.example
 5. Улучшить аналитику по стажерам и заданиям.
 6. Добавить больше учебных заданий для очередей `candidate`, `l1` и `l2`.
 7. При необходимости добавить GitLab CI, если проект будет храниться во внутреннем GitLab.
+
+## Деплой на сервер
+
+Этот раздел описывает минимальный staging/production-запуск Ticket Sandbox через venv, gunicorn, nginx и Docker.
+
+### Требования
+
+На сервере должны быть установлены:
+
+- Python 3.12+;
+- PostgreSQL 16;
+- nginx;
+- Docker;
+- git;
+- systemd.
+
+Docker нужен для запуска task-контейнеров и ttyd-терминала.
+
+### Подготовка проекта
+
+```bash
+git clone <repo-url> /opt/ticket-sandbox
+cd /opt/ticket-sandbox
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+### Настройка `.env`
+
+Скопируй пример переменных окружения:
+
+```bash
+cp .env.example .env
+```
+
+На сервере обязательно укажи production-значения:
+
+```env
+DEBUG=False
+SECRET_KEY=<strong-secret-key>
+ALLOWED_HOSTS=staging.example.com
+CSRF_TRUSTED_ORIGINS=https://staging.example.com
+
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=ticket_sandbox
+DB_USER=ticket_sandbox_user
+DB_PASSWORD=<strong-db-password>
+DB_HOST=127.0.0.1
+DB_PORT=5432
+
+TERMINAL_GATEWAY_ENABLED=true
+CHECK_TASK_TIMEOUT_SECONDS=60
+LOG_LEVEL=INFO
+```
+
+Важно: на сервере `DEBUG` должен быть `False`.
+
+### База данных и static-файлы
+
+Применить миграции:
+
+```bash
+python manage.py migrate
+```
+
+Собрать static-файлы:
+
+```bash
+python manage.py collectstatic --noinput
+```
+
+При `ManifestStaticFilesStorage` этот шаг обязателен. Без `collectstatic` страницы со static-файлами могут отдавать ошибку.
+
+Создать администратора:
+
+```bash
+python manage.py createsuperuser
+```
+
+### Сборка Docker-образов
+
+Собрать образ терминала:
+
+```bash
+docker build -t ticket-sandbox-ttyd terminal/
+```
+
+Собрать образы учебных заданий:
+
+```bash
+python manage.py build_task_images
+```
+
+### Запуск приложения
+
+Для staging/production Django запускается через gunicorn:
+
+```bash
+make serve
+```
+
+Для постоянной работы на сервере лучше использовать systemd unit из примера:
+
+```text
+deploy/systemd/ticket-sandbox.service.example
+```
+
+После копирования unit-файла:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable ticket-sandbox
+sudo systemctl start ticket-sandbox
+sudo systemctl status ticket-sandbox
+```
+
+### nginx
+
+В качестве основы используй пример:
+
+```text
+deploy/nginx/ticket-sandbox.conf.example
+```
+
+В nginx static должен смотреть на `STATIC_ROOT`, то есть на собранную директорию `staticfiles/`, а не на исходную директорию `static/`.
+
+Пример:
+
+```nginx
+location /static/ {
+    alias /opt/ticket-sandbox/staticfiles/;
+}
+```
+
+После настройки nginx:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### Очистка старых контейнеров
+
+Для регулярной очистки старых task/terminal-контейнеров нужно настроить cron или systemd timer.
+
+Пример cron находится здесь:
+
+```text
+deploy/cron/cleanup_task_containers.example
+```
+
+Команда очистки:
+
+```bash
+python manage.py cleanup_task_containers
+```
+
+### Проверка перед запуском
+
+Перед первым запуском на staging:
+
+```bash
+python manage.py check --deploy
+python manage.py migrate
+python manage.py collectstatic --noinput
+python manage.py build_task_images
+```
+
+Также нужно проверить:
+
+```bash
+docker ps
+docker build -t ticket-sandbox-ttyd terminal/
+sudo nginx -t
+sudo systemctl status ticket-sandbox
+```
+
+### Проверка после запуска
+
+После деплоя нужно пройти минимальный сценарий:
+
+1. Открыть `/` и увидеть страницу входа.
+2. Войти стажером и открыть dashboard.
+3. Открыть L1-задание.
+4. Нажать «Начать работу».
+5. Убедиться, что терминал открылся через `/terminal/<attempt_id>/<port>/`.
+6. Выполнить задание и отправить на проверку.
+7. Убедиться, что `check.sh` отработал.
+8. Проверить ручную проверку наставником, если задача требует `requires_manual_review=True`.
+9. Проверить, что после успешной технической сдачи обычный перезапуск заблокирован.
+10. Проверить, что историческая попытка открывается только в read-only режиме.

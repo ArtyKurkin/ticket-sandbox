@@ -520,3 +520,88 @@ make validate
 - Добавить полноценные фоновые статусы долгих операций.
 - Добавить больше задач для очередей `candidate`, `l1` и `l2`.
 - Усилить production hardening.
+
+## Неделя 7 — Подготовка к staging-деплою
+
+### Архитектурные решения
+
+- Staging/production-запуск проекта выполняется через связку:
+  - Django application через gunicorn;
+  - nginx как reverse proxy и terminal gateway;
+  - PostgreSQL как основная база данных;
+  - Docker для task-контейнеров и ttyd-терминала.
+- `runserver` остается только для локальной разработки.
+- Static-файлы в staging/production должны обслуживаться из `STATIC_ROOT` после выполнения `collectstatic`.
+- Production-настройки Django включаются при `DEBUG=False`.
+- Cleanup старых task/terminal-контейнеров должен запускаться регулярно через cron или systemd timer.
+- Docker image для ttyd должен использовать фиксированную версию, а не `latest`.
+
+### Добавлено
+
+- Добавлен `gunicorn` в `requirements.txt`.
+- Добавлена команда `make serve` для запуска Django через gunicorn.
+- Добавлена переменная `CSRF_TRUSTED_ORIGINS` в `.env.example`.
+- Добавлена поддержка `CSRF_TRUSTED_ORIGINS` через env в `settings.py`.
+- Добавлены production security-настройки для режима `DEBUG=False`:
+  - `SECURE_PROXY_SSL_HEADER`;
+  - `SECURE_SSL_REDIRECT`;
+  - `SESSION_COOKIE_SECURE`;
+  - `CSRF_COOKIE_SECURE`;
+  - `SECURE_HSTS_SECONDS`;
+  - `SECURE_HSTS_INCLUDE_SUBDOMAINS`;
+  - `SECURE_HSTS_PRELOAD`;
+  - `SECURE_CONTENT_TYPE_NOSNIFF`;
+  - `X_FRAME_OPTIONS = "SAMEORIGIN"`.
+- Добавлен раздел `Деплой на сервер` в `README.md`.
+- В README добавлен обязательный шаг `python manage.py collectstatic --noinput`.
+- В README уточнено, что nginx должен смотреть на `staticfiles/`, а не на исходную директорию `static/`.
+- Добавлен пример systemd unit для gunicorn:
+  - `deploy/systemd/ticket-sandbox.service.example`.
+- Добавлен пример cron для регулярной очистки контейнеров:
+  - `deploy/cron/cleanup_task_containers.example`.
+- Зафиксирована версия базового ttyd-образа в `terminal/Dockerfile`.
+
+### Исправлено
+
+- Исправлены переменные подключения к базе в `.env.example`: используются `DB_HOST` и `DB_PORT`, которые реально читает `settings.py`.
+- Убрана зависимость terminal image от `tsl0922/ttyd:latest`.
+- Уточнена staging/production-схема запуска: приложение запускается через gunicorn, а не через Django `runserver`.
+- Уточнен порядок деплоя: установка зависимостей, миграции, `collectstatic`, сборка Docker-образов, запуск systemd, настройка nginx и cleanup.
+
+### Документация
+
+- Обновлен `README.md`:
+  - добавлен раздел деплоя;
+  - добавлен шаг `collectstatic`;
+  - добавлена схема запуска через gunicorn и systemd;
+  - добавлена настройка nginx;
+  - добавлена регулярная очистка контейнеров;
+  - добавлен staging checklist.
+- Обновлен `.env.example` под staging/production.
+- Добавлены deploy-примеры для systemd и cron.
+- Обновлен `CHANGELOG.md`.
+
+### Проверки
+
+После деплойных правок нужно выполнить:
+
+```bash
+python manage.py check
+python manage.py check --deploy
+python manage.py test sandbox.tests.test_terminal_gateway sandbox.tests.test_task_actions
+```
+
+Перед staging-деплоем нужно выполнить полный quality gate:
+
+```bash
+make validate
+```
+
+### Технический долг
+
+- Подготовить полноценную production-инструкцию под конкретный домен и сервер.
+- Добавить systemd timer как альтернативу cron для cleanup.
+- Добавить отдельный healthcheck endpoint.
+- Добавить ротацию логов gunicorn/nginx/cleanup.
+- Вынести тяжелые Docker-операции в Celery + Redis.
+- Добавить фоновые статусы для запуска, проверки и перезапуска окружений.
