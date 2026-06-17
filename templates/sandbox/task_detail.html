@@ -41,27 +41,27 @@
         </div>
 
         {% if attempt.status == "passed" %}
-          <span class="status status-success">
+          <span class="status status-success ticket-state-badge">
             <i data-lucide="circle-check-big"></i>
             Пройдено
           </span>
         {% elif attempt.status == "failed" %}
-          <span class="status status-danger">
+          <span class="status status-danger ticket-state-badge">
             <i data-lucide="triangle-alert"></i>
             Доработать
           </span>
         {% elif attempt.status == "on_review" %}
-          <span class="status status-primary">
+          <span class="status status-primary ticket-state-badge">
             <i data-lucide="badge-info"></i>
-            На проверке
+            На ревью
           </span>
         {% elif attempt.status == "in_progress" %}
-          <span class="status status-primary">
+          <span class="status status-primary ticket-state-badge">
             <i data-lucide="briefcase-business"></i>
             В работе
           </span>
         {% else %}
-          <span class="status status-muted">
+          <span class="status status-muted ticket-state-badge">
             <i data-lucide="info"></i>
             Новый
           </span>
@@ -132,37 +132,97 @@
       </div>
     </div>
 
-    {% if is_mentor_view or attempt.status == "passed" or not attempt.is_current %}
+        {% if answer_section_is_hidden %}
+      {# Для заданий без ручной проверки ответ клиенту и внутренний комментарий не нужны. #}
+
+    {% elif answer_is_hidden_before_technical_pass %}
       <div class="card">
         <div class="card-title-bar">
-          <i data-lucide="circle-check-big"></i>
+          <i data-lucide="lock"></i>
           <h2>Ответ клиенту</h2>
         </div>
 
-        <pre>{{ attempt.client_answer|default:"Ответ не был указан." }}</pre>
-
-        <div class="card-title-bar card-title-bar-spaced">
-          <i data-lucide="receipt-text"></i>
-          <h2>Внутренний комментарий</h2>
+        <div class="status-row">
+          <span class="status status-primary">
+            <i data-lucide="user-check"></i>
+            После автопроверки нужна ручная проверка наставника
+          </span>
         </div>
 
-        <pre>{{ attempt.trainee_report|default:"Комментарий не был указан." }}</pre>
+        <p class="muted-text">
+          Сначала выполни техническую часть задания и пройди автопроверку.
+          После успешной технической сдачи здесь появятся поля для ответа клиенту
+          и внутреннего комментария.
+        </p>
       </div>
-    {% else %}
+
+    {% elif answer_is_collapsed %}
+      <div class="card">
+        <details class="answer-details">
+          <summary>
+            <span>
+              <i data-lucide="message-square-text"></i>
+              Показать отправленный ответ и внутренний комментарий
+            </span>
+          </summary>
+
+          <div class="readonly-answer-block">
+            <h3>Ответ клиенту</h3>
+            <div class="text-preview">
+              {{ attempt.client_answer|linebreaksbr|default:"Ответ не был указан." }}
+            </div>
+
+            <h3>Внутренний комментарий</h3>
+            <div class="text-preview">
+              {{ attempt.trainee_report|linebreaksbr|default:"Комментарий не был указан." }}
+            </div>
+          </div>
+        </details>
+      </div>
+
+      {% elif answer_is_locked %}
+      <div class="card">
+        <div class="card-title-bar">
+          <i data-lucide="lock"></i>
+          <h2>Ответ зафиксирован</h2>
+        </div>
+
+        <span class="status status-primary">
+          <i data-lucide="clock"></i>
+          Ответ отправлен на проверку и сейчас недоступен для редактирования
+        </span>
+
+        <div class="readonly-answer-block">
+          <h3>Ответ клиенту</h3>
+          <div class="text-preview">
+            {{ attempt.client_answer|linebreaksbr|default:"Ответ не был указан." }}
+          </div>
+
+          <h3>Внутренний комментарий</h3>
+          <div class="text-preview">
+            {{ attempt.trainee_report|linebreaksbr|default:"Комментарий не был указан." }}
+          </div>
+        </div>
+      </div>
+
+    {% elif answer_can_be_edited %}
       <div class="card">
         <div class="card-title-bar">
           <i data-lucide="send-horizontal"></i>
           <h2>Ответ и диагностика</h2>
         </div>
-        
-          {% if attempt.task.requires_manual_review %}
-            <div class="status-row">
-              <span class="status status-primary">
-                <i data-lucide="user-check"></i>
-                После автопроверки нужна ручная проверка наставника
-              </span>
-            </div>
-          {% endif %}
+
+        <div class="status-row">
+          <span class="status status-success">
+            <i data-lucide="circle-check-big"></i>
+            Техническая часть принята
+          </span>
+
+          <span class="status status-primary">
+            <i data-lucide="user-check"></i>
+            Осталось отправить ответ на ручную проверку
+          </span>
+        </div>
 
         <form method="post" action="{% url 'sandbox:check_task' attempt.id %}">
           {% csrf_token %}
@@ -183,13 +243,30 @@
             <button
               type="submit"
               class="button success"
-              data-loading-text="Проверяем решение..."
+              data-loading-text="Отправляем ответ..."
             >
               <i data-lucide="send-horizontal"></i>
-              <span class="button-label">Отправить на проверку</span>
+              <span class="button-label">Отправить ответ на проверку</span>
             </button>
           </div>
         </form>
+      </div>
+
+    {% else %}
+      <div class="card">
+        <div class="card-title-bar">
+          <i data-lucide="receipt-text"></i>
+          <h2>Ответ клиенту</h2>
+        </div>
+
+        <pre>{{ attempt.client_answer|default:"Ответ не был указан." }}</pre>
+
+        <div class="card-title-bar card-title-bar-spaced">
+          <i data-lucide="receipt-text"></i>
+          <h2>Внутренний комментарий</h2>
+        </div>
+
+        <pre>{{ attempt.trainee_report|default:"Комментарий не был указан." }}</pre>
       </div>
     {% endif %}
 
@@ -356,29 +433,43 @@
           {% endif %}
 
         {% elif attempt.is_current %}
-          <form method="post" action="{% url 'sandbox:start_task' attempt.id %}">
-            {% csrf_token %}
-            <button
-              type="submit"
-              class="button"
-              data-loading-text="Запускаем окружение..."
-            >
-              <i data-lucide="play"></i>
-              <span class="button-label">Начать работу</span>
-            </button>
-          </form>
+          {% if attempt.terminal_url or attempt.container_name %}
+            <form method="post" action="{% url 'sandbox:check_task' attempt.id %}">
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="button success"
+                data-loading-text="Запускаем автопроверку..."
+              >
+                <i data-lucide="circle-check-big"></i>
+                <span class="button-label">Сдать техническую часть</span>
+              </button>
+            </form>
 
-          <form method="post" action="{% url 'sandbox:restart_task' attempt.id %}">
-            {% csrf_token %}
-            <button
-              type="submit"
-              class="button danger"
-              data-loading-text="Перезапускаем окружение..."
-            >
-              <i data-lucide="rotate-ccw"></i>
-              <span class="button-label">Перезапустить</span>
-            </button>
-          </form>
+            <form method="post" action="{% url 'sandbox:restart_task' attempt.id %}">
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="button danger"
+                data-loading-text="Перезапускаем окружение..."
+              >
+                <i data-lucide="rotate-ccw"></i>
+                <span class="button-label">Перезапустить</span>
+              </button>
+            </form>
+          {% else %}
+            <form method="post" action="{% url 'sandbox:start_task' attempt.id %}">
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="button"
+                data-loading-text="Запускаем окружение..."
+              >
+                <i data-lucide="play"></i>
+                <span class="button-label">Начать работу</span>
+              </button>
+            </form>
+          {% endif %}
         {% endif %}
 
         <a

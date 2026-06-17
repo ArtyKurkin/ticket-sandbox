@@ -90,6 +90,41 @@ def task_detail(request, attempt_id):
         if not attempt.is_available:
             return redirect("sandbox:dashboard")
 
+    manual_review_required = attempt.task.requires_manual_review
+    technical_part_passed = attempt.is_technically_completed
+
+    answer_flow_enabled = manual_review_required
+
+    answer_is_locked = (
+        answer_flow_enabled
+        and attempt.status in ["on_review", "passed"]
+    )
+
+    answer_can_be_edited = (
+        answer_flow_enabled
+        and attempt.is_current
+        and technical_part_passed
+        and not answer_is_locked
+    )
+
+    answer_is_hidden_before_technical_pass = (
+        answer_flow_enabled
+        and attempt.is_current
+        and not technical_part_passed
+        and not answer_is_locked
+    )
+
+    answer_is_collapsed = (
+        answer_flow_enabled
+        and attempt.is_extra_attempt
+        and attempt.status == "passed"
+    )
+
+    answer_section_is_hidden = (
+        not answer_flow_enabled
+        and attempt.is_current
+    )
+
     return render(
         request,
         "sandbox/task_detail.html",
@@ -98,6 +133,14 @@ def task_detail(request, attempt_id):
             "check_runs": attempt.check_runs.all(),
             "is_mentor_view": is_mentor_view,
             "mentor_decision_options": TaskAttempt.MentorDecision.choices,
+            "manual_review_required": manual_review_required,
+            "technical_part_passed": technical_part_passed,
+            "answer_flow_enabled": answer_flow_enabled,
+            "answer_can_be_edited": answer_can_be_edited,
+            "answer_is_locked": answer_is_locked,
+            "answer_is_collapsed": answer_is_collapsed,
+            "answer_is_hidden_before_technical_pass": answer_is_hidden_before_technical_pass,
+            "answer_section_is_hidden": answer_section_is_hidden,
         }
     )
 
@@ -470,61 +513,60 @@ def check_task(request, attempt_id):
         return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
     if attempt.status == TaskAttempt.Status.ON_REVIEW:
-        messages.info(request, "Тикет уже проверяется, подожди.")
-        return redirect("sandbox:task_detail", attempt_id=attempt.id)
-
-    attempt.client_answer = request.POST.get(
-        "client_answer",
-        attempt.client_answer
-    )
-
-    attempt.trainee_report = request.POST.get(
-        "trainee_report",
-        attempt.trainee_report
-    )
-
-    attempt.save(
-        update_fields=[
-            "client_answer",
-            "trainee_report",
-        ]
-    )
-
-    if not attempt.client_answer.strip():
-        messages.error(
+        messages.info(
             request,
-            "Перед отправкой на проверку нужно написать ответ клиенту."
-        )
-        return redirect("sandbox:task_detail", attempt_id=attempt.id)
-
-    if not attempt.trainee_report.strip():
-        messages.error(
-            request,
-            "Перед отправкой на проверку нужно добавить внутренний комментарий с диагностикой."
+            "Ответ уже зафиксирован и находится на проверке у наставника."
         )
         return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
     if attempt.technical_passed_at:
+        if not attempt.task.requires_manual_review:
+            messages.info(
+                request,
+                "Техническая часть уже принята. Для этого задания ручная проверка не требуется."
+            )
+            return redirect("sandbox:task_detail", attempt_id=attempt.id)
+
+        client_answer = request.POST.get("client_answer", "").strip()
+        trainee_report = request.POST.get("trainee_report", "").strip()
+
+        if not client_answer:
+            messages.error(
+                request,
+                "Перед отправкой на проверку нужно написать ответ клиенту."
+            )
+            return redirect("sandbox:task_detail", attempt_id=attempt.id)
+
+        if not trainee_report:
+            messages.error(
+                request,
+                "Перед отправкой на проверку нужно добавить внутренний комментарий с диагностикой."
+            )
+            return redirect("sandbox:task_detail", attempt_id=attempt.id)
+
+        attempt.client_answer = client_answer
+        attempt.trainee_report = trainee_report
         attempt.status = TaskAttempt.Status.ON_REVIEW
         attempt.mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
         attempt.mentor_reviewed_by = None
         attempt.mentor_reviewed_at = None
         attempt.mentor_feedback_seen_at = timezone.now()
+
         attempt.save(
             update_fields=[
+                "client_answer",
+                "trainee_report",
                 "status",
                 "mentor_decision",
                 "mentor_reviewed_by",
                 "mentor_reviewed_at",
                 "mentor_feedback_seen_at",
-                "client_answer",
-                "trainee_report",
             ]
         )
 
         messages.success(
             request,
-            "Ответ отправлен наставнику на повторную ручную проверку."
+            "Ответ отправлен наставнику на ручную проверку."
         )
 
         return redirect("sandbox:task_detail", attempt_id=attempt.id)
@@ -536,20 +578,12 @@ def check_task(request, attempt_id):
         )
         return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
-    attempt.status = TaskAttempt.Status.ON_REVIEW
     attempt.attempts_count += 1
-    attempt.mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
-    attempt.mentor_reviewed_by = None
-    attempt.mentor_reviewed_at = None
-    attempt.mentor_feedback_seen_at = None
+    attempt.status = TaskAttempt.Status.IN_PROGRESS
     attempt.save(
         update_fields=[
-            "status",
             "attempts_count",
-            "mentor_decision",
-            "mentor_reviewed_by",
-            "mentor_reviewed_at",
-            "mentor_feedback_seen_at",
+            "status",
         ]
     )
 
@@ -628,10 +662,11 @@ def check_task(request, attempt_id):
         attempt.terminal_port = None
 
         if attempt.task.requires_manual_review and attempt.is_credit_attempt:
-            attempt.status = TaskAttempt.Status.ON_REVIEW
+            attempt.status = TaskAttempt.Status.IN_PROGRESS
+            attempt.finished_at = None
             success_message = (
                 "Техническая проверка пройдена. "
-                "Тикет отправлен наставнику на ручную проверку ответа."
+                "Теперь подготовь ответ клиенту и внутренний комментарий."
             )
         else:
             attempt.status = TaskAttempt.Status.PASSED
@@ -644,7 +679,7 @@ def check_task(request, attempt_id):
                 )
             else:
                 success_message = (
-                    "Тикет успешно пройден. Окружение задания остановлено."
+                    "Задание принято. Техническая проверка пройдена успешно."
                 )
 
         attempt.save(

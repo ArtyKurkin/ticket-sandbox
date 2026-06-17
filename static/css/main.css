@@ -805,7 +805,7 @@ pre {
 .ticket-header {
   display: flex;
   justify-content: space-between;
-  gap: 20px;
+  gap: 24px;
   align-items: flex-start;
 }
 
@@ -828,6 +828,20 @@ pre {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.ticket-state-badge {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  white-space: nowrap;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.ticket-state-badge svg {
+  flex: 0 0 auto;
 }
 
 
@@ -1028,6 +1042,50 @@ pre {
   color: var(--muted);
 }
 
+.answer-details {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: rgba(15, 23, 42, 0.36);
+}
+
+.answer-details summary {
+  cursor: pointer;
+  color: var(--text-primary);
+  font-weight: 700;
+  list-style: none;
+}
+
+.answer-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.answer-details summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.readonly-answer-block {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.readonly-answer-block h3 {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+
+.text-preview {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.42);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
 
 /* ===== 13. Card titles ===== */
 
@@ -1101,9 +1159,10 @@ pre {
 
 .terminal-frame {
   width: 100%;
-  height: 360px;
-  border: none;
-  background: #000;
+  height: clamp(420px, 58vh, 680px);
+  border: 0;
+  border-radius: 16px;
+  background: #020617;
 }
 
 /* Развернутый терминал */
@@ -1264,5 +1323,21 @@ body.terminal-is-expanded {
 @media (max-width: 640px) {
   .mentor-stats {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1440px) {
+  .terminal-frame {
+    height: clamp(420px, 52vh, 620px);
+  }
+}
+
+@media (max-width: 760px) {
+  .ticket-header {
+    flex-direction: column;
+  }
+
+  .ticket-state-badge {
+    align-self: flex-start;
   }
 }

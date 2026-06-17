@@ -67,7 +67,6 @@ class TaskDetailAccessTests(SandboxTestCase):
             "После автопроверки нужна ручная проверка наставника",
         )
 
-
     def test_manual_review_badge_is_hidden_when_task_does_not_require_manual_review(self):
         self.task.requires_manual_review = False
         self.task.save(update_fields=["requires_manual_review"])
@@ -92,6 +91,87 @@ class TaskDetailAccessTests(SandboxTestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_answer_form_is_hidden_before_technical_pass(self):
+        self.attempt.task.requires_manual_review = True
+        self.attempt.task.save(update_fields=["requires_manual_review"])
+
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.technical_passed_at = None
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Сначала выполни техническую часть задания",
+        )
+        self.assertNotContains(
+            response,
+            "Отправить ответ на проверку",
+        )
+
+    def test_answer_form_is_visible_after_technical_pass_when_manual_review_required(self):
+        self.attempt.task.requires_manual_review = True
+        self.attempt.task.save(update_fields=["requires_manual_review"])
+
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ответ и диагностика")
+        self.assertContains(response, "Отправить ответ на проверку")
+        self.assertContains(response, "name=\"client_answer\"")
+        self.assertContains(response, "name=\"trainee_report\"")
+
+    def test_answer_form_is_hidden_when_manual_review_is_not_required(self):
+        self.attempt.task.requires_manual_review = False
+        self.attempt.task.save(update_fields=["requires_manual_review"])
+
+        self.attempt.status = TaskAttempt.Status.PASSED
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.finished_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+                "finished_at",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Ответ и диагностика")
+        self.assertNotContains(response, "Отправить ответ на проверку")
+        self.assertNotContains(response, "name=\"client_answer\"")
+        self.assertNotContains(response, "name=\"trainee_report\"")
 
 
 class TaskFlowTests(SandboxTestCase):
@@ -241,8 +321,13 @@ class TaskFlowTests(SandboxTestCase):
 
     def test_check_task_requires_client_answer(self):
         self.attempt.status = TaskAttempt.Status.IN_PROGRESS
-        self.attempt.container_name = "task-container"
-        self.attempt.save()
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+            ]
+        )
 
         response = self.client.post(
             reverse("sandbox:check_task", args=[self.attempt.id]),
@@ -258,11 +343,18 @@ class TaskFlowTests(SandboxTestCase):
 
         self.assertEqual(self.attempt.status, TaskAttempt.Status.IN_PROGRESS)
         self.assertEqual(self.attempt.attempts_count, 0)
+        self.assertEqual(self.attempt.client_answer, "")
+        self.assertEqual(self.attempt.trainee_report, "")
 
     def test_check_task_requires_trainee_report(self):
         self.attempt.status = TaskAttempt.Status.IN_PROGRESS
-        self.attempt.container_name = "task-container"
-        self.attempt.save()
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+            ]
+        )
 
         response = self.client.post(
             reverse("sandbox:check_task", args=[self.attempt.id]),
@@ -278,41 +370,27 @@ class TaskFlowTests(SandboxTestCase):
 
         self.assertEqual(self.attempt.status, TaskAttempt.Status.IN_PROGRESS)
         self.assertEqual(self.attempt.attempts_count, 0)
+        self.assertEqual(self.attempt.client_answer, "")
+        self.assertEqual(self.attempt.trainee_report, "")
 
-    @patch("sandbox.views.remove_task_container")
-    @patch("sandbox.views.remove_terminal_container")
-    @patch("sandbox.views.check_task_container")
-    def test_check_task_passed_updates_status_and_cleans_containers(
-        self,
-        check_task_container_mock,
-        remove_terminal_container_mock,
-        remove_task_container_mock,
-    ):
+    def test_check_task_after_technical_pass_sends_answer_to_review(self):
+        self.attempt.task.requires_manual_review = True
+        self.attempt.task.save(update_fields=["requires_manual_review"])
+
         self.attempt.status = TaskAttempt.Status.IN_PROGRESS
-        self.attempt.container_name = "task-container"
-        self.attempt.terminal_container_name = "terminal-container"
-        self.attempt.save()
-
-        check_task_container_mock.return_value = (
-            0,
-            "OK: задача решена",
-        )
-
-        remove_terminal_container_mock.return_value = (
-            True,
-            "Терминал удален.",
-        )
-
-        remove_task_container_mock.return_value = (
-            True,
-            "Контейнер удален.",
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+            ]
         )
 
         response = self.client.post(
             reverse("sandbox:check_task", args=[self.attempt.id]),
             data={
                 "client_answer": "Здравствуйте, проблема исправлена.",
-                "trainee_report": "Проверил nginx, исправил конфигурацию.",
+                "trainee_report": "Проверил nginx, нашел ошибку в конфиге и исправил ее.",
             },
         )
 
@@ -320,11 +398,54 @@ class TaskFlowTests(SandboxTestCase):
 
         self.attempt.refresh_from_db()
 
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.PASSED)
-        self.assertEqual(self.attempt.attempts_count, 1)
-        self.assertEqual(self.attempt.container_name, "")
-        self.assertEqual(self.attempt.terminal_container_name, "")
-        self.assertIn("OK: задача решена", self.attempt.last_check_output)
+        self.assertEqual(self.attempt.status, TaskAttempt.Status.ON_REVIEW)
+        self.assertEqual(
+            self.attempt.client_answer,
+            "Здравствуйте, проблема исправлена.",
+        )
+        self.assertEqual(
+            self.attempt.trainee_report,
+            "Проверил nginx, нашел ошибку в конфиге и исправил ее.",
+        )
+        self.assertEqual(
+            self.attempt.mentor_decision,
+            TaskAttempt.MentorDecision.NOT_REVIEWED,
+        )
+        self.assertIsNone(self.attempt.mentor_reviewed_by)
+        self.assertIsNone(self.attempt.mentor_reviewed_at)
+
+    def test_check_task_on_review_does_not_overwrite_answer(self):
+        self.attempt.task.requires_manual_review = True
+        self.attempt.task.save(update_fields=["requires_manual_review"])
+
+        self.attempt.status = TaskAttempt.Status.ON_REVIEW
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.client_answer = "Старый ответ клиенту."
+        self.attempt.trainee_report = "Старый внутренний комментарий."
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+                "client_answer",
+                "trainee_report",
+            ]
+        )
+
+        response = self.client.post(
+            reverse("sandbox:check_task", args=[self.attempt.id]),
+            data={
+                "client_answer": "Новый ответ, который не должен сохраниться.",
+                "trainee_report": "Новый комментарий, который не должен сохраниться.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(self.attempt.status, TaskAttempt.Status.ON_REVIEW)
+        self.assertEqual(self.attempt.client_answer, "Старый ответ клиенту.")
+        self.assertEqual(self.attempt.trainee_report, "Старый внутренний комментарий.")
 
     @patch("sandbox.views.check_task_container")
     def test_check_task_failed_updates_status_and_saves_output(
@@ -771,9 +892,17 @@ class TaskFlowTests(SandboxTestCase):
 
         self.attempt.refresh_from_db()
 
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.ON_REVIEW)
+        self.assertEqual(self.attempt.status, TaskAttempt.Status.IN_PROGRESS)
         self.assertIsNotNone(self.attempt.technical_passed_at)
         self.assertIsNone(self.attempt.finished_at)
+
+        self.assertEqual(
+            self.attempt.mentor_decision,
+            TaskAttempt.MentorDecision.NOT_REVIEWED,
+        )
+
+        self.assertEqual(self.attempt.client_answer, "")
+        self.assertEqual(self.attempt.trainee_report, "")
 
         self.assertEqual(self.attempt.container_name, "")
         self.assertEqual(self.attempt.terminal_container_name, "")
