@@ -15,7 +15,10 @@ class TaskAdmin(admin.ModelAdmin):
         "is_active",
     )
 
+    list_display_links = ("title",)
+
     list_editable = (
+        "order",
         "priority",
         "requires_manual_review",
         "is_active",
@@ -37,9 +40,22 @@ class TaskAdmin(admin.ModelAdmin):
         "client_email",
     )
 
+    ordering = (
+        "queue__order",
+        "order",
+        "title",
+    )
+
     prepopulated_fields = {
         "slug": ("title",)
     }
+
+    actions = (
+        "activate_tasks",
+        "deactivate_tasks",
+        "enable_manual_review",
+        "disable_manual_review",
+    )
 
     fieldsets = (
         (
@@ -69,6 +85,32 @@ class TaskAdmin(admin.ModelAdmin):
         ),
     )
 
+    @admin.action(description="Включить выбранные задания")
+    def activate_tasks(self, request, queryset):
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f"Включено заданий: {updated}")
+
+    @admin.action(description="Выключить выбранные задания")
+    def deactivate_tasks(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"Выключено заданий: {updated}")
+
+    @admin.action(description="Включить ручную проверку")
+    def enable_manual_review(self, request, queryset):
+        updated = queryset.update(requires_manual_review=True)
+        self.message_user(
+            request,
+            f"Ручная проверка включена для заданий: {updated}",
+        )
+
+    @admin.action(description="Отключить ручную проверку")
+    def disable_manual_review(self, request, queryset):
+        updated = queryset.update(requires_manual_review=False)
+        self.message_user(
+            request,
+            f"Ручная проверка отключена для заданий: {updated}",
+        )
+
 
 @admin.register(Queue)
 class QueueAdmin(admin.ModelAdmin):
@@ -79,8 +121,29 @@ class QueueAdmin(admin.ModelAdmin):
         "required_level",
         "is_active",
     )
-    list_editable = ("required_level", "is_active")
-    search_fields = ("name", "slug")
+
+    list_display_links = ("name",)
+
+    list_editable = (
+        "order",
+        "required_level",
+        "is_active",
+    )
+
+    list_filter = (
+        "required_level",
+        "is_active",
+    )
+
+    search_fields = (
+        "name",
+        "slug",
+    )
+
+    ordering = (
+        "order",
+        "name",
+    )
 
 
 @admin.register(TraineeProfile)
