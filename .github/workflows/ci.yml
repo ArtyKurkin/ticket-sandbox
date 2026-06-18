@@ -14,6 +14,7 @@ jobs:
       DB_ENGINE: django.db.backends.sqlite3
       DB_NAME: ":memory:"
       TERMINAL_GATEWAY_ENABLED: "true"
+      CHECK_TASK_TIMEOUT_SECONDS: "60"
 
     steps:
       - name: Checkout
@@ -37,3 +38,53 @@ jobs:
 
       - name: Run tests
         run: python manage.py test sandbox
+
+  deploy-staging:
+    name: Deploy staging
+    runs-on: ubuntu-latest
+    needs: tests
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/staging_key
+          chmod 600 ~/.ssh/staging_key
+
+          ssh-keyscan -p "${{ secrets.STAGING_PORT }}" "${{ secrets.STAGING_HOST }}" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy to staging
+        run: |
+          ssh \
+            -i ~/.ssh/staging_key \
+            -p "${{ secrets.STAGING_PORT }}" \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" '
+              set -e
+
+              runuser -u ticket-sandbox -- bash -lc "
+                set -e
+
+                cd /opt/ticket-sandbox
+
+                GIT_SSH_COMMAND=\"ssh -i /root/.ssh/ticket_sandbox_deploy -o IdentitiesOnly=yes\" git pull --ff-only
+
+                set -a
+                . /opt/ticket-sandbox/.env
+                set +a
+                . .venv/bin/activate
+
+                python manage.py migrate --noinput
+                python manage.py sync_training_tasks
+                python manage.py collectstatic --noinput
+              "
+
+              systemctl restart ticket-sandbox
+              systemctl status ticket-sandbox --no-pager
+            '
