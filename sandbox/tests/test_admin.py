@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -125,3 +127,56 @@ class SandboxAdminTests(TestCase):
         self.task.refresh_from_db()
 
         self.assertFalse(self.task.requires_manual_review)
+
+    @patch("sandbox.admin.call_command")
+    def test_task_admin_sync_training_tasks_page_runs_dry_run_for_superuser(
+        self,
+        mocked_call_command,
+    ):
+        response = self.client.get(
+            reverse("admin:sandbox_task_sync_training_tasks"),
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        mocked_call_command.assert_called_once()
+        args, kwargs = mocked_call_command.call_args
+
+        self.assertEqual(args, ("sync_training_tasks", "--dry-run"))
+        self.assertIn("stdout", kwargs)
+
+    @patch("sandbox.admin.call_command")
+    def test_task_admin_sync_training_tasks_post_runs_sync_for_superuser(
+        self,
+        mocked_call_command,
+    ):
+        response = self.client.post(
+            reverse("admin:sandbox_task_sync_training_tasks"),
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        mocked_call_command.assert_called_once()
+        args, kwargs = mocked_call_command.call_args
+
+        self.assertEqual(args, ("sync_training_tasks",))
+        self.assertIn("stdout", kwargs)
+
+    def test_task_admin_sync_training_tasks_forbidden_for_staff_not_superuser(self):
+        User = get_user_model()
+
+        staff_user = User.objects.create_user(
+            username="staff-user",
+            email="staff-user@example.com",
+            password="test-password",
+            is_staff=True,
+            is_superuser=False,
+        )
+
+        self.client.force_login(staff_user)
+
+        response = self.client.get(
+            reverse("admin:sandbox_task_sync_training_tasks"),
+        )
+
+        self.assertEqual(response.status_code, 403)

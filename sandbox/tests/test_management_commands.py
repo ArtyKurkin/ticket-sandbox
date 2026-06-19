@@ -1,3 +1,4 @@
+import json
 import os
 from contextlib import contextmanager
 from datetime import timedelta
@@ -7,9 +8,10 @@ from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.utils import timezone
 
-from sandbox.models import TaskAttempt, TraineeProfile
+from sandbox.models import Task, TaskAttempt, TraineeProfile
 
 from .base import SandboxTestCase
 
@@ -122,6 +124,345 @@ class BuildTaskImagesCommandTests(SandboxTestCase):
             "training_tasks directory not found",
             stderr.getvalue(),
         )
+
+
+class SyncTrainingTasksCommandTests(SandboxTestCase):
+    def setUp(self):
+        self.queue = self.create_queue(
+            slug="l1",
+            name="ОТП Cloud L1",
+            order=1,
+            required_level=TraineeProfile.Level.L1,
+        )
+
+    def test_sync_training_tasks_creates_task_from_task_json(self):
+        stdout = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            self._write_training_task(
+                base_dir=Path(temp_dir),
+                queue_slug="l1",
+                task_slug="nginx-not-starting",
+                task_json={
+                    "title": "Nginx не запускается",
+                    "ticket_title": "Сайт перестал открываться",
+                    "client_name": "Алексей Морозов",
+                    "client_email": "a.morozov@example.com",
+                    "description": "После правки конфига nginx сайт перестал открываться.",
+                    "priority": Task.Priority.HIGH,
+                    "order": 7,
+                    "requires_manual_review": False,
+                    "is_active": True,
+                },
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                call_command(
+                    "sync_training_tasks",
+                    stdout=stdout,
+                )
+
+        task = Task.objects.get(
+            queue=self.queue,
+            slug="nginx-not-starting",
+        )
+
+        self.assertEqual(task.title, "Nginx не запускается")
+        self.assertEqual(task.ticket_title, "Сайт перестал открываться")
+        self.assertEqual(task.client_name, "Алексей Морозов")
+        self.assertEqual(task.client_email, "a.morozov@example.com")
+        self.assertEqual(
+            task.description,
+            "После правки конфига nginx сайт перестал открываться.",
+        )
+        self.assertEqual(task.priority, Task.Priority.HIGH)
+        self.assertEqual(task.order, 7)
+        self.assertFalse(task.requires_manual_review)
+        self.assertTrue(task.is_active)
+
+        self.assertIn(
+            "CREATED l1/nginx-not-starting",
+            stdout.getvalue(),
+        )
+
+    def test_sync_training_tasks_dry_run_does_not_create_task(self):
+        stdout = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            self._write_training_task(
+                base_dir=Path(temp_dir),
+                queue_slug="l1",
+                task_slug="dry-run-task",
+                task_json={
+                    "title": "Dry run task",
+                },
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                call_command(
+                    "sync_training_tasks",
+                    "--dry-run",
+                    stdout=stdout,
+                )
+
+        self.assertFalse(
+            Task.objects.filter(
+                queue=self.queue,
+                slug="dry-run-task",
+            ).exists()
+        )
+
+        self.assertIn(
+            "WOULD CREATE l1/dry-run-task",
+            stdout.getvalue(),
+        )
+
+    def test_sync_training_tasks_updates_existing_task_from_task_json(self):
+        task = self.create_task(
+            queue=self.queue,
+            slug="existing-task",
+            order=1,
+            title="Старое название",
+        )
+
+        stdout = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            self._write_training_task(
+                base_dir=Path(temp_dir),
+                queue_slug="l1",
+                task_slug="existing-task",
+                task_json={
+                    "title": "Новое название из task.json",
+                    "ticket_title": "Новая тема тикета",
+                    "client_name": "Мария Соколова",
+                    "client_email": "m.sokolova@example.com",
+                    "description": "Новое описание из task.json.",
+                    "priority": Task.Priority.CRITICAL,
+                    "order": 3,
+                    "requires_manual_review": True,
+                    "is_active": False,
+                },
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                call_command(
+                    "sync_training_tasks",
+                    stdout=stdout,
+                )
+
+        task.refresh_from_db()
+
+        self.assertEqual(task.title, "Новое название из task.json")
+        self.assertEqual(task.ticket_title, "Новая тема тикета")
+        self.assertEqual(task.client_name, "Мария Соколова")
+        self.assertEqual(task.client_email, "m.sokolova@example.com")
+        self.assertEqual(task.description, "Новое описание из task.json.")
+        self.assertEqual(task.priority, Task.Priority.CRITICAL)
+        self.assertEqual(task.order, 3)
+        self.assertTrue(task.requires_manual_review)
+        self.assertFalse(task.is_active)
+
+        self.assertIn(
+            "UPDATED l1/existing-task",
+            stdout.getvalue(),
+        )
+
+    def test_sync_training_tasks_skips_task_without_dockerfile(self):
+        stdout = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            self._write_training_task(
+                base_dir=Path(temp_dir),
+                queue_slug="l1",
+                task_slug="without-dockerfile",
+                create_dockerfile=False,
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                call_command(
+                    "sync_training_tasks",
+                    stdout=stdout,
+                )
+
+        self.assertFalse(
+            Task.objects.filter(
+                queue=self.queue,
+                slug="without-dockerfile",
+            ).exists()
+        )
+
+        self.assertIn(
+            "SKIP l1/without-dockerfile: Dockerfile not found",
+            stdout.getvalue(),
+        )
+
+    def test_sync_training_tasks_skips_task_without_check_script(self):
+        stdout = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            self._write_training_task(
+                base_dir=Path(temp_dir),
+                queue_slug="l1",
+                task_slug="without-check",
+                create_check_script=False,
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                call_command(
+                    "sync_training_tasks",
+                    stdout=stdout,
+                )
+
+        self.assertFalse(
+            Task.objects.filter(
+                queue=self.queue,
+                slug="without-check",
+            ).exists()
+        )
+
+        self.assertIn(
+            "SKIP l1/without-check: check.sh not found",
+            stdout.getvalue(),
+        )
+
+    def test_sync_training_tasks_skips_task_when_queue_does_not_exist(self):
+        stdout = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            self._write_training_task(
+                base_dir=Path(temp_dir),
+                queue_slug="unknown",
+                task_slug="unknown-queue-task",
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                call_command(
+                    "sync_training_tasks",
+                    stdout=stdout,
+                )
+
+        self.assertFalse(
+            Task.objects.filter(
+                slug="unknown-queue-task",
+            ).exists()
+        )
+
+        self.assertIn(
+            "SKIP unknown/unknown-queue-task: queue not found",
+            stdout.getvalue(),
+        )
+
+    def test_sync_training_tasks_raises_for_invalid_task_json_root(self):
+        with TemporaryDirectory() as temp_dir:
+            task_dir = (
+                Path(temp_dir)
+                / "training_tasks"
+                / "l1"
+                / "invalid-json-root"
+            )
+            files_dir = task_dir / "files"
+            files_dir.mkdir(parents=True)
+
+            (task_dir / "Dockerfile").write_text(
+                "FROM ubuntu:24.04\n",
+                encoding="utf-8",
+            )
+
+            check_script = files_dir / "check.sh"
+            check_script.write_text(
+                "#!/usr/bin/env bash\nexit 0\n",
+                encoding="utf-8",
+            )
+            check_script.chmod(0o755)
+
+            (task_dir / "task.json").write_text(
+                '["not", "an", "object"]',
+                encoding="utf-8",
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                with self.assertRaisesMessage(
+                    CommandError,
+                    "root value must be an object",
+                ):
+                    call_command("sync_training_tasks")
+
+    def test_sync_training_tasks_raises_for_invalid_priority(self):
+        with TemporaryDirectory() as temp_dir:
+            self._write_training_task(
+                base_dir=Path(temp_dir),
+                queue_slug="l1",
+                task_slug="invalid-priority",
+                task_json={
+                    "title": "Invalid priority task",
+                    "priority": "super-important",
+                },
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                with self.assertRaisesMessage(
+                    CommandError,
+                    '"priority" must be one of',
+                ):
+                    call_command("sync_training_tasks")
+
+    def test_sync_training_tasks_raises_for_invalid_boolean_field(self):
+        with TemporaryDirectory() as temp_dir:
+            self._write_training_task(
+                base_dir=Path(temp_dir),
+                queue_slug="l1",
+                task_slug="invalid-bool",
+                task_json={
+                    "title": "Invalid bool task",
+                    "requires_manual_review": "yes",
+                },
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                with self.assertRaisesMessage(
+                    CommandError,
+                    '"requires_manual_review" must be true or false',
+                ):
+                    call_command("sync_training_tasks")
+
+    def _write_training_task(
+        self,
+        base_dir,
+        queue_slug,
+        task_slug,
+        task_json=None,
+        create_dockerfile=True,
+        create_check_script=True,
+    ):
+        task_dir = base_dir / "training_tasks" / queue_slug / task_slug
+        files_dir = task_dir / "files"
+
+        files_dir.mkdir(parents=True)
+
+        if create_dockerfile:
+            (task_dir / "Dockerfile").write_text(
+                "FROM ubuntu:24.04\n",
+                encoding="utf-8",
+            )
+
+        if create_check_script:
+            check_script = files_dir / "check.sh"
+            check_script.write_text(
+                "#!/usr/bin/env bash\nexit 0\n",
+                encoding="utf-8",
+            )
+            check_script.chmod(0o755)
+
+        if task_json is not None:
+            (task_dir / "task.json").write_text(
+                json.dumps(
+                    task_json,
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
 
 
 class CleanupTaskContainersCommandTests(SandboxTestCase):

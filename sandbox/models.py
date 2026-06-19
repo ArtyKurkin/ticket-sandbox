@@ -280,7 +280,8 @@ class TaskAttempt(models.Model):
         verbose_name="Имя контейнера терминала"
     )
 
-    terminal_url = models.URLField(
+    terminal_url = models.CharField(
+        max_length=255,
         blank=True,
         verbose_name="URL терминала"
     )

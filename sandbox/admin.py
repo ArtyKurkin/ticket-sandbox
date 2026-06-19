@@ -1,10 +1,19 @@
-from django.contrib import admin
+from io import StringIO
+
+from django.contrib import admin, messages
+from django.core.management import call_command
+from django.core.management.base import CommandError
+from django.http import HttpResponseForbidden
+from django.template.response import TemplateResponse
+from django.urls import path
 
 from .models import CheckRun, Queue, Task, TaskAttempt, TraineeProfile
 
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
+    change_list_template = "admin/sandbox/task/change_list.html"
+
     list_display = (
         "order",
         "queue",
@@ -84,6 +93,87 @@ class TaskAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+    def get_urls(self):
+        urls = super().get_urls()
+
+        custom_urls = [
+            path(
+                "sync-training-tasks/",
+                self.admin_site.admin_view(self.sync_training_tasks_view),
+                name="sandbox_task_sync_training_tasks",
+            ),
+        ]
+
+        return custom_urls + urls
+
+    def sync_training_tasks_view(self, request):
+        if not request.user.is_superuser:
+            return HttpResponseForbidden(
+                "sync_training_tasks доступен только superuser."
+            )
+
+        output = StringIO()
+        has_error = False
+        error_message = ""
+
+        if request.method == "POST":
+            title = "Синхронизация training_tasks"
+            is_dry_run = False
+
+            try:
+                call_command(
+                    "sync_training_tasks",
+                    stdout=output,
+                )
+            except CommandError as error:
+                has_error = True
+                error_message = str(error)
+                self.message_user(
+                    request,
+                    f"sync_training_tasks завершился с ошибкой: {error_message}",
+                    level=messages.ERROR,
+                )
+            else:
+                self.message_user(
+                    request,
+                    "sync_training_tasks успешно выполнен.",
+                    level=messages.SUCCESS,
+                )
+        else:
+            title = "Проверка sync_training_tasks"
+            is_dry_run = True
+
+            try:
+                call_command(
+                    "sync_training_tasks",
+                    "--dry-run",
+                    stdout=output,
+                )
+            except CommandError as error:
+                has_error = True
+                error_message = str(error)
+                self.message_user(
+                    request,
+                    f"sync_training_tasks --dry-run завершился с ошибкой: {error_message}",
+                    level=messages.ERROR,
+                )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": title,
+            "opts": self.model._meta,
+            "output": output.getvalue(),
+            "is_dry_run": is_dry_run,
+            "has_error": has_error,
+            "error_message": error_message,
+        }
+
+        return TemplateResponse(
+            request,
+            "admin/sandbox/task/sync_training_tasks.html",
+            context,
+        )
 
     @admin.action(description="Включить выбранные задания")
     def activate_tasks(self, request, queryset):

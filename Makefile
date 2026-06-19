@@ -40,7 +40,7 @@ test-docker:
 	python manage.py test sandbox.tests.test_docker_service sandbox.tests.test_management_commands
 
 test-dashboards:
-	python manage.py test sandbox.tests.test_trainee_dashboard sandbox.tests.test_mentor_dashboard
+	python manage.py test sandbox.tests.test_task_availability sandbox.tests.test_queue_access sandbox.tests.test_mentor_dashboard
 
 validate: check migrations-check test
 

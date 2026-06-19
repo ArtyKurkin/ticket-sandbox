@@ -64,6 +64,19 @@ DEFAULT_DESCRIPTIONS = {
     ),
 }
 
+REQUIRED_STRING_FIELDS = (
+    "title",
+    "ticket_title",
+    "client_name",
+    "client_email",
+    "description",
+)
+
+BOOL_FIELDS = (
+    "requires_manual_review",
+    "is_active",
+)
+
 
 def normalize_slug(slug):
     return slug.replace("_", "-")
@@ -81,9 +94,16 @@ def read_task_json(task_dir):
 
     try:
         with metadata_path.open("r", encoding="utf-8") as file:
-            return json.load(file)
+            metadata = json.load(file)
     except json.JSONDecodeError as error:
         raise CommandError(f"Invalid JSON in {metadata_path}: {error}") from error
+
+    if not isinstance(metadata, dict):
+        raise CommandError(
+            f"Invalid JSON in {metadata_path}: root value must be an object"
+        )
+
+    return metadata
 
 
 def get_check_paths(task_dir):
@@ -127,6 +147,42 @@ def get_default_metadata(task_slug, order):
         "requires_manual_review": True,
         "is_active": True,
     }
+
+
+def validate_task_metadata(metadata, task_dir):
+    metadata_path = task_dir / "task.json"
+
+    for field_name in REQUIRED_STRING_FIELDS:
+        value = metadata.get(field_name)
+
+        if not isinstance(value, str) or not value.strip():
+            raise CommandError(
+                f'Invalid metadata in {metadata_path}: "{field_name}" must be a non-empty string'
+            )
+
+    priority = metadata.get("priority", Task.Priority.MEDIUM)
+    allowed_priorities = {value for value, _label in Task.Priority.choices}
+
+    if priority not in allowed_priorities:
+        allowed = ", ".join(sorted(allowed_priorities))
+        raise CommandError(
+            f'Invalid metadata in {metadata_path}: "priority" must be one of: {allowed}'
+        )
+
+    order = metadata.get("order")
+
+    if isinstance(order, bool) or not isinstance(order, int) or order < 1:
+        raise CommandError(
+            f'Invalid metadata in {metadata_path}: "order" must be a positive integer'
+        )
+
+    for field_name in BOOL_FIELDS:
+        value = metadata.get(field_name)
+
+        if not isinstance(value, bool):
+            raise CommandError(
+                f'Invalid metadata in {metadata_path}: "{field_name}" must be true or false'
+            )
 
 
 class Command(BaseCommand):
@@ -201,6 +257,7 @@ class Command(BaseCommand):
 
             metadata = get_default_metadata(task_slug, default_order)
             metadata.update(read_task_json(task_dir))
+            validate_task_metadata(metadata, task_dir)
 
             task_values = {
                 "title": metadata["title"],

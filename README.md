@@ -524,23 +524,53 @@ echo "OK: nginx работает, сайт отвечает"
 chmod +x training_tasks/l1/nginx-not-starting/files/check.sh
 ```
 
-### 4. Создать Task в админке
+### 4. Добавить task.json
 
-В Django admin нужно создать задание и указать:
+`task.json` — основной источник правды для учебного задания.
 
-- очередь;
-- название;
-- slug;
-- тему тикета;
-- сообщение клиента;
-- имя клиента;
-- email клиента;
-- приоритет;
-- порядок;
-- нужна ли ручная проверка;
-- активность.
+Постоянные правки текста тикета, клиента, приоритета, порядка, активности и ручной проверки нужно делать в файле, а не руками в Django admin.
 
-Важно: `slug` должен совпадать с названием папки задания.
+Минимальный пример:
+
+```json
+{
+  "title": "Nginx не запускается после изменения конфига",
+  "ticket_title": "Сайт перестал открываться после правки nginx",
+  "client_name": "Алексей Морозов",
+  "client_email": "a.morozov@example.com",
+  "description": "Здравствуйте. После изменения конфигурации сайт перестал открываться.",
+  "priority": "medium",
+  "order": 1,
+  "requires_manual_review": true,
+  "is_active": true
+}
+```
+
+Важно: `slug` берется из названия папки задания и должен совпадать со slug задачи в БД.
+
+Для примера выше папка задания может выглядеть так:
+
+```text
+training_tasks/l1/nginx-not-starting/
+```
+
+### 5. Синхронизировать задания
+
+Сначала посмотри, что будет создано или обновлено:
+
+```bash
+python manage.py sync_training_tasks --dry-run
+```
+
+Потом примени изменения:
+
+```bash
+python manage.py sync_training_tasks
+```
+
+Django admin можно использовать для просмотра, фильтров и быстрых массовых действий, но постоянные правки учебных заданий нужно фиксировать в `training_tasks/<queue_slug>/<task_slug>/task.json`.
+
+Если поправить задание только через admin, следующий запуск `sync_training_tasks` может вернуть значения из файлов.
 
 ## Проверка проекта
 
@@ -589,6 +619,7 @@ Workflow выполняет базовые проверки:
 ```text
 python manage.py makemigrations --check --dry-run
 python manage.py check
+python manage.py check --deploy
 python manage.py test sandbox
 ```
 
@@ -897,6 +928,12 @@ LOG_LEVEL=INFO
 python manage.py migrate
 ```
 
+Синхронизировать учебные задания из `training_tasks`:
+
+```bash
+python manage.py sync_training_tasks
+```
+
 Собрать static-файлы:
 
 ```bash
@@ -996,6 +1033,8 @@ python manage.py cleanup_task_containers
 ```bash
 python manage.py check --deploy
 python manage.py migrate
+python manage.py sync_training_tasks --dry-run
+python manage.py sync_training_tasks
 python manage.py collectstatic --noinput
 python manage.py build_task_images
 ```

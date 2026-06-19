@@ -1,0 +1,66 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Главная</a>
+    &rsaquo;
+    <a href="{% url 'admin:app_list' app_label='sandbox' %}">Sandbox</a>
+    &rsaquo;
+    <a href="{% url 'admin:sandbox_task_changelist' %}">Задания</a>
+    &rsaquo;
+    {{ title }}
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div id="content-main">
+    {% if is_dry_run %}
+      <p>
+        Ниже показан результат предварительной проверки
+        <code>sync_training_tasks --dry-run</code>.
+        Изменения в БД ещё не применялись.
+      </p>
+    {% else %}
+      <p>
+        Ниже показан результат выполнения
+        <code>sync_training_tasks</code>.
+      </p>
+    {% endif %}
+
+    {% if has_error %}
+      <p class="errornote">
+        {{ error_message }}
+      </p>
+    {% endif %}
+
+    <pre style="white-space: pre-wrap; padding: 12px; border: 1px solid var(--hairline-color); border-radius: 4px; background: var(--body-bg);">{{ output }}</pre>
+
+    {% if is_dry_run and not has_error %}
+      <form method="post">
+        {% csrf_token %}
+        <div class="submit-row">
+          <input
+            type="submit"
+            value="Применить sync_training_tasks"
+            class="default"
+          >
+          <a
+            href="{% url 'admin:sandbox_task_changelist' %}"
+            class="closelink"
+          >
+            Назад к заданиям
+          </a>
+        </div>
+      </form>
+    {% else %}
+      <div class="submit-row">
+        <a
+          href="{% url 'admin:sandbox_task_changelist' %}"
+          class="closelink"
+        >
+          Назад к заданиям
+        </a>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -36,6 +36,18 @@ jobs:
       - name: Django system check
         run: python manage.py check
 
+      - name: Django deploy check
+        env:
+          SECRET_KEY: "ci-deploy-check-secret-key-with-enough-length-and-variety-2026"
+          DEBUG: "False"
+          ALLOWED_HOSTS: "example.com"
+          CSRF_TRUSTED_ORIGINS: "https://example.com"
+          DB_ENGINE: django.db.backends.sqlite3
+          DB_NAME: ":memory:"
+          TERMINAL_GATEWAY_ENABLED: "true"
+          CHECK_TASK_TIMEOUT_SECONDS: "60"
+        run: python manage.py check --deploy
+
       - name: Run tests
         run: python manage.py test sandbox
 
@@ -60,31 +72,66 @@ jobs:
 
       - name: Deploy to staging
         run: |
-          ssh \
-            -i ~/.ssh/staging_key \
-            -p "${{ secrets.STAGING_PORT }}" \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" '
-              set -e
+          set -e
 
-              runuser -u ticket-sandbox -- bash -lc "
-                set -e
+          echo "## Staging deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
-                cd /opt/ticket-sandbox
+          run_remote_step() {
+            local title="$1"
+            local command="$2"
 
-                GIT_SSH_COMMAND=\"ssh -i /root/.ssh/ticket_sandbox_deploy -o IdentitiesOnly=yes\" git pull --ff-only
+            echo "▶️ ${title}"
 
-                set -a
-                . /opt/ticket-sandbox/.env
-                set +a
-                . .venv/bin/activate
+            if ssh \
+              -i ~/.ssh/staging_key \
+              -p "${{ secrets.STAGING_PORT }}" \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes \
+              "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" \
+              "${command}"
+            then
+              echo "- ✅ ${title}" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- ❌ ${title}" >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          }
 
-                python manage.py migrate --noinput
-                python manage.py sync_training_tasks
-                python manage.py collectstatic --noinput
-              "
+          run_as_app_user() {
+            local title="$1"
+            local command="$2"
 
-              systemctl restart ticket-sandbox
-              systemctl status ticket-sandbox --no-pager
-            '
+            run_remote_step "${title}" "set -e; runuser -u ticket-sandbox -- bash -lc 'set -e; cd /opt/ticket-sandbox; set -a; . /opt/ticket-sandbox/.env; set +a; . .venv/bin/activate; ${command}'"
+          }
+
+          run_as_app_user \
+            "Pull latest code" \
+            "GIT_SSH_COMMAND=\"ssh -i /root/.ssh/ticket_sandbox_deploy -o IdentitiesOnly=yes\" git pull --ff-only"
+
+          run_as_app_user \
+            "Run migrations" \
+            "python manage.py migrate --noinput"
+
+          run_as_app_user \
+            "Sync training tasks" \
+            "python manage.py sync_training_tasks"
+
+          run_as_app_user \
+            "Build task images" \
+            "python manage.py build_task_images"
+
+          run_as_app_user \
+            "Collect static files" \
+            "python manage.py collectstatic --noinput"
+
+          run_remote_step \
+            "Restart ticket-sandbox service" \
+            "set -e; systemctl restart ticket-sandbox"
+
+          run_remote_step \
+            "Check ticket-sandbox service status" \
+            "set -e; systemctl status ticket-sandbox --no-pager"
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Staging deploy finished successfully." >> "$GITHUB_STEP_SUMMARY"

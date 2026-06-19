@@ -177,12 +177,49 @@ training_tasks/candidate/
 queue.slug = candidate
 ```
 
+
+### task.json — источник правды для задания
+
+Задания синхронизируются командой:
+
+```bash
+python manage.py sync_training_tasks
+```
+
+Поэтому постоянные правки задания нужно делать в файле:
+
+```text
+training_tasks/<queue_slug>/<task_slug>/task.json
+```
+
+А не руками в Django admin.
+
+Django admin можно использовать для просмотра, фильтров и быстрых массовых действий, но при следующем deploy/CD команда `sync_training_tasks` снова применит значения из файлов.
+
+Перед применением изменений лучше запускать dry-run:
+
+```bash
+python manage.py sync_training_tasks --dry-run
+```
+
 ## Проверка нового задания
 
-После добавления задания проверь проект:
+После добавления или изменения задания проверь проект:
 
 ```bash
 python manage.py check
+```
+
+Проверь, что команда синхронизации видит изменения:
+
+```bash
+python manage.py sync_training_tasks --dry-run
+```
+
+Если dry-run показывает ожидаемые изменения, примени синхронизацию:
+
+```bash
+python manage.py sync_training_tasks
 ```
 
 Проверь, что Django видит задачу:
@@ -217,13 +254,16 @@ ls -la training_tasks/l1/task-slug/files/check.sh
 ```bash
 python manage.py build_task_images
 python manage.py cleanup_task_containers
+python manage.py sync_training_tasks
 ```
 
 `build_task_images` собирает Docker-образы заданий.
 
 `cleanup_task_containers` удаляет контейнеры тренажера.
 
-Если меняешь Docker-логику или структуру `training_tasks`, проверь обе команды и тесты для них.
+`sync_training_tasks` создает и обновляет задания в БД из папки `training_tasks`.
+
+Если меняешь Docker-логику, структуру `training_tasks` или `task.json`, проверь management-команды и тесты для них.
 
 ## Тесты
 
@@ -507,6 +547,7 @@ make test-actions
 ```bash
 python manage.py check
 python manage.py makemigrations --check --dry-run
+python manage.py sync_training_tasks --dry-run
 python manage.py test sandbox
 ```
 
