@@ -105,6 +105,21 @@ jobs:
             run_remote_step "${title}" "set -e; runuser -u ticket-sandbox -- bash -lc 'set -e; cd /opt/ticket-sandbox; set -a; . /opt/ticket-sandbox/.env; set +a; . .venv/bin/activate; ${command}'"
           }
 
+          run_local_step() {
+            local title="$1"
+            local command="$2"
+
+            echo "▶️ ${title}"
+
+            if bash -lc "${command}"
+            then
+              echo "- ✅ ${title}" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- ❌ ${title}" >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          }
+
           run_as_app_user \
             "Pull latest code" \
             "GIT_SSH_COMMAND=\"ssh -i /root/.ssh/ticket_sandbox_deploy -o IdentitiesOnly=yes\" git pull --ff-only"
@@ -132,6 +147,14 @@ jobs:
           run_remote_step \
             "Check ticket-sandbox service status" \
             "set -e; systemctl status ticket-sandbox --no-pager"
+
+          run_local_step \
+            "Check staging homepage" \
+            "curl -fsSI '${{ secrets.STAGING_URL }}/' > /dev/null"
+
+          run_local_step \
+            "Check staging admin login" \
+            "curl -fsSI '${{ secrets.STAGING_URL }}/admin/login/' > /dev/null"
 
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Staging deploy finished successfully." >> "$GITHUB_STEP_SUMMARY"
