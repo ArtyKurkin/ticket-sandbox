@@ -49,7 +49,12 @@ jobs:
         run: python manage.py check --deploy
 
       - name: Check training tasks sync
-        run: python manage.py sync_training_tasks --dry-run --strict
+        env:
+          DB_ENGINE: django.db.backends.sqlite3
+          DB_NAME: ci-sync-check.sqlite3
+        run: |
+          python manage.py migrate --noinput
+          python manage.py sync_training_tasks --dry-run --strict
 
       - name: Run tests
         run: python manage.py test sandbox
