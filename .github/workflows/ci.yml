@@ -48,6 +48,9 @@ jobs:
           CHECK_TASK_TIMEOUT_SECONDS: "60"
         run: python manage.py check --deploy
 
+      - name: Check training tasks sync
+        run: python manage.py sync_training_tasks --dry-run --strict
+
       - name: Run tests
         run: python manage.py test sandbox
 
@@ -129,8 +132,8 @@ jobs:
             "python manage.py migrate --noinput"
 
           run_as_app_user \
-            "Sync training tasks" \
-            "python manage.py sync_training_tasks"
+            "Sync training tasks in strict mode" \
+            "python manage.py sync_training_tasks --strict"
 
           run_as_app_user \
             "Build task images" \

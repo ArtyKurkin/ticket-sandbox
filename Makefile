@@ -1,4 +1,4 @@
-.PHONY: up migrate run build-images cleanup makemigrations shell check migrations-check test validate nginx-test nginx-start nginx-reload nginx-stop nginx-logs test-terminal test-actions test-docker test-dashboards serve
+.PHONY: up migrate run build-images cleanup makemigrations shell check migrations-check sync-check test validate nginx-test nginx-start nginx-reload nginx-stop nginx-logs test-terminal test-actions test-docker test-dashboards serve
 
 up:
 	docker compose up -d
@@ -27,6 +27,9 @@ check:
 migrations-check:
 	python manage.py makemigrations --check --dry-run
 
+sync-check:
+	python manage.py sync_training_tasks --dry-run --strict
+
 test:
 	python manage.py test sandbox
 
@@ -42,7 +45,7 @@ test-docker:
 test-dashboards:
 	python manage.py test sandbox.tests.test_task_availability sandbox.tests.test_queue_access sandbox.tests.test_mentor_dashboard
 
-validate: check migrations-check test
+validate: check migrations-check sync-check test
 
 nginx-test:
 	nginx -p "$(PWD)" -c "$(PWD)/deploy/nginx/ticket-sandbox-local.conf" -t

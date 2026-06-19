@@ -217,6 +217,54 @@ class SyncTrainingTasksCommandTests(SandboxTestCase):
             stdout.getvalue(),
         )
 
+        self.assertIn(
+            "Dry run done. would_create=1, would_update=0, skipped=0",
+            stdout.getvalue(),
+        )
+
+    def test_sync_training_tasks_dry_run_reports_existing_task_as_would_update(self):
+        self.create_task(
+            queue=self.queue,
+            slug="existing-dry-run-task",
+            order=1,
+            title="Старое название",
+        )
+
+        stdout = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            self._write_training_task(
+                base_dir=Path(temp_dir),
+                queue_slug="l1",
+                task_slug="existing-dry-run-task",
+                task_json={
+                    "title": "Новое название из dry-run",
+                },
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                call_command(
+                    "sync_training_tasks",
+                    "--dry-run",
+                    stdout=stdout,
+                )
+
+        task = Task.objects.get(
+            queue=self.queue,
+            slug="existing-dry-run-task",
+        )
+
+        self.assertEqual(task.title, "Старое название")
+
+        self.assertIn(
+            "WOULD UPDATE l1/existing-dry-run-task",
+            stdout.getvalue(),
+        )
+        self.assertIn(
+            "Dry run done. would_create=0, would_update=1, skipped=0",
+            stdout.getvalue(),
+        )
+
     def test_sync_training_tasks_updates_existing_task_from_task_json(self):
         task = self.create_task(
             queue=self.queue,
@@ -350,6 +398,44 @@ class SyncTrainingTasksCommandTests(SandboxTestCase):
 
         self.assertIn(
             "SKIP unknown/unknown-queue-task: queue not found",
+            stdout.getvalue(),
+        )
+
+    def test_sync_training_tasks_strict_raises_when_task_was_skipped(self):
+        stdout = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            self._write_training_task(
+                base_dir=Path(temp_dir),
+                queue_slug="l1",
+                task_slug="strict-without-dockerfile",
+                create_dockerfile=False,
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                with self.assertRaisesMessage(
+                    CommandError,
+                    "skipped 1 task(s) in strict mode",
+                ):
+                    call_command(
+                        "sync_training_tasks",
+                        "--strict",
+                        stdout=stdout,
+                    )
+
+        self.assertFalse(
+            Task.objects.filter(
+                queue=self.queue,
+                slug="strict-without-dockerfile",
+            ).exists()
+        )
+
+        self.assertIn(
+            "SKIP l1/strict-without-dockerfile: Dockerfile not found",
+            stdout.getvalue(),
+        )
+        self.assertIn(
+            "Done. created=0, updated=0, skipped=1",
             stdout.getvalue(),
         )
 

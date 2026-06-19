@@ -124,6 +124,7 @@ class TaskAdmin(admin.ModelAdmin):
             try:
                 call_command(
                     "sync_training_tasks",
+                    "--strict",
                     stdout=output,
                 )
             except CommandError as error:
@@ -131,7 +132,7 @@ class TaskAdmin(admin.ModelAdmin):
                 error_message = str(error)
                 self.message_user(
                     request,
-                    f"sync_training_tasks завершился с ошибкой: {error_message}",
+                    f"sync_training_tasks --strict завершился с ошибкой: {error_message}",
                     level=messages.ERROR,
                 )
             else:
@@ -148,6 +149,7 @@ class TaskAdmin(admin.ModelAdmin):
                 call_command(
                     "sync_training_tasks",
                     "--dry-run",
+                    "--strict",
                     stdout=output,
                 )
             except CommandError as error:
@@ -155,7 +157,7 @@ class TaskAdmin(admin.ModelAdmin):
                 error_message = str(error)
                 self.message_user(
                     request,
-                    f"sync_training_tasks --dry-run завершился с ошибкой: {error_message}",
+                    f"sync_training_tasks --dry-run --strict завершился с ошибкой: {error_message}",
                     level=messages.ERROR,
                 )
 

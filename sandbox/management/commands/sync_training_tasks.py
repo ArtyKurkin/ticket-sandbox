@@ -194,9 +194,15 @@ class Command(BaseCommand):
             action="store_true",
             help="Show what would be changed without saving to the database.",
         )
+        parser.add_argument(
+            "--strict",
+            action="store_true",
+            help="Завершать команду ошибкой, если хотя бы одно задание было пропущено.",
+        )
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
+        strict = options["strict"]
         base_dir = Path(settings.BASE_DIR) / "training_tasks"
 
         if not base_dir.exists():
@@ -274,7 +280,13 @@ class Command(BaseCommand):
             exists = Task.objects.filter(queue=queue, slug=task_slug).exists()
 
             if dry_run:
-                action = "WOULD UPDATE" if exists else "WOULD CREATE"
+                if exists:
+                    updated_count += 1
+                    action = "WOULD UPDATE"
+                else:
+                    created_count += 1
+                    action = "WOULD CREATE"
+
                 self.stdout.write(
                     f"{action} {queue_slug}/{task_slug}: {task_values['title']}"
                 )
@@ -301,8 +313,26 @@ class Command(BaseCommand):
                     )
                 )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Done. created={created_count}, updated={updated_count}, skipped={skipped_count}"
+        if dry_run:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "Dry run done. "
+                    f"would_create={created_count}, "
+                    f"would_update={updated_count}, "
+                    f"skipped={skipped_count}"
+                )
             )
-        )
+        else:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "Done. "
+                    f"created={created_count}, "
+                    f"updated={updated_count}, "
+                    f"skipped={skipped_count}"
+                )
+            )
+
+        if strict and skipped_count:
+            raise CommandError(
+                f"sync_training_tasks skipped {skipped_count} task(s) in strict mode."
+            )

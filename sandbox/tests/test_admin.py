@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.management.base import CommandError
 from django.test import TestCase
 from django.urls import reverse
 
@@ -142,7 +143,7 @@ class SandboxAdminTests(TestCase):
         mocked_call_command.assert_called_once()
         args, kwargs = mocked_call_command.call_args
 
-        self.assertEqual(args, ("sync_training_tasks", "--dry-run"))
+        self.assertEqual(args, ("sync_training_tasks", "--dry-run", "--strict"))
         self.assertIn("stdout", kwargs)
 
     @patch("sandbox.admin.call_command")
@@ -159,7 +160,7 @@ class SandboxAdminTests(TestCase):
         mocked_call_command.assert_called_once()
         args, kwargs = mocked_call_command.call_args
 
-        self.assertEqual(args, ("sync_training_tasks",))
+        self.assertEqual(args, ("sync_training_tasks", "--strict"))
         self.assertIn("stdout", kwargs)
 
     def test_task_admin_sync_training_tasks_forbidden_for_staff_not_superuser(self):
@@ -180,3 +181,30 @@ class SandboxAdminTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+    @patch("sandbox.admin.call_command")
+    def test_task_admin_sync_training_tasks_dry_run_error_hides_apply_button(
+        self,
+        mocked_call_command,
+    ):
+        mocked_call_command.side_effect = CommandError(
+            "sync_training_tasks skipped 1 task(s) in strict mode."
+        )
+
+        response = self.client.get(
+            reverse("admin:sandbox_task_sync_training_tasks"),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "sync_training_tasks skipped 1 task(s) in strict mode.",
+        )
+        self.assertContains(
+            response,
+            "sync_training_tasks --dry-run --strict",
+        )
+        self.assertNotContains(
+            response,
+            "Применить sync_training_tasks",
+        )
