@@ -161,6 +161,10 @@ jobs:
             "curl -fsSI '${{ secrets.STAGING_URL }}/' > /dev/null"
 
           run_local_step \
+            "Check staging healthz" \
+            "curl -fsSI '${{ secrets.STAGING_URL }}/healthz/' > /dev/null"
+
+          run_local_step \
             "Check staging admin login" \
             "curl -fsSI '${{ secrets.STAGING_URL }}/admin/login/' > /dev/null"
 

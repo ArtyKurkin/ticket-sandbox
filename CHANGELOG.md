@@ -482,44 +482,7 @@ make validate
 
 ---
 
-## Ближайший план
-
-### На следующей неделе
-
-Подготовить первый staging-деплой.
-
-Перед staging нужно:
-
-- пройти полный `make validate`;
-- собрать архив без `.venv`, `__pycache__`, `.env`, логов и временных файлов;
-- пройти ручное тестирование по чеклисту:
-  - вход стажера;
-  - вход наставника;
-  - запуск задания;
-  - открытие терминала через nginx gateway;
-  - автопроверка;
-  - ручная проверка наставником;
-  - повторная тренировочная попытка;
-  - историческая попытка в read-only режиме;
-  - проверка запрета чужого терминала;
-  - проверка logout/анонимного доступа;
-  - проверка nginx reload/stop/start;
-  - проверка timeout `check.sh`;
-  - проверка поведения при недоступном Docker API.
-
-### После staging
-
-- Подготовить production-инструкцию для nginx, TLS и безопасных заголовков.
-- Добавить больше задач для очереди `l1`.
-- Уточнить UX по долгим операциям запуска, проверки и перезапуска.
-- Подготовить план выноса Docker-операций в Celery + Redis.
-
-### После pilot
-
-- Вынести тяжелые Docker-операции в Celery + Redis.
-- Добавить полноценные фоновые статусы долгих операций.
-- Добавить больше задач для очередей `candidate`, `l1` и `l2`.
-- Усилить production hardening.
+---
 
 ## Неделя 7 — Подготовка к staging-деплою
 
@@ -549,7 +512,7 @@ make validate
   - `CSRF_COOKIE_SECURE`;
   - `SECURE_HSTS_SECONDS`;
   - `SECURE_HSTS_INCLUDE_SUBDOMAINS`;
-  - `SECURE_HSTS_PRELOAD`;
+  - `SECURE_HSTS_PRELOAD` пока не включается автоматически для staging;
   - `SECURE_CONTENT_TYPE_NOSNIFF`;
   - `X_FRAME_OPTIONS = "SAMEORIGIN"`.
 - Добавлен раздел `Деплой на сервер` в `README.md`.
@@ -605,3 +568,222 @@ make validate
 - Добавить ротацию логов gunicorn/nginx/cleanup.
 - Вынести тяжелые Docker-операции в Celery + Redis.
 - Добавить фоновые статусы для запуска, проверки и перезапуска окружений.
+---
+
+## Неделя 8 — Staging CI/CD, sync_training_tasks и управление заданиями
+
+### Архитектурные решения
+
+- `training_tasks/<queue_slug>/<task_slug>/task.json` закреплен как источник правды для учебных заданий.
+- Django admin используется для просмотра, фильтров, массовых действий и ручного запуска sync, но не как основной источник постоянных правок задания.
+- `sync_training_tasks` стал частью delivery-процесса: новые и измененные задания должны попадать в БД через команду синхронизации.
+- В CI и CD используется строгая проверка `training_tasks`: сломанные задания не должны молча пропускаться и уезжать на staging.
+- Staging deploy выполняется через GitHub Actions после успешных тестов и только для ветки `main`.
+- CD должен не только перезапускать сервис, но и показывать понятный summary по этапам деплоя.
+- Smoke-check staging выполняется с GitHub runner, чтобы проверить доступность сервиса снаружи через nginx/HTTPS.
+- `TaskAttempt.terminal_url` хранит относительный путь terminal gateway, поэтому поле должно быть `CharField`, а не `URLField`.
+
+### Добавлено
+
+- Доработана команда `sync_training_tasks`:
+  - добавлен понятный summary для обычного режима;
+  - добавлен понятный summary для `--dry-run`;
+  - добавлен режим `--strict`;
+  - добавлена валидация `task.json`;
+  - некорректный JSON, неправильные типы полей и некорректный `priority` теперь останавливают команду;
+  - в strict-режиме команда падает, если хотя бы одно задание было пропущено.
+- Добавлена admin-страница для синхронизации `training_tasks`:
+  - GET выполняет `sync_training_tasks --dry-run --strict`;
+  - POST выполняет `sync_training_tasks --strict`;
+  - при ошибке dry-run кнопка применения не показывается;
+  - доступ к запуску sync ограничен superuser.
+- Добавлена кнопка `Синхронизировать training_tasks` на странице списка заданий в Django admin.
+- Добавлены тесты для `sync_training_tasks`:
+  - создание задачи из `task.json`;
+  - `--dry-run` без записи в БД;
+  - обновление существующей задачи;
+  - skip без `Dockerfile`;
+  - skip без `check.sh`;
+  - skip при отсутствующей очереди;
+  - ошибка при некорректном `task.json`;
+  - ошибка при неправильном `priority`;
+  - ошибка strict-режима при skipped tasks;
+  - корректный summary для dry-run create/update.
+- Добавлены тесты для admin sync-страницы:
+  - dry-run для superuser;
+  - apply sync для superuser;
+  - запрет доступа для staff без superuser;
+  - скрытие кнопки применения при ошибке dry-run.
+- Добавлена проверка `sync_training_tasks --dry-run --strict` в CI.
+- Добавлена команда `make sync-check`.
+- `make validate` теперь включает `sync-check`.
+- В CD добавлена сборка Docker-образов заданий через `python manage.py build_task_images`.
+- В CD добавлен GitHub Actions summary по шагам staging deploy:
+  - pull latest code;
+  - migrations;
+  - sync training tasks;
+  - build task images;
+  - collectstatic;
+  - restart service;
+  - systemd status;
+  - staging smoke-check.
+- В CD добавлен staging smoke-check:
+  - проверка главной страницы;
+  - проверка `/admin/login/`.
+- Добавлен secret `STAGING_URL` для проверки staging из GitHub Actions.
+- Добавлен deploy-check в CI через `python manage.py check --deploy`.
+- Улучшены `TaskAdmin` и `QueueAdmin`:
+  - редактируемый `order`;
+  - сортировка;
+  - фильтры;
+  - массовые actions для включения/выключения заданий;
+  - массовые actions для включения/отключения ручной проверки.
+- Добавлен `sandbox/tests/test_admin.py`.
+
+### Изменено
+
+- `TaskAttempt.terminal_url` изменен с `URLField` на `CharField(max_length=255)`, потому что в режиме terminal gateway хранится относительный путь вида `/terminal/<attempt_id>/<port>/`.
+- CD-порядок staging deploy уточнен:
+  - `git pull --ff-only`;
+  - установка зависимостей;
+  - `migrate`;
+  - `sync_training_tasks --strict`;
+  - `build_task_images`;
+  - `collectstatic`;
+  - restart `ticket-sandbox`;
+  - smoke-check staging.
+- Admin sync-страница переведена на strict-режим, чтобы поведение совпадало с CI/CD.
+- `sync_training_tasks --dry-run` теперь считает `would_create` и `would_update`, а не показывает нули из-за того, что dry-run ничего не записывает.
+- `test-dashboards` в Makefile обновлен и больше не должен ссылаться на несуществующий тестовый модуль.
+- README, CONTRIBUTING и ARCHITECTURE обновлены под новый процесс добавления заданий через `task.json` и `sync_training_tasks`.
+- В документации зафиксировано, что постоянные правки задания нужно делать в `task.json`, а не руками в Django admin.
+- В staging/CD закреплено, что `collectstatic` выполняется до рестарта systemd-сервиса.
+
+### Исправлено
+
+- Исправлен риск, при котором `sync_training_tasks` мог молча пропустить сломанную папку задания в CD.
+- Исправлен риск, при котором задача могла появиться в БД, но Docker-образ задания не был собран на staging.
+- Исправлена потенциальная проблема с `terminal_url`: относительный путь больше не хранится в поле, рассчитанном на полноценный URL.
+- Исправлена ошибка CI `sqlite3.OperationalError: no such table: sandbox_queue` для проверки `sync_training_tasks`: перед sync-check в CI выполняются миграции на временной SQLite-базе.
+- Исправлен тест admin sync-страницы, который слишком жестко зависел от форматирования flash-message в Django admin.
+- Исправлен риск непрозрачного деплоя: теперь в GitHub Actions summary видно, какой именно шаг прошел или упал.
+- Исправлен риск случайной ручной правки задания в админке без фиксации в файлах: документация явно предупреждает, что следующий sync применит значения из `task.json`.
+
+### Документация
+
+- Обновлен `README.md`:
+  - добавлено описание `task.json`;
+  - добавлен процесс `sync_training_tasks --dry-run` → `sync_training_tasks`;
+  - уточнено, что задания не создаются вручную в admin;
+  - добавлен `sync_training_tasks` в staging/deploy flow.
+- Обновлен `CONTRIBUTING.md`:
+  - добавлено правило `task.json` как источника правды;
+  - добавлена проверка `sync_training_tasks --dry-run`;
+  - добавлена команда `sync_training_tasks` в список management-команд;
+  - уточнены правила работы с admin.
+- Обновлен `ARCHITECTURE.md`:
+  - описана роль `training_tasks` и `task.json`;
+  - описана синхронизация заданий с БД;
+  - зафиксировано разделение code/files как источника задания и admin как оперативного интерфейса.
+- CHANGELOG обновлен под фактическую staging/CD-пачку.
+
+### Проверки
+
+Точечные проверки для этой пачки:
+
+```bash
+python manage.py test sandbox.tests.test_admin
+python manage.py test sandbox.tests.test_management_commands
+make sync-check
+```
+
+Полная проверка перед push/review/deploy:
+
+```bash
+make validate
+```
+
+Deploy-check:
+
+```bash
+DEBUG=False \
+SECRET_KEY=ci-deploy-check-secret-key-with-enough-length-and-variety-2026 \
+ALLOWED_HOSTS=example.com \
+CSRF_TRUSTED_ORIGINS=https://example.com \
+DB_ENGINE=django.db.backends.sqlite3 \
+DB_NAME=:memory: \
+TERMINAL_GATEWAY_ENABLED=true \
+CHECK_TASK_TIMEOUT_SECONDS=60 \
+python manage.py check --deploy
+```
+
+Ожидаемые предупреждения на текущем этапе:
+
+- `security.W019` — ожидаемо, потому что используется `X_FRAME_OPTIONS = "SAMEORIGIN"` для терминала в iframe на том же origin.
+- `security.W021` — ожидаемо, потому что `SECURE_HSTS_PRELOAD=True` пока не включается автоматически для staging.
+
+### Технический долг
+
+- Добавить отдельный healthcheck endpoint, чтобы smoke-check проверял не только доступность страницы, но и состояние приложения.
+- Добавить уведомления о результате CD в Telegram, если это станет нужно.
+- Улучшить визуальный вывод admin sync-страницы: отдельно подсвечивать `WOULD CREATE`, `WOULD UPDATE`, `SKIP` и финальный summary.
+- Добавить больше учебных заданий в `training_tasks`.
+- Проверить полный сценарий на staging вручную:
+  - вход стажером;
+  - вход наставником;
+  - запуск задания;
+  - терминал в iframe;
+  - `check.sh`;
+  - ручная проверка;
+  - повторная тренировочная попытка;
+  - историческая попытка read-only;
+  - cleanup контейнеров.
+- Вынести тяжелые Docker-операции в Celery + Redis.
+- Добавить фоновые статусы для долгих операций запуска, проверки и перезапуска.
+- Подготовить production-инструкцию под конкретный домен и сервер.
+---
+
+## Ближайший план
+
+### Сразу после текущей пачки
+
+- Дождаться зеленого GitHub Actions после fix-коммита для CI sync-check.
+- Проверить staging вручную по полному пользовательскому сценарию:
+  - открыть `/`;
+  - войти стажером;
+  - открыть dashboard;
+  - начать L1-задание;
+  - проверить терминал в iframe;
+  - выполнить `check.sh`;
+  - проверить переход в `on_review` или `passed`;
+  - войти наставником;
+  - проверить mentor dashboard и ручную проверку;
+  - проверить повторную тренировочную попытку;
+  - проверить историческую попытку в read-only;
+  - проверить, что контейнеры не накапливаются после успешной сдачи.
+- Проверить серверные вещи:
+  - `journalctl -u ticket-sandbox -f`;
+  - `docker ps`;
+  - `docker ps -a`;
+  - `crontab -l` или будущий systemd timer для cleanup;
+  - nginx access/error logs.
+
+### Следующий рабочий блок
+
+- Добавить или привести в порядок первые реальные L1-задания через `training_tasks/<queue>/<task>/task.json`.
+- Для каждого задания проверять:
+  - `python manage.py sync_training_tasks --dry-run --strict`;
+  - `python manage.py sync_training_tasks --strict`;
+  - `python manage.py build_task_images`;
+  - запуск задания через интерфейс;
+  - прохождение `check.sh`.
+- После появления нескольких заданий вернуться к UX:
+  - улучшить admin sync-страницу;
+  - добавить более удобный вывод create/update/skip;
+  - подумать над отдельным mentor-интерфейсом управления программой, если admin станет неудобен.
+
+### Позже
+
+- Добавить healthcheck endpoint.
+- Подготовить production-инструкцию.
+- Спланировать вынос Docker-операций в Celery + Redis.
