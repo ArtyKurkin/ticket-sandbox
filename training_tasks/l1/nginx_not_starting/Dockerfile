@@ -8,6 +8,8 @@ RUN apt-get update \
         curl \
         vim \
         nano \
+        less \
+        grep \
         procps \
         iproute2 \
         iputils-ping \
@@ -19,7 +21,8 @@ COPY files/default /etc/nginx/sites-available/default
 COPY files/check.sh /task/check.sh
 COPY files/systemctl /usr/local/bin/systemctl
 
-RUN chmod +x /task/check.sh
-RUN chmod +x /usr/local/bin/systemctl
+RUN chmod +x /task/check.sh \
+    && chmod +x /usr/local/bin/systemctl
 
+# nginx намеренно НЕ запускается: конфиг сломан, стажёр чинит и поднимает сам
 CMD ["sleep", "infinity"]

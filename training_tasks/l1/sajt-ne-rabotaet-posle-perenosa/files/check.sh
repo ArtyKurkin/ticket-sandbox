@@ -1,26 +1,40 @@
 #!/usr/bin/env bash
 
-echo "Проверка задания"
+echo "Проверка задания: после переноса открывается не тот сайт"
+echo
 
-if ! service nginx status >/dev/null 2>&1; then
-  echo "❌ nginx не запущен."
-
-  exit 1
-fi
+ok=true
 
 if ! nginx -t >/dev/null 2>&1; then
-  echo "❌ Конфигурация nginx содержит ошибки."
-
-  exit 1
+  echo "❌ Конфигурация nginx содержит ошибки (nginx -t не проходит)."
+  ok=false
+else
+  echo "✅ Конфигурация nginx валидна."
 fi
 
-if ! curl -fsS http://127.0.0.1/ | grep -q "Client CRM is working"; then
-  echo "❌ nginx все еще отдает неправильный сайт."
-
-  exit 1
+if ! pgrep -x nginx >/dev/null 2>&1; then
+  echo "❌ Процесс nginx не запущен."
+  ok=false
+else
+  echo "✅ nginx запущен."
 fi
 
-echo "✅ nginx запущен."
-echo "✅ Конфигурация nginx корректна."
-echo "✅ Открывается сайт клиента."
-echo "Задание пройдено."
+body="$(curl -fsS http://127.0.0.1/ 2>/dev/null || true)"
+
+if ! echo "$body" | grep -q "Client CRM работает"; then
+  echo "❌ По адресу сервера открывается не сайт клиента."
+  echo "   Ожидается содержимое из /var/www/client-crm."
+  ok=false
+else
+  echo "✅ Открывается сайт клиента из /var/www/client-crm."
+fi
+
+echo
+
+if [ "$ok" = true ]; then
+  echo "Задание пройдено."
+  exit 0
+fi
+
+echo "Задание ещё не выполнено. Посмотри сообщения выше."
+exit 1
