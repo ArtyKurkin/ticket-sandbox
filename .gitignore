@@ -21,3 +21,5 @@ media/
 ticket_sandbox.zip
 ticket-sandbox.zip
 venv/
+
+*.zip
