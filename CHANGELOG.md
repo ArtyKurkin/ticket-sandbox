@@ -564,7 +564,6 @@ make validate
 
 - Подготовить полноценную production-инструкцию под конкретный домен и сервер.
 - Добавить systemd timer как альтернативу cron для cleanup.
-- Добавить отдельный healthcheck endpoint.
 - Добавить ротацию логов gunicorn/nginx/cleanup.
 - Вынести тяжелые Docker-операции в Celery + Redis.
 - Добавить фоновые статусы для запуска, проверки и перезапуска окружений.
@@ -724,7 +723,6 @@ python manage.py check --deploy
 
 ### Технический долг
 
-- Добавить отдельный healthcheck endpoint, чтобы smoke-check проверял не только доступность страницы, но и состояние приложения.
 - Добавить уведомления о результате CD в Telegram, если это станет нужно.
 - Улучшить визуальный вывод admin sync-страницы: отдельно подсвечивать `WOULD CREATE`, `WOULD UPDATE`, `SKIP` и финальный summary.
 - Добавить больше учебных заданий в `training_tasks`.
@@ -743,47 +741,139 @@ python manage.py check --deploy
 - Подготовить production-инструкцию под конкретный домен и сервер.
 ---
 
+## Неделя 9 — L1-задания, healthcheck, staging checklist и Telegram-уведомления
+
+### Архитектурные решения
+
+- Первый staging-пилот должен проверяться не только тестами, но и ручным пользовательским сценарием по `STAGING_CHECKLIST.md`.
+- `/healthz/` добавлен как простой endpoint для smoke-check после деплоя.
+- Telegram-уведомления считаются необязательным побочным эффектом: если токен или chat id не заданы, тренажер работает без уведомлений.
+- Ошибки Telegram API не должны ломать основной сценарий стажера или наставника.
+- Уведомления о событиях отправляются после успешного сохранения состояния через `transaction.on_commit(...)`.
+- Уведомление «требуется ручная проверка» отправляется только когда попытка реально перешла в `on_review`.
+- Бейдж «Ждут проверки» в mentor dashboard считается отдельно от текущих фильтров, чтобы наставник видел общий объем ожидающих проверок.
+
+### Добавлено
+
+- Добавлен первый полноценный L1-пакет из 10 заданий:
+  - `nginx_not_starting`;
+  - `sajt-ne-rabotaet-posle-perenosa`;
+  - `disk-full`;
+  - `cron-not-working`;
+  - `php-fpm-down`;
+  - `nginx-413-upload`;
+  - `wordpress-500-after-move`;
+  - `restored-backup-permissions`;
+  - `port-already-in-use`;
+  - `deleted-file-descriptor`.
+- Добавлен healthcheck endpoint `/healthz/`.
+- Добавлен тест `sandbox/tests/test_healthcheck.py`.
+- В GitHub Actions staging smoke-check добавлена проверка `/healthz/`.
+- Добавлен `STAGING_CHECKLIST.md` для ручной проверки staging после деплоя.
+- Добавлен сервис Telegram-отправки `sandbox/services/telegram.py`.
+- Добавлены переменные окружения:
+  - `TELEGRAM_BOT_TOKEN`;
+  - `TELEGRAM_CHAT_ID`.
+- Добавлен сервис бизнес-уведомлений `sandbox/services/notifications.py`.
+- Добавлено уведомление наставникам, когда попытка отправлена на ручную проверку.
+- Добавлено уведомление наставникам, когда стажер технически прошел все активные задания в доступных очередях.
+- Добавлены тесты `sandbox/tests/test_telegram_notifications.py`.
+- Уведомления подключены к `check_task` через `transaction.on_commit(...)`.
+- В mentor dashboard добавлен бейдж «Ждут проверки».
+- Добавлен подсчет `pending_review_count` в `sandbox/services/mentor_dashboard.py`.
+- Добавлены CSS-стили для бейджа и адаптивного hero-заголовка.
+
+### Изменено
+
+- Уточнен staging checklist под текущий flow: сначала техническая сдача через `check.sh`, потом заполнение ответа клиенту и внутреннего комментария для задач с ручной проверкой.
+- README обновлен под Telegram-уведомления, `/healthz/`, `sync-check`, strict sync и staging smoke-check.
+- ARCHITECTURE обновлен под фактический flow ручной проверки после технической сдачи.
+- CONTRIBUTING обновлен правилами по Telegram-уведомлениям, мокам внешних HTTP-вызовов и актуальным списком тестов.
+- Документация по тестам обновлена: удалена ссылка на несуществующий `test_trainee_dashboard.py`, добавлены актуальные тестовые модули.
+
+### Исправлено
+
+- Закрыт технический долг недели 8 по отдельному healthcheck endpoint.
+- Исправлен риск, что наставник не заметит новые попытки на ручной проверке без постоянного открытого dashboard.
+- Исправлен рассинхрон в документации, где ответ клиенту и внутренний комментарий описывались как обязательные до запуска `check.sh`.
+- Исправлен staging checklist: команда `cleanup_task_containers --dry-run` убрана из обязательных проверок, потому что dry-run для этой команды пока не реализован.
+
+### Документация
+
+- Обновлен `README.md`.
+- Обновлен `ARCHITECTURE.md`.
+- Обновлен `CONTRIBUTING.md`.
+- Обновлен `CHANGELOG.md`.
+- Обновлен `STAGING_CHECKLIST.md`.
+
+### Проверки
+
+Точечные проверки для этой пачки:
+
+```bash
+python manage.py test sandbox.tests.test_healthcheck
+python manage.py test sandbox.tests.test_telegram_notifications
+python manage.py test sandbox.tests.test_task_actions
+python manage.py test sandbox.tests.test_mentor_dashboard
+python manage.py check
+```
+
+Полная проверка перед push/review/deploy:
+
+```bash
+make validate
+```
+
+### Технический долг
+
+- Добавить polling статуса проверки.
+- Вынести тяжелые Docker-операции в Celery + Redis.
+- Добавить фоновые статусы для долгих операций запуска, проверки и перезапуска.
+- Добавить `--dry-run` для `cleanup_task_containers`, если понадобится безопасная проверка очистки на staging.
+- Настроить реальные Telegram env на staging, если уведомления нужны в пилоте.
+- Пройти полный staging checklist на реальных стажерских и наставнических пользователях.
+
+---
+
 ## Ближайший план
 
 ### Сразу после текущей пачки
 
-- Дождаться зеленого GitHub Actions после fix-коммита для CI sync-check.
-- Проверить staging вручную по полному пользовательскому сценарию:
-  - открыть `/`;
-  - войти стажером;
-  - открыть dashboard;
-  - начать L1-задание;
-  - проверить терминал в iframe;
-  - выполнить `check.sh`;
-  - проверить переход в `on_review` или `passed`;
-  - войти наставником;
-  - проверить mentor dashboard и ручную проверку;
-  - проверить повторную тренировочную попытку;
-  - проверить историческую попытку в read-only;
-  - проверить, что контейнеры не накапливаются после успешной сдачи.
+- Дождаться зеленого GitHub Actions после документационного коммита.
+- Проверить staging вручную по `STAGING_CHECKLIST.md`:
+  - `/`;
+  - `/healthz/`;
+  - вход стажером;
+  - вход наставником;
+  - запуск L1-задания;
+  - терминал в iframe;
+  - `check.sh`;
+  - отправка ответа на ручную проверку;
+  - бейдж «Ждут проверки»;
+  - Telegram-уведомление, если env настроен;
+  - повторная тренировочная попытка;
+  - историческая попытка read-only;
+  - cleanup контейнеров.
 - Проверить серверные вещи:
   - `journalctl -u ticket-sandbox -f`;
   - `docker ps`;
   - `docker ps -a`;
-  - `crontab -l` или будущий systemd timer для cleanup;
+  - `crontab -l` или systemd timer для cleanup;
   - nginx access/error logs.
 
 ### Следующий рабочий блок
 
-- Добавить или привести в порядок первые реальные L1-задания через `training_tasks/<queue>/<task>/task.json`.
-- Для каждого задания проверять:
-  - `python manage.py sync_training_tasks --dry-run --strict`;
-  - `python manage.py sync_training_tasks --strict`;
-  - `python manage.py build_task_images`;
-  - запуск задания через интерфейс;
-  - прохождение `check.sh`.
-- После появления нескольких заданий вернуться к UX:
-  - улучшить admin sync-страницу;
-  - добавить более удобный вывод create/update/skip;
-  - подумать над отдельным mentor-интерфейсом управления программой, если admin станет неудобен.
+- Добавить polling статуса проверки, чтобы стажер видел живой статус вместо ожидания синхронного ответа.
+- После polling перейти к фоновым статусам:
+  - `starting`;
+  - `checking`;
+  - `restarting`.
+- Проверить первый L1-пакет заданий глазами стажера и наставника.
+- По итогам ручного staging-прогона поправить формулировки задач, `check.sh` и UX.
 
 ### Позже
 
-- Добавить healthcheck endpoint.
+- Вынести Docker-операции в Celery + Redis.
 - Подготовить production-инструкцию.
-- Спланировать вынос Docker-операций в Celery + Redis.
+- Улучшить аналитику по стажерам, заданиям, подсказкам и времени прохождения.
+

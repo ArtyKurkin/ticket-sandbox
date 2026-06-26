@@ -95,6 +95,27 @@ check.sh
 
 Docker-контейнер и `check.sh` повторно запускать не нужно.
 
+### Уведомления не должны ломать основной сценарий
+
+Telegram-уведомления — это побочный эффект, а не часть критического пути.
+
+Правила:
+
+- если `TELEGRAM_BOT_TOKEN` или `TELEGRAM_CHAT_ID` не заданы, уведомления молча выключены;
+- если Telegram API недоступен, пользовательский сценарий не должен падать;
+- ошибки отправки нужно логировать через `sandbox.telegram`;
+- реальные HTTP-запросы в тестах должны мокироваться;
+- бизнес-тексты уведомлений лучше держать в `sandbox/services/notifications.py`;
+- низкоуровневую отправку держим в `sandbox/services/telegram.py`.
+
+Уведомления, связанные с изменением состояния попытки, лучше отправлять через:
+
+```python
+transaction.on_commit(...)
+```
+
+Так сообщение уйдет только после успешного сохранения изменений в БД.
+
 ### CheckRun должен хранить историю автопроверок
 
 Каждый запуск `check.sh` должен создавать запись `CheckRun`.
@@ -196,10 +217,10 @@ training_tasks/<queue_slug>/<task_slug>/task.json
 
 Django admin можно использовать для просмотра, фильтров и быстрых массовых действий, но при следующем deploy/CD команда `sync_training_tasks` снова применит значения из файлов.
 
-Перед применением изменений лучше запускать dry-run:
+Перед применением изменений лучше запускать strict dry-run:
 
 ```bash
-python manage.py sync_training_tasks --dry-run
+python manage.py sync_training_tasks --dry-run --strict
 ```
 
 ## Проверка нового задания
@@ -213,13 +234,13 @@ python manage.py check
 Проверь, что команда синхронизации видит изменения:
 
 ```bash
-python manage.py sync_training_tasks --dry-run
+python manage.py sync_training_tasks --dry-run --strict
 ```
 
 Если dry-run показывает ожидаемые изменения, примени синхронизацию:
 
 ```bash
-python manage.py sync_training_tasks
+python manage.py sync_training_tasks --strict
 ```
 
 Проверь, что Django видит задачу:
@@ -277,9 +298,12 @@ sandbox/tests/
 
 ```text
 sandbox/tests/
+├── __init__.py
 ├── base.py
+├── test_admin.py
 ├── test_check_runs.py
 ├── test_docker_service.py
+├── test_healthcheck.py
 ├── test_management_commands.py
 ├── test_mentor_dashboard.py
 ├── test_models.py
@@ -288,15 +312,18 @@ sandbox/tests/
 ├── test_rerun_attempt.py
 ├── test_task_actions.py
 ├── test_task_availability.py
+├── test_technical_lock.py
+├── test_telegram_notifications.py
 ├── test_template_filters.py
 ├── test_terminal_auth.py
-├── test_terminal_gateway.py
-└── test_trainee_dashboard.py
+└── test_terminal_gateway.py
 ```
 
 Тесты не должны запускать реальные Docker-контейнеры.
 
 Docker-вызовы нужно мокировать.
+
+Внешние HTTP-вызовы, включая Telegram API, тоже нужно мокировать.
 
 Для точечной проверки используй тесты по измененной области:
 
@@ -305,6 +332,7 @@ make test-terminal
 make test-actions
 make test-docker
 make test-dashboards
+python manage.py test sandbox.tests.test_telegram_notifications
 ```
 
 Что проверяют команды:
@@ -334,6 +362,9 @@ make test-dashboards # дашборды стажера и наставника
 - ручная проверка наставником;
 - прогресс по очереди;
 - баннер комментариев наставника;
+- бейдж «Ждут проверки»;
+- Telegram-уведомления;
+- healthcheck endpoint;
 - Docker service;
 - management command.
 
@@ -357,9 +388,10 @@ python manage.py makemigrations --check --dry-run
 python manage.py test sandbox
 ```
 
-Быстрые группы тестов:
+Быстрые группы тестов и проверок:
 
 ```bash
+make sync-check
 make test-terminal
 make test-actions
 make test-docker
@@ -528,13 +560,14 @@ make test-actions
 Текущий технический долг:
 
 - вынести тяжелые Docker-операции в Celery + Redis;
-- добавить timeout на выполнение `check.sh`;
-- улучшить обработку ошибок Docker API;
+- добавить polling статуса проверки, чтобы пользователь не ждал синхронный ответ страницы во время долгого `check.sh`;
+- улучшить обработку отдельных ошибок Docker API;
 - добавить промежуточные фоновые статусы для долгих операций:
   - `starting`;
   - `checking`;
   - `restarting`;
   - `cleanup_failed`;
+- добавить `--dry-run` для `cleanup_task_containers`, если понадобится безопасная проверка очистки на staging;
 - подготовить production-инструкцию для nginx, TLS, cookies и безопасных заголовков;
 - добавить мониторинг и более подробное production-логирование;
 - улучшить аналитику по стажерам и заданиям;
@@ -547,7 +580,7 @@ make test-actions
 ```bash
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python manage.py sync_training_tasks --dry-run
+python manage.py sync_training_tasks --dry-run --strict
 python manage.py test sandbox
 ```
 
@@ -562,14 +595,18 @@ make validate
 - нет ли случайно возвращенной очереди `trainee`;
 - нет ли задач без `Task.queue`;
 - не вернулось ли поле `queue_name`;
+- `task.json` валидны и проходят `sync_training_tasks --dry-run --strict`;
 - mentor dashboard закрыт для обычных пользователей;
+- бейдж «Ждут проверки» считает только текущие зачётные попытки `on_review`;
 - Docker-вызовы в тестах мокируются;
+- Telegram HTTP-вызовы в тестах мокируются;
 - `CheckRun` создается при автопроверке;
 - `technical_passed_at` заполняется после успешной проверки;
 - доработка наставника не сбрасывает технический успех;
 - ttyd не проброшен наружу напрямую;
 - terminal gateway работает через nginx `auth_request`;
 - `/terminal-auth/` проверяет доступ к терминалу;
+- `/healthz/` отвечает JSON со статусом `ok`;
 - открытие терминала стажера наставником логируется;
 - исторические попытки открываются в read-only режиме;
 - точечные тесты по измененной области проходят успешно.
