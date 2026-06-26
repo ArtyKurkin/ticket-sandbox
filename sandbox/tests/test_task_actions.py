@@ -477,6 +477,103 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(self.attempt.attempts_count, 1)
         self.assertIn("ERROR: nginx не работает", self.attempt.last_check_output)
 
+    @patch("sandbox.views.notify_manual_review_required")
+    def test_check_task_after_technical_pass_sends_manual_review_notification(
+        self,
+        notify_manual_review_required_mock,
+    ):
+        self.attempt.task.requires_manual_review = True
+        self.attempt.task.save(update_fields=["requires_manual_review"])
+
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+            ]
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("sandbox:check_task", args=[self.attempt.id]),
+                data={
+                    "client_answer": "Здравствуйте, проблема исправлена.",
+                    "trainee_report": "Проверил nginx, нашел ошибку в конфиге и исправил ее.",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(self.attempt.status, TaskAttempt.Status.ON_REVIEW)
+        notify_manual_review_required_mock.assert_called_once()
+
+        notified_attempt = notify_manual_review_required_mock.call_args.args[0]
+        self.assertEqual(notified_attempt.id, self.attempt.id)
+
+    @patch("sandbox.views.notify_user_completed_all_tasks")
+    @patch("sandbox.views.remove_task_container")
+    @patch("sandbox.views.remove_terminal_container")
+    @patch("sandbox.views.check_task_container")
+    def test_check_task_success_sends_completed_all_tasks_notification(
+        self,
+        check_task_container_mock,
+        remove_terminal_container_mock,
+        remove_task_container_mock,
+        notify_user_completed_all_tasks_mock,
+    ):
+        self.task.requires_manual_review = False
+        self.task.save(update_fields=["requires_manual_review"])
+
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.container_name = "task-container"
+        self.attempt.terminal_container_name = "terminal-container"
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+                "terminal_container_name",
+            ]
+        )
+
+        check_task_container_mock.return_value = (
+            0,
+            "OK: техническая часть выполнена",
+        )
+
+        remove_terminal_container_mock.return_value = (
+            True,
+            "Терминал удален.",
+        )
+
+        remove_task_container_mock.return_value = (
+            True,
+            "Контейнер удален.",
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("sandbox:check_task", args=[self.attempt.id]),
+                data={
+                    "client_answer": "Здравствуйте, проблема исправлена.",
+                    "trainee_report": "Проверил nginx, исправил конфигурацию.",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(self.attempt.status, TaskAttempt.Status.PASSED)
+        self.assertIsNotNone(self.attempt.technical_passed_at)
+
+        notify_user_completed_all_tasks_mock.assert_called_once()
+
+        notified_attempt = notify_user_completed_all_tasks_mock.call_args.args[0]
+        self.assertEqual(notified_attempt.id, self.attempt.id)
+
     @patch("sandbox.views.get_free_port")
     @patch("sandbox.views.create_terminal_container")
     @patch("sandbox.views.create_task_container")

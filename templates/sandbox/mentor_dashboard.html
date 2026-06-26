@@ -4,7 +4,15 @@
 
 {% block content %}
   <section class="hero">
-    <h1>Панель наставника<span class="hero-dot">.</span></h1>
+    <div class="hero-title-row">
+      <h1>Панель наставника<span class="hero-dot">.</span></h1>
+
+      <div class="dashboard-badge {% if pending_review_count %}dashboard-badge--warning{% endif %}">
+        <i data-lucide="bell"></i>
+        Ждут проверки: {{ pending_review_count }}
+      </div>
+    </div>
+
     <p>
       Здесь виден прогресс стажеров, количество проверок,
       перезапуски заданий и текущий статус прохождения.

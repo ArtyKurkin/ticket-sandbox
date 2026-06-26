@@ -11,6 +11,10 @@ from .models import CheckRun, TaskAttempt
 from .services.trainee_dashboard import build_trainee_dashboard_context
 from .services.mentor_dashboard import build_mentor_dashboard_context
 from .services.attempts import get_next_attempt_number
+from .services.notifications import (
+    notify_manual_review_required,
+    notify_user_completed_all_tasks,
+)
 from .services.terminal_gateway import (
     build_terminal_base_path,
     build_terminal_url,
@@ -564,6 +568,10 @@ def check_task(request, attempt_id):
             ]
         )
 
+        transaction.on_commit(
+            lambda: notify_manual_review_required(attempt)
+        )
+
         messages.success(
             request,
             "Ответ отправлен наставнику на ручную проверку."
@@ -695,6 +703,10 @@ def check_task(request, attempt_id):
                 "terminal_url",
                 "terminal_port",
             ]
+        )
+
+        transaction.on_commit(
+            lambda: notify_user_completed_all_tasks(attempt)
         )
 
         terminal_logger.info(

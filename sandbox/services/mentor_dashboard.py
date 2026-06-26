@@ -60,6 +60,13 @@ def build_mentor_dashboard_context(request):
         ),
     )
 
+    pending_review_count = TaskAttempt.objects.filter(
+        status=TaskAttempt.Status.ON_REVIEW,
+        attempt_number=1,
+        is_current=True,
+        task__requires_manual_review=True,
+    ).count()
+
     attempts = attempts.order_by(
         "user__username",
         "task__queue__order",
@@ -74,4 +81,5 @@ def build_mentor_dashboard_context(request):
         "selected_queue": selected_queue,
         "search_query": search_query,
         "dashboard_stats": dashboard_stats,
+        "pending_review_count": pending_review_count,
     }
