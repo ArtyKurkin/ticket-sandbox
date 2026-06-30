@@ -1098,6 +1098,26 @@ pre {
   margin-bottom: 0;
 }
 
+.check-result-card {
+  margin-bottom: 18px;
+}
+
+.check-result-card .card-title-bar {
+  margin-bottom: 12px;
+}
+
+.check-result-card .status {
+  margin-bottom: 12px;
+}
+
+.check-result-card--failed,
+.check-result-card--error {
+  border-color: rgba(255, 107, 107, 0.28);
+  background:
+    linear-gradient(135deg, rgba(255, 107, 107, 0.08), rgba(109, 124, 255, 0.04)),
+    var(--card);
+}
+
 .check-poll-output {
   margin: 14px 0 0;
   max-height: 260px;

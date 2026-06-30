@@ -90,6 +90,41 @@
       </div>
     {% endif %}
 
+    {% if attempt.check_status == "failed" %}
+      <div class="card check-result-card check-result-card--failed">
+        <div class="card-title-bar">
+          <i data-lucide="triangle-alert"></i>
+          <h2>Автопроверка не пройдена</h2>
+        </div>
+
+        <span class="status status-danger">
+          <i data-lucide="triangle-alert"></i>
+          Нужно доработать техническую часть
+        </span>
+
+        <p class="muted-text">
+          Посмотри вывод проверки ниже, исправь проблему в окружении и запусти автопроверку ещё раз.
+        </p>
+      </div>
+    {% elif attempt.check_status == "error" %}
+      <div class="card check-result-card check-result-card--error">
+        <div class="card-title-bar">
+          <i data-lucide="badge-alert"></i>
+          <h2>Автопроверка завершилась с ошибкой</h2>
+        </div>
+
+        <span class="status status-danger">
+          <i data-lucide="badge-alert"></i>
+          Проверку не удалось выполнить
+        </span>
+
+        <p class="muted-text">
+          Это похоже на техническую ошибку запуска проверки. Попробуй перезапустить окружение
+          или обратись к наставнику.
+        </p>
+      </div>
+    {% endif %}
+
     {% if attempt.is_extra_attempt %}
       <div class="card">
         <div class="card-title-bar">

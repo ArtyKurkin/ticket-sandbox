@@ -195,6 +195,53 @@ class TaskDetailAccessTests(SandboxTestCase):
         self.assertContains(response, "Не пройдена")
         self.assertContains(response, "ERROR: nginx не запущен")
 
+    def test_failed_check_result_card_is_visible(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
+        self.attempt.last_check_output = "ERROR: nginx не запущен"
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "last_check_output",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Автопроверка не пройдена")
+        self.assertContains(response, "Нужно доработать техническую часть")
+        self.assertContains(response, "ERROR: nginx не запущен")
+
+
+    def test_error_check_result_card_is_visible(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.check_status = TaskAttempt.CheckStatus.ERROR
+        self.attempt.last_check_output = "Не удалось запустить автопроверку"
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "last_check_output",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Автопроверка завершилась с ошибкой")
+        self.assertContains(response, "Проверку не удалось выполнить")
+        self.assertContains(response, "Не удалось запустить автопроверку")
+
 
 class TaskFlowTests(SandboxTestCase):
     def setUp(self):
