@@ -180,6 +180,13 @@ class TaskAttempt(models.Model):
         FAILED = "failed", "Доработать"
         PASSED = "passed", "Пройдено"
 
+    class CheckStatus(models.TextChoices):
+        IDLE = "idle", "Не запускалась"
+        RUNNING = "running", "Выполняется"
+        PASSED = "passed", "Пройдена"
+        FAILED = "failed", "Не пройдена"
+        ERROR = "error", "Ошибка"
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -240,6 +247,22 @@ class TaskAttempt(models.Model):
         null=True,
         blank=True,
         verbose_name="Техническая часть пройдена"
+    )
+
+    check_status = models.CharField(
+        max_length=20,
+        choices=CheckStatus.choices,
+        default=CheckStatus.IDLE,
+    )
+
+    check_started_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    check_finished_at = models.DateTimeField(
+        null=True,
+        blank=True,
     )
 
     last_check_output = models.TextField(

@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
-from sandbox.models import Task, TraineeProfile
+from sandbox.models import Task, TaskAttempt, TraineeProfile
 
 from .base import SandboxTestCase
 
@@ -108,3 +108,34 @@ class ModelConstraintTests(SandboxTestCase):
 
         self.assertNotIn("is_mentor", field_names)
         self.assertFalse(hasattr(user.trainee_profile, "is_mentor"))
+
+
+class TaskAttemptCheckStatusTests(SandboxTestCase):
+    def test_task_attempt_has_idle_check_status_by_default(self):
+        queue = self.create_queue(
+            slug="l1",
+            name="ОТП Cloud L1",
+            order=1,
+            required_level=TraineeProfile.Level.L1,
+        )
+        user = self.create_user(
+            username="trainee",
+            level=TraineeProfile.Level.L1,
+        )
+        task = self.create_task(
+            queue=queue,
+            slug="check-status-task",
+            order=1,
+        )
+
+        attempt = TaskAttempt.objects.create(
+            user=user,
+            task=task,
+        )
+
+        self.assertEqual(
+            attempt.check_status,
+            TaskAttempt.CheckStatus.IDLE,
+        )
+        self.assertIsNone(attempt.check_started_at)
+        self.assertIsNone(attempt.check_finished_at)

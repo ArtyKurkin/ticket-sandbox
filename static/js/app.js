@@ -87,7 +87,9 @@ function removeTerminalFramesBeforeLinks() {
 
 async function copyShellCommand() {
   const shellCommand = document.getElementById("shell-command");
-  if (!shellCommand) return;
+  if (!shellCommand) {
+    return;
+  }
 
   try {
     await navigator.clipboard.writeText(shellCommand.innerText.trim());
@@ -149,8 +151,8 @@ function copyTextToClipboard(text) {
 }
 
 function setupCopyButtons() {
-  document.querySelectorAll("[data-copy-target]").forEach(function(button) {
-    button.addEventListener("click", function() {
+  document.querySelectorAll("[data-copy-target]").forEach(function (button) {
+    button.addEventListener("click", function () {
       const targetId = button.dataset.copyTarget;
       const target = document.getElementById(targetId);
 
@@ -168,14 +170,14 @@ function setupCopyButtons() {
       const originalText = button.dataset.copyLabel || "Скопировать";
       const copiedText = button.dataset.copiedLabel || "Скопировано";
 
-      copyTextToClipboard(text).then(function() {
+      copyTextToClipboard(text).then(function () {
         if (label) {
           label.textContent = copiedText;
         }
 
         button.disabled = true;
 
-        setTimeout(function() {
+        setTimeout(function () {
           if (label) {
             label.textContent = originalText;
           }
@@ -187,6 +189,77 @@ function setupCopyButtons() {
   });
 }
 
+function initCheckStatusPolling() {
+  const pollCard = document.querySelector("[data-check-poll-url]");
+
+  if (!pollCard) {
+    return;
+  }
+
+  const url = pollCard.dataset.checkPollUrl;
+  const intervalMs = Number(pollCard.dataset.checkPollInterval || "2000");
+  const label = pollCard.querySelector("[data-check-poll-label]");
+  const output = pollCard.querySelector("[data-check-poll-output]");
+
+  let timerId = null;
+  let isStopped = false;
+
+  async function pollCheckStatus() {
+    if (isStopped) {
+      return;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (label) {
+        label.textContent =
+          data.check_status_label || "Автопроверка выполняется...";
+      }
+
+      if (output && data.last_check_output) {
+        output.textContent = data.last_check_output;
+      }
+
+      if (data.is_finished) {
+        isStopped = true;
+
+        if (timerId) {
+          window.clearInterval(timerId);
+        }
+
+        if (label) {
+          label.textContent = "Проверка завершена. Обновляем страницу...";
+        }
+
+        window.setTimeout(function () {
+          window.location.href = data.redirect_url || window.location.href;
+        }, 1500);
+      }
+    } catch (error) {
+      if (label) {
+        label.textContent =
+          "Не удалось обновить статус проверки. Следующая попытка через пару секунд...";
+      }
+    }
+  }
+
+  timerId = window.setInterval(pollCheckStatus, intervalMs);
+  pollCheckStatus();
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   initLucide();
   removeTerminalFramesBeforeSubmit();
@@ -194,6 +267,7 @@ document.addEventListener("DOMContentLoaded", function () {
   bindLoadingButtons();
   bindTerminalButtons();
   setupCopyButtons();
+  initCheckStatusPolling();
 });
 
 window.initLucide = initLucide;

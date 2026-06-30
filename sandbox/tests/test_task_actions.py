@@ -279,45 +279,7 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(self.attempt.status, TaskAttempt.Status.NEW)
         self.assertEqual(self.attempt.attempts_count, 0)
 
-    @patch("sandbox.views.check_task_container")
-    def test_check_task_handles_docker_api_error(
-        self,
-        check_task_container_mock,
-    ):
-        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
-        self.attempt.container_name = "task-container"
-        self.attempt.save(
-            update_fields=[
-                "status",
-                "container_name",
-            ]
-        )
-
-        check_task_container_mock.side_effect = RuntimeError(
-            "Docker API unavailable"
-        )
-
-        response = self.client.post(
-            reverse("sandbox:check_task", args=[self.attempt.id]),
-            data={
-                "client_answer": "Здравствуйте, проблема исправлена.",
-                "trainee_report": "Проверил nginx.",
-            },
-        )
-
-        self.assertEqual(response.status_code, 302)
-
-        self.attempt.refresh_from_db()
-
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.FAILED)
-        self.assertIn(
-            "Не удалось запустить автопроверку из-за ошибки Docker API.",
-            self.attempt.last_check_output,
-        )
-        self.assertIn(
-            "Docker API unavailable",
-            self.attempt.last_check_output,
-        )
+    
 
     def test_check_task_requires_client_answer(self):
         self.attempt.status = TaskAttempt.Status.IN_PROGRESS
@@ -447,36 +409,7 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(self.attempt.client_answer, "Старый ответ клиенту.")
         self.assertEqual(self.attempt.trainee_report, "Старый внутренний комментарий.")
 
-    @patch("sandbox.views.check_task_container")
-    def test_check_task_failed_updates_status_and_saves_output(
-        self,
-        check_task_container_mock,
-    ):
-        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
-        self.attempt.container_name = "task-container"
-        self.attempt.save()
-
-        check_task_container_mock.return_value = (
-            1,
-            "ERROR: nginx не работает",
-        )
-
-        response = self.client.post(
-            reverse("sandbox:check_task", args=[self.attempt.id]),
-            data={
-                "client_answer": "Здравствуйте, проверил проблему.",
-                "trainee_report": "Проверил nginx.",
-            },
-        )
-
-        self.assertEqual(response.status_code, 302)
-
-        self.attempt.refresh_from_db()
-
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.FAILED)
-        self.assertEqual(self.attempt.attempts_count, 1)
-        self.assertIn("ERROR: nginx не работает", self.attempt.last_check_output)
-
+    
     @patch("sandbox.views.notify_manual_review_required")
     def test_check_task_after_technical_pass_sends_manual_review_notification(
         self,
@@ -513,66 +446,7 @@ class TaskFlowTests(SandboxTestCase):
         notified_attempt = notify_manual_review_required_mock.call_args.args[0]
         self.assertEqual(notified_attempt.id, self.attempt.id)
 
-    @patch("sandbox.views.notify_user_completed_all_tasks")
-    @patch("sandbox.views.remove_task_container")
-    @patch("sandbox.views.remove_terminal_container")
-    @patch("sandbox.views.check_task_container")
-    def test_check_task_success_sends_completed_all_tasks_notification(
-        self,
-        check_task_container_mock,
-        remove_terminal_container_mock,
-        remove_task_container_mock,
-        notify_user_completed_all_tasks_mock,
-    ):
-        self.task.requires_manual_review = False
-        self.task.save(update_fields=["requires_manual_review"])
-
-        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
-        self.attempt.container_name = "task-container"
-        self.attempt.terminal_container_name = "terminal-container"
-        self.attempt.save(
-            update_fields=[
-                "status",
-                "container_name",
-                "terminal_container_name",
-            ]
-        )
-
-        check_task_container_mock.return_value = (
-            0,
-            "OK: техническая часть выполнена",
-        )
-
-        remove_terminal_container_mock.return_value = (
-            True,
-            "Терминал удален.",
-        )
-
-        remove_task_container_mock.return_value = (
-            True,
-            "Контейнер удален.",
-        )
-
-        with self.captureOnCommitCallbacks(execute=True):
-            response = self.client.post(
-                reverse("sandbox:check_task", args=[self.attempt.id]),
-                data={
-                    "client_answer": "Здравствуйте, проблема исправлена.",
-                    "trainee_report": "Проверил nginx, исправил конфигурацию.",
-                },
-            )
-
-        self.assertEqual(response.status_code, 302)
-
-        self.attempt.refresh_from_db()
-
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.PASSED)
-        self.assertIsNotNone(self.attempt.technical_passed_at)
-
-        notify_user_completed_all_tasks_mock.assert_called_once()
-
-        notified_attempt = notify_user_completed_all_tasks_mock.call_args.args[0]
-        self.assertEqual(notified_attempt.id, self.attempt.id)
+    
 
     @patch("sandbox.views.get_free_port")
     @patch("sandbox.views.create_terminal_container")
@@ -655,14 +529,14 @@ class TaskFlowTests(SandboxTestCase):
             self.attempt.last_check_output,
         )
 
-    @patch("sandbox.views.remove_terminal_container")
     @patch("sandbox.views.remove_task_container")
+    @patch("sandbox.views.remove_terminal_container")
     @patch("sandbox.views.create_task_container")
     def test_restart_task_handles_docker_api_error(
         self,
         create_task_container_mock,
-        remove_task_container_mock,
         remove_terminal_container_mock,
+        remove_task_container_mock,
     ):
         self.attempt.status = TaskAttempt.Status.IN_PROGRESS
         self.attempt.container_name = "old-task-container"
@@ -733,7 +607,7 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(second_attempt.status, TaskAttempt.Status.NEW)
         self.assertEqual(second_attempt.container_name, "")
 
-    @patch("sandbox.views.check_task_container")
+    @patch("sandbox.services.checks.check_task_container")
     def test_passed_task_is_not_checked_again(
         self,
         check_task_container_mock,
@@ -760,7 +634,7 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(self.attempt.status, TaskAttempt.Status.PASSED)
         self.assertEqual(self.attempt.attempts_count, 1)
 
-    @patch("sandbox.views.check_task_container")
+    @patch("sandbox.services.checks.check_task_container")
     def test_on_review_task_is_not_checked_again(
         self,
         check_task_container_mock,
@@ -882,7 +756,7 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(second_attempt.status, TaskAttempt.Status.IN_PROGRESS)
         self.assertEqual(second_attempt.container_name, "second-task-container")
 
-    @patch("sandbox.views.check_task_container")
+    @patch("sandbox.services.checks.check_task_container")
     def test_manual_review_resubmit_does_not_require_container(
         self,
         check_task_container_mock,
@@ -939,74 +813,65 @@ class TaskFlowTests(SandboxTestCase):
             "Доработал ответ по комментарию наставника.",
         )
 
-    @patch("sandbox.views.remove_task_container")
-    @patch("sandbox.views.remove_terminal_container")
-    @patch("sandbox.views.check_task_container")
-    def test_check_task_with_manual_review_marks_technical_part_as_passed(
+    @patch("sandbox.views.start_attempt_check_in_background")
+    def test_check_task_starts_background_check(
         self,
-        check_task_container_mock,
-        remove_terminal_container_mock,
-        remove_task_container_mock,
+        start_attempt_check_in_background_mock,
     ):
-        self.task.requires_manual_review = True
-        self.task.save(update_fields=["requires_manual_review"])
-
         self.attempt.status = TaskAttempt.Status.IN_PROGRESS
         self.attempt.container_name = "task-container"
-        self.attempt.terminal_container_name = "terminal-container"
         self.attempt.save(
             update_fields=[
                 "status",
                 "container_name",
-                "terminal_container_name",
             ]
-        )
-
-        check_task_container_mock.return_value = (
-            0,
-            "OK: техническая часть выполнена",
-        )
-
-        remove_terminal_container_mock.return_value = (
-            True,
-            "Терминал удален.",
-        )
-
-        remove_task_container_mock.return_value = (
-            True,
-            "Контейнер удален.",
         )
 
         response = self.client.post(
             reverse("sandbox:check_task", args=[self.attempt.id]),
             data={
                 "client_answer": "Здравствуйте, проблема исправлена.",
-                "trainee_report": "Проверил nginx, исправил конфигурацию.",
+                "trainee_report": "Проверил nginx.",
             },
         )
 
         self.assertEqual(response.status_code, 302)
 
-        self.attempt.refresh_from_db()
+        start_attempt_check_in_background_mock.assert_called_once()
 
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.IN_PROGRESS)
-        self.assertIsNotNone(self.attempt.technical_passed_at)
-        self.assertIsNone(self.attempt.finished_at)
+        called_attempt = start_attempt_check_in_background_mock.call_args.kwargs["attempt"]
+        called_user_id = start_attempt_check_in_background_mock.call_args.kwargs["user_id"]
 
-        self.assertEqual(
-            self.attempt.mentor_decision,
-            TaskAttempt.MentorDecision.NOT_REVIEWED,
+        self.assertEqual(called_attempt.id, self.attempt.id)
+        self.assertEqual(called_user_id, self.user.id)
+
+    @patch("sandbox.views.start_attempt_check_in_background")
+    def test_check_task_does_not_start_background_check_when_check_is_running(
+        self,
+        start_attempt_check_in_background_mock,
+    ):
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.container_name = "task-container"
+        self.attempt.check_status = TaskAttempt.CheckStatus.RUNNING
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+                "check_status",
+            ]
         )
 
-        self.assertEqual(self.attempt.client_answer, "")
-        self.assertEqual(self.attempt.trainee_report, "")
-
-        self.assertEqual(self.attempt.container_name, "")
-        self.assertEqual(self.attempt.terminal_container_name, "")
-        self.assertIn(
-            "OK: техническая часть выполнена",
-            self.attempt.last_check_output,
+        response = self.client.post(
+            reverse("sandbox:check_task", args=[self.attempt.id]),
+            data={
+                "client_answer": "Здравствуйте, проблема исправлена.",
+                "trainee_report": "Проверил nginx.",
+            },
         )
+
+        self.assertEqual(response.status_code, 302)
+
+        start_attempt_check_in_background_mock.assert_not_called()
 
 
 class TaskActionAccessTests(SandboxTestCase):

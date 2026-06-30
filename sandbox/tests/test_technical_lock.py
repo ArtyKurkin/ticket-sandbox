@@ -191,7 +191,7 @@ class TechnicalLockTests(TestCase):
             args=[self.attempt.id],
         )
 
-        with patch("sandbox.views.check_task_container") as check_task_container:
+        with patch("sandbox.views.start_attempt_check_in_background") as start_attempt_check_in_background:
             response = self.client.post(
                 url,
                 {
@@ -208,7 +208,7 @@ class TechnicalLockTests(TestCase):
             ),
         )
 
-        check_task_container.assert_not_called()
+        start_attempt_check_in_background.assert_not_called()
 
         self.attempt.refresh_from_db()
 

@@ -24,6 +24,11 @@ urlpatterns = [
         "attempts/<int:attempt_id>/check/", views.check_task, name="check_task"
     ),
     path(
+        "attempts/<int:attempt_id>/check-status/",
+        views.check_task_status,
+        name="check_task_status",
+    ),
+    path(
         "attempts/<int:attempt_id>/mentor-feedback/",
         views.save_mentor_feedback,
         name="save_mentor_feedback",

@@ -3,11 +3,12 @@ import logging
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
+from django.urls import reverse
 from django.contrib import messages
 from django.views.decorators.http import require_GET, require_POST
 from django.db import transaction
-from django.http import HttpResponse
-from .models import CheckRun, TaskAttempt
+from django.http import HttpResponse, JsonResponse
+from .models import TaskAttempt
 from .services.trainee_dashboard import build_trainee_dashboard_context
 from .services.mentor_dashboard import build_mentor_dashboard_context
 from .services.attempts import get_next_attempt_number
@@ -24,12 +25,12 @@ from .services.terminal_gateway import (
 )
 from .services.docker_service import (
     create_task_container,
-    check_task_container,
     remove_task_container,
     create_terminal_container,
     remove_terminal_container,
     get_free_port,
 )
+from .services.checks import start_attempt_check_in_background
 
 terminal_logger = logging.getLogger("sandbox.terminal")
 
@@ -522,6 +523,13 @@ def check_task(request, attempt_id):
             "Ответ уже зафиксирован и находится на проверке у наставника."
         )
         return redirect("sandbox:task_detail", attempt_id=attempt.id)
+    
+    if attempt.check_status == TaskAttempt.CheckStatus.RUNNING:
+        messages.info(
+            request,
+            "Автопроверка уже выполняется. Дождись результата."
+        )
+        return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
     if attempt.technical_passed_at:
         if not attempt.task.requires_manual_review:
@@ -586,168 +594,78 @@ def check_task(request, attempt_id):
         )
         return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
-    attempt.attempts_count += 1
-    attempt.status = TaskAttempt.Status.IN_PROGRESS
-    attempt.save(
-        update_fields=[
-            "attempts_count",
-            "status",
-        ]
-    )
-
-    try:
-        exit_code, output = check_task_container(
-            container_name=attempt.container_name
-        )
-
-    except Exception as error:
-        output = (
-            "Не удалось запустить автопроверку из-за ошибки Docker API.\n\n"
-            f"{error}"
-        )
-
-        attempt.status = TaskAttempt.Status.FAILED
-        attempt.last_check_output = output
-        attempt.save(
-            update_fields=[
-                "status",
-                "last_check_output",
-            ]
-        )
-
-        terminal_logger.exception(
-            "task_check_docker_error user_id=%s attempt_id=%s task_slug=%s queue_slug=%s container_name=%s",
-            request.user.id,
-            attempt.id,
-            attempt.task.slug,
-            attempt.task.queue.slug,
-            attempt.container_name,
-        )
-
-        messages.error(
-            request,
-            "Не удалось запустить автопроверку. Попробуй перезапустить окружение или обратись к наставнику."
-        )
-
-        return redirect("sandbox:task_detail", attempt_id=attempt.id)
-
-    CheckRun.objects.create(
+    start_attempt_check_in_background(
         attempt=attempt,
-        result=CheckRun.Result.PASSED
-        if exit_code == 0
-        else CheckRun.Result.FAILED,
-        output=output,
-        exit_code=exit_code,
+        user_id=request.user.id,
     )
 
-    if exit_code == 0:
-        attempt.technical_passed_at = timezone.now()
-
-        terminal_removed = ""
-
-        if attempt.terminal_container_name:
-            _, terminal_removed = remove_terminal_container(
-                attempt.terminal_container_name
-            )
-
-        _, remove_output = remove_task_container(
-            container_name=attempt.container_name
-        )
-
-        attempt.last_check_output = (
-            f"{output}\n\n"
-            f"---\n"
-            f"{terminal_removed}\n"
-            f"{remove_output}"
-        )
-
-        attempt.container_id = ""
-        attempt.container_name = ""
-        attempt.shell_command = ""
-
-        attempt.terminal_container_name = ""
-        attempt.terminal_url = ""
-        attempt.terminal_port = None
-
-        if attempt.task.requires_manual_review and attempt.is_credit_attempt:
-            attempt.status = TaskAttempt.Status.IN_PROGRESS
-            attempt.finished_at = None
-            success_message = (
-                "Техническая проверка пройдена. "
-                "Теперь подготовь ответ клиенту и внутренний комментарий."
-            )
-        else:
-            attempt.status = TaskAttempt.Status.PASSED
-            attempt.finished_at = timezone.now()
-
-            if attempt.is_extra_attempt:
-                success_message = (
-                    "Дополнительная попытка технически пройдена. "
-                    "Она не влияет на зачет и не отправляется наставнику на ручную проверку."
-                )
-            else:
-                success_message = (
-                    "Задание принято. Техническая проверка пройдена успешно."
-                )
-
-        attempt.save(
-            update_fields=[
-                "status",
-                "finished_at",
-                "technical_passed_at",
-                "last_check_output",
-                "container_id",
-                "container_name",
-                "shell_command",
-                "terminal_container_name",
-                "terminal_url",
-                "terminal_port",
-            ]
-        )
-
-        transaction.on_commit(
-            lambda: notify_user_completed_all_tasks(attempt)
-        )
-
-        terminal_logger.info(
-            "task_check_passed user_id=%s attempt_id=%s task_slug=%s queue_slug=%s exit_code=%s requires_manual_review=%s is_credit_attempt=%s status=%s",
-            request.user.id,
-            attempt.id,
-            attempt.task.slug,
-            attempt.task.queue.slug,
-            exit_code,
-            attempt.task.requires_manual_review,
-            attempt.is_credit_attempt,
-            attempt.status,
-        )
-
-        messages.success(request, success_message)
-
-    else:
-        attempt.status = TaskAttempt.Status.FAILED
-        attempt.last_check_output = output
-        attempt.save(
-            update_fields=[
-                "status",
-                "last_check_output",
-            ]
-        )
-
-        terminal_logger.info(
-            "task_check_failed user_id=%s attempt_id=%s task_slug=%s queue_slug=%s exit_code=%s",
-            request.user.id,
-            attempt.id,
-            attempt.task.slug,
-            attempt.task.queue.slug,
-            exit_code,
-        )
-
-        messages.error(
-            request,
-            "Автопроверка не пройдена. Посмотри результат проверки и доработай тикет."
-        )
+    messages.info(
+        request,
+        "Автопроверка запущена. Результат появится на странице после завершения."
+    )
 
     return redirect("sandbox:task_detail", attempt_id=attempt.id)
+
+
+@login_required
+@require_GET
+def check_task_status(request, attempt_id):
+    attempts_queryset = (
+        TaskAttempt.objects
+        .select_related("task", "task__queue", "user")
+    )
+
+    if request.user.is_staff:
+        attempt = get_object_or_404(
+            attempts_queryset,
+            id=attempt_id,
+        )
+    else:
+        attempt = get_object_or_404(
+            attempts_queryset,
+            id=attempt_id,
+            user=request.user,
+        )
+
+        if not attempt.is_available:
+            return JsonResponse(
+                {
+                    "error": "attempt_not_available",
+                },
+                status=403,
+            )
+
+    return JsonResponse(
+        {
+            "attempt_id": attempt.id,
+            "attempt_status": attempt.status,
+            "attempt_status_label": attempt.get_status_display(),
+            "check_status": attempt.check_status,
+            "check_status_label": attempt.get_check_status_display(),
+            "check_started_at": (
+                attempt.check_started_at.isoformat()
+                if attempt.check_started_at
+                else None
+            ),
+            "check_finished_at": (
+                attempt.check_finished_at.isoformat()
+                if attempt.check_finished_at
+                else None
+            ),
+            "technical_passed": attempt.is_technically_completed,
+            "last_check_output": attempt.last_check_output,
+            "is_running": attempt.check_status == TaskAttempt.CheckStatus.RUNNING,
+            "is_finished": attempt.check_status in [
+                TaskAttempt.CheckStatus.PASSED,
+                TaskAttempt.CheckStatus.FAILED,
+                TaskAttempt.CheckStatus.ERROR,
+            ],
+            "redirect_url": reverse(
+                "sandbox:task_detail",
+                args=[attempt.id],
+            ),
+        }
+    )
 
 
 @login_required

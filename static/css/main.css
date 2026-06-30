@@ -1082,6 +1082,28 @@ pre {
   white-space: nowrap;
 }
 
+.check-poll-card {
+  margin-bottom: 18px;
+  border-color: rgba(255, 209, 102, 0.28);
+  background:
+    linear-gradient(135deg, rgba(255, 209, 102, 0.08), rgba(109, 124, 255, 0.04)),
+    var(--card);
+}
+
+.check-poll-card .card-title-bar {
+  margin-bottom: 12px;
+}
+
+.check-poll-card .status {
+  margin-bottom: 0;
+}
+
+.check-poll-output {
+  margin: 14px 0 0;
+  max-height: 260px;
+  overflow: auto;
+}
+
 .muted-text {
   color: var(--muted);
 }

@@ -69,6 +69,27 @@
       </div>
     </div>
 
+    {% if attempt.check_status == "running" %}
+      <div
+        class="card check-poll-card"
+        data-check-poll-url="{% url 'sandbox:check_task_status' attempt.id %}"
+        data-check-poll-interval="2000"
+      >
+        <div class="card-title-bar">
+          <span class="status status-warning">
+            <i data-lucide="loader-circle" class="lucide-spin"></i>
+            Автопроверка выполняется
+          </span>
+        </div>
+
+        <p class="muted-text" data-check-poll-label>
+          Проверяем техническую часть задания. Страница обновится после завершения проверки.
+        </p>
+
+        <pre class="check-poll-output" data-check-poll-output>{% if attempt.last_check_output %}{{ attempt.last_check_output }}{% else %}Проверка запущена. Ждем результат...{% endif %}</pre>
+      </div>
+    {% endif %}
+
     {% if attempt.is_extra_attempt %}
       <div class="card">
         <div class="card-title-bar">
@@ -433,8 +454,19 @@
           {% endif %}
 
         {% elif attempt.is_current %}
-          {% if attempt.terminal_url or attempt.container_name %}
+          {% if attempt.check_status == "running" %}
+            <div class="status status-warning status-full">
+              <i data-lucide="loader-circle" class="lucide-spin"></i>
+              Автопроверка выполняется
+            </div>
+
+            <p class="muted-text">
+              Дождись завершения проверки. Страница обновится автоматически.
+            </p>
+
+          {% elif attempt.terminal_url or attempt.container_name %}
             <form method="post" action="{% url 'sandbox:check_task' attempt.id %}">
+            
               {% csrf_token %}
               <button
                 type="submit"

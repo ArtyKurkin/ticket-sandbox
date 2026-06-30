@@ -411,8 +411,11 @@ class HistoricalAttemptActionTests(SandboxTestCase):
 
         create_task_container.assert_not_called()
 
-    @patch("sandbox.views.check_task_container")
-    def test_check_task_is_blocked_for_historical_attempt(self, check_task_container):
+    @patch("sandbox.views.start_attempt_check_in_background")
+    def test_check_task_is_blocked_for_historical_attempt(
+        self,
+        start_attempt_check_in_background_mock,
+    ):
         self.old_attempt.client_answer = "Ответ клиенту"
         self.old_attempt.trainee_report = "Внутренний комментарий"
         self.old_attempt.container_name = "old-container"
@@ -433,7 +436,7 @@ class HistoricalAttemptActionTests(SandboxTestCase):
             ),
         )
 
-        check_task_container.assert_not_called()
+        start_attempt_check_in_background_mock.assert_not_called()
 
     def test_historical_attempt_detail_is_read_only(self):
         self.client.force_login(self.user)
