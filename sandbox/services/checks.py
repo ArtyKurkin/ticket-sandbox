@@ -16,6 +16,8 @@ from sandbox.services.notifications import notify_user_completed_all_tasks
 
 terminal_logger = logging.getLogger("sandbox.terminal")
 
+CHECK_STARTED_OUTPUT = "Проверка запущена. Ждем результат..."
+
 
 @dataclass(frozen=True)
 class AttemptCheckResult:
@@ -29,6 +31,7 @@ def mark_attempt_check_running(*, attempt: TaskAttempt) -> None:
     attempt.check_status = TaskAttempt.CheckStatus.RUNNING
     attempt.check_started_at = timezone.now()
     attempt.check_finished_at = None
+    attempt.last_check_output = CHECK_STARTED_OUTPUT
 
     attempt.save(
         update_fields=[
@@ -37,6 +40,7 @@ def mark_attempt_check_running(*, attempt: TaskAttempt) -> None:
             "check_status",
             "check_started_at",
             "check_finished_at",
+            "last_check_output",
         ]
     )
 
@@ -60,6 +64,7 @@ def try_mark_attempt_check_running(*, attempt: TaskAttempt) -> bool:
             check_status=TaskAttempt.CheckStatus.RUNNING,
             check_started_at=now,
             check_finished_at=None,
+            last_check_output=CHECK_STARTED_OUTPUT,
         )
     )
 

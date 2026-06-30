@@ -4,9 +4,11 @@ from django.utils import timezone
 
 from sandbox.models import TaskAttempt, TraineeProfile
 from sandbox.services.checks import (
+    CHECK_STARTED_OUTPUT,
     run_attempt_check,
     start_attempt_check_in_background,
     try_mark_attempt_check_running,
+
 )
 from sandbox.tests.base import SandboxTestCase
 
@@ -57,6 +59,7 @@ class CheckServiceTests(SandboxTestCase):
         self.assertEqual(self.attempt.attempts_count, 1)
         self.assertIsNotNone(self.attempt.check_started_at)
         self.assertIsNone(self.attempt.check_finished_at)
+        self.assertEqual(self.attempt.last_check_output, CHECK_STARTED_OUTPUT)
 
         thread_mock.assert_called_once()
         thread_instance.start.assert_called_once()
@@ -277,6 +280,7 @@ class CheckServiceTests(SandboxTestCase):
         self.assertEqual(self.attempt.attempts_count, 1)
         self.assertIsNotNone(self.attempt.check_started_at)
         self.assertIsNone(self.attempt.check_finished_at)
+        self.assertEqual(self.attempt.last_check_output, CHECK_STARTED_OUTPUT)
 
     def test_try_mark_attempt_check_running_returns_false_when_already_running(self):
         self.attempt.check_status = TaskAttempt.CheckStatus.RUNNING
@@ -325,3 +329,26 @@ class CheckServiceTests(SandboxTestCase):
         self.assertIsNone(result)
         self.assertEqual(self.attempt.attempts_count, 1)
         thread_mock.assert_not_called()
+
+    def test_try_mark_attempt_check_running_replaces_previous_check_output(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
+        self.attempt.last_check_output = "ERROR: старая ошибка проверки"
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "last_check_output",
+            ]
+        )
+
+        result = try_mark_attempt_check_running(attempt=self.attempt)
+
+        self.attempt.refresh_from_db()
+
+        self.assertTrue(result)
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.RUNNING,
+        )
+        self.assertEqual(self.attempt.last_check_output, CHECK_STARTED_OUTPUT)
