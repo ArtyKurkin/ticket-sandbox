@@ -509,7 +509,13 @@
                 data-loading-text="Запускаем автопроверку..."
               >
                 <i data-lucide="circle-check-big"></i>
-                <span class="button-label">Сдать техническую часть</span>
+                <span class="button-label">
+                  {% if attempt.check_status == "failed" or attempt.check_status == "error" %}
+                    Запустить автопроверку ещё раз
+                  {% else %}
+                    Сдать техническую часть
+                  {% endif %}
+                </span>
               </button>
             </form>
 

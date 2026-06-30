@@ -218,7 +218,6 @@ class TaskDetailAccessTests(SandboxTestCase):
         self.assertContains(response, "Нужно доработать техническую часть")
         self.assertContains(response, "ERROR: nginx не запущен")
 
-
     def test_error_check_result_card_is_visible(self):
         self.attempt.status = TaskAttempt.Status.FAILED
         self.attempt.check_status = TaskAttempt.CheckStatus.ERROR
@@ -241,6 +240,32 @@ class TaskDetailAccessTests(SandboxTestCase):
         self.assertContains(response, "Автопроверка завершилась с ошибкой")
         self.assertContains(response, "Проверку не удалось выполнить")
         self.assertContains(response, "Не удалось запустить автопроверку")
+
+    def test_check_button_shows_retry_text_after_failed_check(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
+        self.attempt.container_name = "task-container"
+        self.attempt.terminal_url = "/terminal/1/24000/"
+        self.attempt.terminal_port = 24000
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "container_name",
+                "terminal_url",
+                "terminal_port",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Запустить автопроверку ещё раз")
+        self.assertNotContains(response, "Сдать техническую часть")
 
 
 class TaskFlowTests(SandboxTestCase):
