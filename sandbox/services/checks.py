@@ -3,6 +3,7 @@ import threading
 from dataclasses import dataclass
 
 from django.db import close_old_connections, transaction
+from django.db.models import F
 from django.utils import timezone
 
 from sandbox.models import CheckRun, TaskAttempt
@@ -38,6 +39,33 @@ def mark_attempt_check_running(*, attempt: TaskAttempt) -> None:
             "check_finished_at",
         ]
     )
+
+
+def try_mark_attempt_check_running(*, attempt: TaskAttempt) -> bool:
+    """
+    Атомарно переводит попытку в running.
+
+    Нужна защита от двойного клика / двух одновременных POST:
+    только один запрос должен реально увеличить attempts_count и запустить thread.
+    """
+    now = timezone.now()
+
+    updated_count = (
+        TaskAttempt.objects
+        .filter(id=attempt.id)
+        .exclude(check_status=TaskAttempt.CheckStatus.RUNNING)
+        .update(
+            attempts_count=F("attempts_count") + 1,
+            status=TaskAttempt.Status.IN_PROGRESS,
+            check_status=TaskAttempt.CheckStatus.RUNNING,
+            check_started_at=now,
+            check_finished_at=None,
+        )
+    )
+
+    attempt.refresh_from_db()
+
+    return updated_count == 1
 
 
 def run_attempt_check(
@@ -231,13 +259,21 @@ def start_attempt_check_in_background(
     *,
     attempt: TaskAttempt,
     user_id: int,
-) -> threading.Thread:
+) -> threading.Thread | None:
     """
-    Помечает попытку как running и запускает автопроверку в отдельном thread.
+    Атомарно помечает попытку как running и запускает автопроверку в отдельном thread.
 
     Это промежуточное решение до Celery/Redis.
     """
-    mark_attempt_check_running(attempt=attempt)
+    was_marked_running = try_mark_attempt_check_running(attempt=attempt)
+
+    if not was_marked_running:
+        terminal_logger.info(
+            "attempt_check_already_running user_id=%s attempt_id=%s",
+            user_id,
+            attempt.id,
+        )
+        return None
 
     thread = threading.Thread(
         target=_run_attempt_check_background,

@@ -837,13 +837,47 @@ class TaskFlowTests(SandboxTestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        start_attempt_check_in_background_mock.assert_called_once()
+        start_attempt_check_in_background_mock.return_value = object()
 
         called_attempt = start_attempt_check_in_background_mock.call_args.kwargs["attempt"]
         called_user_id = start_attempt_check_in_background_mock.call_args.kwargs["user_id"]
 
         self.assertEqual(called_attempt.id, self.attempt.id)
         self.assertEqual(called_user_id, self.user.id)
+
+    @patch("sandbox.views.start_attempt_check_in_background")
+    def test_check_task_shows_already_running_message_when_background_was_not_started(
+        self,
+        start_attempt_check_in_background_mock,
+    ):
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.container_name = "task-container"
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+            ]
+        )
+
+        start_attempt_check_in_background_mock.return_value = None
+
+        response = self.client.post(
+            reverse("sandbox:check_task", args=[self.attempt.id]),
+            data={
+                "client_answer": "Здравствуйте, проблема исправлена.",
+                "trainee_report": "Проверил nginx.",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        messages_text = [str(message) for message in response.context["messages"]]
+
+        self.assertIn(
+            "Автопроверка уже выполняется. Дождись результата.",
+            messages_text,
+        )
 
     @patch("sandbox.views.start_attempt_check_in_background")
     def test_check_task_does_not_start_background_check_when_check_is_running(
