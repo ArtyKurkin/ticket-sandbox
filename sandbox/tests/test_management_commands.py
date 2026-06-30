@@ -591,6 +591,8 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
             terminal_container_name="old-terminal-container",
             terminal_url="http://localhost:24000",
             terminal_port=24000,
+            check_status=TaskAttempt.CheckStatus.RUNNING,
+            check_started_at=started_at,
         )
 
         remove_task_container_mock.return_value = (
@@ -627,6 +629,9 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
         self.assertEqual(attempt.terminal_container_name, "")
         self.assertEqual(attempt.terminal_url, "")
         self.assertIsNone(attempt.terminal_port)
+        self.assertEqual(attempt.check_status, TaskAttempt.CheckStatus.IDLE)
+        self.assertIsNone(attempt.check_started_at)
+        self.assertIsNone(attempt.check_finished_at)
 
         self.assertIn(
             f"Cleanup attempt #{attempt.id}",
@@ -752,3 +757,49 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
         self.assertEqual(attempt.terminal_container_name, "passed-terminal-container")
         self.assertEqual(attempt.terminal_url, "http://localhost:24003")
         self.assertEqual(attempt.terminal_port, 24003)
+
+    @patch("sandbox.management.commands.cleanup_task_containers.remove_terminal_container")
+    @patch("sandbox.management.commands.cleanup_task_containers.remove_task_container")
+    def test_cleanup_task_containers_dry_run_does_not_remove_or_update_attempts(
+        self,
+        remove_task_container_mock,
+        remove_terminal_container_mock,
+    ):
+        old_time = timezone.now() - timedelta(hours=73)
+
+        attempt = TaskAttempt.objects.create(
+            user=self.user,
+            task=self.task,
+            status=TaskAttempt.Status.IN_PROGRESS,
+            started_at=old_time,
+            container_id="old-container-id",
+            container_name="old-task-container",
+            shell_command="docker exec -it old-task-container bash",
+            terminal_container_name="old-terminal-container",
+            terminal_url="/terminal/1/24000/",
+            terminal_port=24000,
+            check_status=TaskAttempt.CheckStatus.RUNNING,
+            check_started_at=old_time,
+        )
+
+        output = StringIO()
+
+        call_command(
+            "cleanup_task_containers",
+            "--dry-run",
+            stdout=output,
+        )
+
+        attempt.refresh_from_db()
+
+        remove_task_container_mock.assert_not_called()
+        remove_terminal_container_mock.assert_not_called()
+
+        self.assertEqual(attempt.status, TaskAttempt.Status.IN_PROGRESS)
+        self.assertEqual(attempt.container_name, "old-task-container")
+        self.assertEqual(attempt.terminal_container_name, "old-terminal-container")
+        self.assertEqual(attempt.check_status, TaskAttempt.CheckStatus.RUNNING)
+        self.assertIsNotNone(attempt.check_started_at)
+
+        self.assertIn("WOULD CLEANUP attempt", output.getvalue())
+        self.assertIn("would_cleanup=1", output.getvalue())

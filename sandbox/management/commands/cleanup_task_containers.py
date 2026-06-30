@@ -13,7 +13,15 @@ from sandbox.services.docker_service import (
 class Command(BaseCommand):
     help = "Cleanup old task containers"
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Show attempts that would be cleaned up without removing containers.",
+        )
+
     def handle(self, *args, **options):
+        dry_run = options["dry_run"]
         expired_time = timezone.now() - timedelta(hours=72)
 
         attempts = TaskAttempt.objects.filter(
@@ -22,7 +30,19 @@ class Command(BaseCommand):
             technical_passed_at__isnull=True,
         )
 
+        cleaned_count = 0
+
         for attempt in attempts:
+            if dry_run:
+                self.stdout.write(
+                    (
+                        f"WOULD CLEANUP attempt #{attempt.id}: "
+                        f"{attempt.task.queue.slug}/{attempt.task.slug}"
+                    )
+                )
+                cleaned_count += 1
+                continue
+
             self.stdout.write(
                 f"Cleanup attempt #{attempt.id}"
             )
@@ -46,11 +66,36 @@ class Command(BaseCommand):
             attempt.terminal_port = None
 
             attempt.status = TaskAttempt.Status.NEW
+            attempt.check_status = TaskAttempt.CheckStatus.IDLE
+            attempt.check_started_at = None
+            attempt.check_finished_at = None
 
-            attempt.save()
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                "Cleanup completed"
+            attempt.save(
+                update_fields=[
+                    "container_id",
+                    "container_name",
+                    "shell_command",
+                    "terminal_container_name",
+                    "terminal_url",
+                    "terminal_port",
+                    "status",
+                    "check_status",
+                    "check_started_at",
+                    "check_finished_at",
+                ]
             )
-        )
+
+            cleaned_count += 1
+
+        if dry_run:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Dry run completed. would_cleanup={cleaned_count}"
+                )
+            )
+        else:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Cleanup completed. cleaned={cleaned_count}"
+                )
+            )
