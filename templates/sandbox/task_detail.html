@@ -601,6 +601,35 @@
         <span>Проверок: {{ attempt.attempts_count }}</span>
       </div>
 
+      <div class="status-row">
+        {% if attempt.check_status == "running" %}
+          <span class="status status-warning">
+            <i data-lucide="loader-circle" class="lucide-spin"></i>
+            {{ attempt.get_check_status_display }}
+          </span>
+        {% elif attempt.check_status == "passed" %}
+          <span class="status status-success">
+            <i data-lucide="circle-check-big"></i>
+            {{ attempt.get_check_status_display }}
+          </span>
+        {% elif attempt.check_status == "failed" %}
+          <span class="status status-danger">
+            <i data-lucide="triangle-alert"></i>
+            {{ attempt.get_check_status_display }}
+          </span>
+        {% elif attempt.check_status == "error" %}
+          <span class="status status-danger">
+            <i data-lucide="badge-alert"></i>
+            {{ attempt.get_check_status_display }}
+          </span>
+        {% else %}
+          <span class="status status-muted">
+            <i data-lucide="circle"></i>
+            {{ attempt.get_check_status_display }}
+          </span>
+        {% endif %}
+      </div>
+
       <div class="metric-line">
         <i data-lucide="rotate-ccw"></i>
         <span>Перезапусков: {{ attempt.restart_count }}</span>

@@ -173,6 +173,28 @@ class TaskDetailAccessTests(SandboxTestCase):
         self.assertNotContains(response, "name=\"client_answer\"")
         self.assertNotContains(response, "name=\"trainee_report\"")
 
+    def test_check_status_badge_is_visible_in_check_card(self):
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
+        self.attempt.last_check_output = "ERROR: nginx не запущен"
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "last_check_output",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Не пройдена")
+        self.assertContains(response, "ERROR: nginx не запущен")
+
 
 class TaskFlowTests(SandboxTestCase):
     def setUp(self):
