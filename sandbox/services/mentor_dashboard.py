@@ -54,6 +54,12 @@ def build_mentor_dashboard_context(request):
             "id",
             filter=Q(status=TaskAttempt.Status.FAILED),
         ),
+        needs_revision=Count(
+            "id",
+            filter=Q(
+                mentor_decision=TaskAttempt.MentorDecision.NEEDS_REVISION,
+            ),
+        ),
         passed=Count(
             "id",
             filter=Q(status=TaskAttempt.Status.PASSED),
