@@ -229,8 +229,9 @@ function initCheckStatusPolling() {
           data.check_status_label || "Автопроверка выполняется...";
       }
 
-      if (output && data.last_check_output) {
-        output.textContent = data.last_check_output;
+      if (output) {
+        output.textContent =
+          data.last_check_output || "Проверка выполняется...";
       }
 
       if (data.is_finished) {
