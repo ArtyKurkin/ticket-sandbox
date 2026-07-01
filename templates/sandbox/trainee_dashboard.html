@@ -107,6 +107,13 @@
                     {{ attempt.learning_status_label }}
                   </span>
 
+                  {% if attempt.should_show_dashboard_check_status %}
+                    <span class="status {{ attempt.dashboard_check_status_class }} dashboard-check-status">
+                      <i data-lucide="{{ attempt.dashboard_check_status_icon }}"{% if attempt.dashboard_check_status_icon_class %} class="{{ attempt.dashboard_check_status_icon_class }}"{% endif %}></i>
+                      {{ attempt.dashboard_check_status_label }}
+                    </span>
+                  {% endif %}
+
                   <span class="progress-icons">
                     <span
                       class="progress-icon {{ attempt.technical_icon_class }}"

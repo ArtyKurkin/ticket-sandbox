@@ -597,6 +597,15 @@ pre {
   background: rgba(255, 209, 102, 0.12);
 }
 
+.dashboard-check-status {
+  width: fit-content;
+  margin-top: 8px;
+}
+
+.compact-progress {
+  align-items: flex-start;
+}
+
 .feedback-alerts {
   margin-bottom: 24px;
   border-color: rgba(255, 193, 7, 0.22);

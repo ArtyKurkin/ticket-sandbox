@@ -66,6 +66,7 @@ def enrich_attempts_display_state(attempts):
         apply_learning_status(attempt)
         apply_technical_status(attempt)
         apply_manual_review_status(attempt)
+        apply_dashboard_check_status(attempt)
         apply_current_attempt_label(attempt)
 
     return attempts
@@ -113,6 +114,30 @@ def apply_technical_status(attempt):
         attempt.technical_icon = "circle-check-big"
         attempt.technical_icon_class = "progress-icon-success"
         attempt.technical_tooltip = "Техническая часть засчитана"
+        return
+
+    if attempt.check_status == TaskAttempt.CheckStatus.RUNNING:
+        attempt.technical_status_label = "Проверяется"
+        attempt.technical_status_class = "status-warning"
+        attempt.technical_icon = "loader-circle"
+        attempt.technical_icon_class = "progress-icon-primary"
+        attempt.technical_tooltip = "Автопроверка выполняется"
+        return
+
+    if attempt.check_status == TaskAttempt.CheckStatus.FAILED:
+        attempt.technical_status_label = "Не пройдена"
+        attempt.technical_status_class = "status-danger"
+        attempt.technical_icon = "triangle-alert"
+        attempt.technical_icon_class = "progress-icon-danger"
+        attempt.technical_tooltip = "Автопроверка не пройдена"
+        return
+
+    if attempt.check_status == TaskAttempt.CheckStatus.ERROR:
+        attempt.technical_status_label = "Ошибка"
+        attempt.technical_status_class = "status-danger"
+        attempt.technical_icon = "badge-alert"
+        attempt.technical_icon_class = "progress-icon-danger"
+        attempt.technical_tooltip = "Ошибка автопроверки"
         return
 
     if attempt.status == TaskAttempt.Status.FAILED:
@@ -179,6 +204,38 @@ def apply_manual_review_status(attempt):
     attempt.manual_icon = "circle"
     attempt.manual_icon_class = "progress-icon-muted"
     attempt.manual_tooltip = "Ручная проверка еще не выполнялась"
+
+
+def apply_dashboard_check_status(attempt):
+    attempt.should_show_dashboard_check_status = False
+    attempt.dashboard_check_status_label = ""
+    attempt.dashboard_check_status_class = ""
+    attempt.dashboard_check_status_icon = ""
+    attempt.dashboard_check_status_icon_class = ""
+
+    if attempt.was_technically_completed:
+        return
+
+    if attempt.check_status == TaskAttempt.CheckStatus.RUNNING:
+        attempt.should_show_dashboard_check_status = True
+        attempt.dashboard_check_status_label = "Автопроверка выполняется"
+        attempt.dashboard_check_status_class = "status-warning"
+        attempt.dashboard_check_status_icon = "loader-circle"
+        attempt.dashboard_check_status_icon_class = "lucide-spin"
+        return
+
+    if attempt.check_status == TaskAttempt.CheckStatus.FAILED:
+        attempt.should_show_dashboard_check_status = True
+        attempt.dashboard_check_status_label = "Автопроверка не пройдена"
+        attempt.dashboard_check_status_class = "status-danger"
+        attempt.dashboard_check_status_icon = "triangle-alert"
+        return
+
+    if attempt.check_status == TaskAttempt.CheckStatus.ERROR:
+        attempt.should_show_dashboard_check_status = True
+        attempt.dashboard_check_status_label = "Ошибка автопроверки"
+        attempt.dashboard_check_status_class = "status-danger"
+        attempt.dashboard_check_status_icon = "badge-alert"
 
 
 def apply_current_attempt_label(attempt):
