@@ -187,6 +187,13 @@ class TaskAttempt(models.Model):
         FAILED = "failed", "Не пройдена"
         ERROR = "error", "Ошибка"
 
+    class EnvironmentStatus(models.TextChoices):
+        IDLE = "idle", "Не запущено"
+        STARTING = "starting", "Запускается"
+        READY = "ready", "Готово"
+        RESTARTING = "restarting", "Перезапускается"
+        ERROR = "error", "Ошибка"
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -261,6 +268,22 @@ class TaskAttempt(models.Model):
     )
 
     check_finished_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    environment_status = models.CharField(
+        max_length=20,
+        choices=EnvironmentStatus.choices,
+        default=EnvironmentStatus.IDLE,
+    )
+
+    environment_started_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    environment_finished_at = models.DateTimeField(
         null=True,
         blank=True,
     )
@@ -441,7 +464,7 @@ class TaskAttempt(models.Model):
             return True
 
         return self.mentor_feedback_seen_at < self.mentor_reviewed_at
-    
+
     @property
     def is_extra_attempt(self):
         return self.attempt_number > 1

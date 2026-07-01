@@ -61,6 +61,11 @@
               <i data-lucide="badge-alert"></i>
               Ошибка автопроверки
             </span>
+          {% elif attempt.environment_status == "error" %}
+            <span class="status status-danger ticket-state-badge">
+              <i data-lucide="badge-alert"></i>
+              Ошибка запуска окружения
+            </span>
           {% else %}
             <span class="status status-danger ticket-state-badge">
               <i data-lucide="triangle-alert"></i>
@@ -86,6 +91,36 @@
       </div>
     </div>
 
+    {% if attempt.environment_status == "starting" or attempt.environment_status == "restarting" %}
+      <div
+        class="card check-poll-card environment-poll-card"
+        data-environment-poll-url="{% url 'sandbox:environment_status' attempt.id %}"
+        data-environment-poll-interval="2000"
+      >
+        <div class="card-title-bar">
+          <i data-lucide="loader-circle" class="lucide-spin"></i>
+          <h2 data-environment-poll-label>
+            {% if attempt.environment_status == "restarting" %}
+              Окружение перезапускается...
+            {% else %}
+              Окружение запускается...
+            {% endif %}
+          </h2>
+        </div>
+
+        <span class="status status-warning">
+          <i data-lucide="loader-circle" class="lucide-spin"></i>
+          {{ attempt.get_environment_status_display }}
+        </span>
+
+        <p class="muted-text">
+          Это может занять несколько секунд. Страница обновится автоматически, когда окружение будет готово.
+        </p>
+
+        <pre class="check-poll-output" data-environment-poll-output>{% if attempt.last_check_output %}{{ attempt.last_check_output }}{% else %}Окружение запускается...{% endif %}</pre>
+      </div>
+    {% endif %}
+
     {% if attempt.check_status == "running" %}
       <div
         class="card check-poll-card"
@@ -104,6 +139,24 @@
         </p>
 
         <pre class="check-poll-output" data-check-poll-output>{% if attempt.last_check_output %}{{ attempt.last_check_output }}{% else %}Проверка запущена. Ждем результат...{% endif %}</pre>
+      </div>
+    {% endif %}
+
+    {% if attempt.environment_status == "error" %}
+      <div class="card check-result-card check-result-card--error">
+        <div class="card-title-bar">
+          <i data-lucide="badge-alert"></i>
+          <h2>Окружение не запустилось</h2>
+        </div>
+
+        <span class="status status-danger">
+          <i data-lucide="badge-alert"></i>
+          Ошибка запуска окружения
+        </span>
+
+        <p class="muted-text">
+          Попробуй запустить окружение ещё раз. Если ошибка повторяется, обратись к наставнику.
+        </p>
       </div>
     {% endif %}
 
@@ -506,7 +559,21 @@
           {% endif %}
 
         {% elif attempt.is_current %}
-          {% if attempt.check_status == "running" %}
+          {% if attempt.environment_status == "starting" or attempt.environment_status == "restarting" %}
+            <div class="status status-warning status-full">
+              <i data-lucide="loader-circle" class="lucide-spin"></i>
+              {% if attempt.environment_status == "restarting" %}
+                Окружение перезапускается
+              {% else %}
+                Окружение запускается
+              {% endif %}
+            </div>
+
+            <p class="muted-text">
+              Дождись завершения операции. Страница обновится автоматически.
+            </p>
+
+          {% elif attempt.check_status == "running" %}
             <div class="status status-warning status-full">
               <i data-lucide="loader-circle" class="lucide-spin"></i>
               Автопроверка выполняется

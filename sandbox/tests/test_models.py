@@ -139,3 +139,32 @@ class TaskAttemptCheckStatusTests(SandboxTestCase):
         )
         self.assertIsNone(attempt.check_started_at)
         self.assertIsNone(attempt.check_finished_at)
+
+    def test_task_attempt_has_idle_environment_status_by_default(self):
+        queue = self.create_queue(
+            slug="environment-status-l1",
+            name="Environment Status L1",
+            order=1,
+            required_level=TraineeProfile.Level.L1,
+        )
+        user = self.create_user(
+            username="environment-status-trainee",
+            level=TraineeProfile.Level.L1,
+        )
+        task = self.create_task(
+            queue=queue,
+            slug="environment-status-task",
+            order=1,
+        )
+
+        attempt = TaskAttempt.objects.create(
+            user=user,
+            task=task,
+        )
+
+        self.assertEqual(
+            attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.IDLE,
+        )
+        self.assertIsNone(attempt.environment_started_at)
+        self.assertIsNone(attempt.environment_finished_at)

@@ -29,6 +29,11 @@ urlpatterns = [
         name="check_task_status",
     ),
     path(
+        "attempts/<int:attempt_id>/environment-status/",
+        views.environment_status,
+        name="environment_status",
+    ),
+    path(
         "attempts/<int:attempt_id>/mentor-feedback/",
         views.save_mentor_feedback,
         name="save_mentor_feedback",

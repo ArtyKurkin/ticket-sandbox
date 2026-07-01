@@ -261,6 +261,80 @@ function initCheckStatusPolling() {
   pollCheckStatus();
 }
 
+function initEnvironmentStatusPolling() {
+  const pollCard = document.querySelector("[data-environment-poll-url]");
+
+  if (!pollCard) {
+    return;
+  }
+
+  const url = pollCard.dataset.environmentPollUrl;
+  const intervalMs = Number(pollCard.dataset.environmentPollInterval || "2000");
+  const label = pollCard.querySelector("[data-environment-poll-label]");
+  const output = pollCard.querySelector("[data-environment-poll-output]");
+
+  let timerId = null;
+  let isStopped = false;
+
+  async function pollEnvironmentStatus() {
+    if (isStopped) {
+      return;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (label) {
+        label.textContent =
+          data.environment_status_label || "Окружение запускается...";
+      }
+
+      if (output) {
+        output.textContent =
+          data.last_check_output || "Окружение запускается...";
+      }
+
+      if (data.is_finished) {
+        isStopped = true;
+
+        if (timerId) {
+          window.clearInterval(timerId);
+        }
+
+        if (label) {
+          label.textContent = data.environment_ready
+            ? "Окружение готово. Обновляем страницу..."
+            : "Запуск окружения завершился с ошибкой. Обновляем страницу...";
+        }
+
+        window.setTimeout(function () {
+          window.location.href = data.redirect_url || window.location.href;
+        }, 1500);
+      }
+    } catch (error) {
+      if (label) {
+        label.textContent =
+          "Не удалось обновить статус окружения. Следующая попытка через пару секунд...";
+      }
+    }
+  }
+
+  timerId = window.setInterval(pollEnvironmentStatus, intervalMs);
+  pollEnvironmentStatus();
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   initLucide();
   removeTerminalFramesBeforeSubmit();
@@ -269,6 +343,7 @@ document.addEventListener("DOMContentLoaded", function () {
   bindTerminalButtons();
   setupCopyButtons();
   initCheckStatusPolling();
+  initEnvironmentStatusPolling();
 });
 
 window.initLucide = initLucide;

@@ -95,6 +95,51 @@ class TaskDetailAccessTests(SandboxTestCase):
         self.assertContains(response, "Ошибка автопроверки")
         self.assertContains(response, "Автопроверка завершилась с ошибкой")
 
+    def test_environment_starting_poll_card_is_visible(self):
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
+        self.attempt.last_check_output = "Окружение запускается..."
+        self.attempt.save(
+            update_fields=[
+                "environment_status",
+                "last_check_output",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Окружение запускается")
+        self.assertContains(response, "data-environment-poll-url")
+        self.assertContains(response, "data-environment-poll-output")
+
+    def test_environment_error_card_is_visible(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
+        self.attempt.last_check_output = (
+            "Не удалось запустить окружение задания из-за ошибки Docker API."
+        )
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "environment_status",
+                "last_check_output",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ошибка запуска окружения")
+        self.assertContains(response, "Окружение не запустилось")
+
     def test_task_detail_shows_manual_revision_status_badge(self):
         self.task.requires_manual_review = True
         self.task.save(update_fields=["requires_manual_review"])
@@ -365,26 +410,11 @@ class TaskFlowTests(SandboxTestCase):
 
         self.client.login(username="trainee", password="test-password")
 
-    @patch("sandbox.views.get_free_port")
-    @patch("sandbox.views.create_terminal_container")
-    @patch("sandbox.views.create_task_container")
-    def test_start_task_creates_container_and_terminal(
+    @patch("sandbox.views.start_environment_in_background")
+    def test_start_task_marks_environment_as_starting(
         self,
-        create_task_container_mock,
-        create_terminal_container_mock,
-        get_free_port_mock,
+        start_environment_in_background_mock,
     ):
-        create_task_container_mock.return_value = SimpleNamespace(
-            id="container-id",
-            name="task-container",
-        )
-
-        create_terminal_container_mock.return_value = SimpleNamespace(
-            name="terminal-container",
-        )
-
-        get_free_port_mock.return_value = 25000
-
         response = self.client.post(
             reverse("sandbox:start_task", args=[self.attempt.id])
         )
@@ -393,21 +423,32 @@ class TaskFlowTests(SandboxTestCase):
 
         self.attempt.refresh_from_db()
 
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.IN_PROGRESS)
-        self.assertEqual(self.attempt.container_id, "container-id")
-        self.assertEqual(self.attempt.container_name, "task-container")
-        self.assertEqual(self.attempt.terminal_container_name, "terminal-container")
-        self.assertEqual(self.attempt.terminal_port, 25000)
-        self.assertIn("docker exec -it task-container bash", self.attempt.shell_command)
-
-    @patch("sandbox.views.create_task_container")
-    def test_start_task_handles_docker_api_error(
-        self,
-        create_task_container_mock,
-    ):
-        create_task_container_mock.side_effect = RuntimeError(
-            "Docker API unavailable"
+        self.assertEqual(self.attempt.status, TaskAttempt.Status.NEW)
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.STARTING,
         )
+        self.assertIsNotNone(self.attempt.environment_started_at)
+        self.assertIsNone(self.attempt.environment_finished_at)
+        self.assertIn(
+            "Окружение запускается",
+            self.attempt.last_check_output,
+        )
+
+        start_environment_in_background_mock.assert_called_once_with(
+            self.attempt.id
+        )
+
+        self.assertEqual(self.attempt.container_name, "")
+        self.assertEqual(self.attempt.terminal_container_name, "")
+
+    @patch("sandbox.views.start_environment_in_background")
+    def test_start_task_does_not_start_background_when_environment_is_already_starting(
+        self,
+        start_environment_in_background_mock,
+    ):
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
+        self.attempt.save(update_fields=["environment_status"])
 
         response = self.client.post(
             reverse("sandbox:start_task", args=[self.attempt.id])
@@ -415,16 +456,13 @@ class TaskFlowTests(SandboxTestCase):
 
         self.assertEqual(response.status_code, 302)
 
+        start_environment_in_background_mock.assert_not_called()
+
         self.attempt.refresh_from_db()
 
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.FAILED)
-        self.assertIn(
-            "Не удалось запустить окружение задания из-за ошибки Docker API.",
-            self.attempt.last_check_output,
-        )
-        self.assertIn(
-            "Docker API unavailable",
-            self.attempt.last_check_output,
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.STARTING,
         )
 
     def test_check_task_requires_started_container(self):
@@ -610,8 +648,6 @@ class TaskFlowTests(SandboxTestCase):
         notified_attempt = notify_manual_review_required_mock.call_args.args[0]
         self.assertEqual(notified_attempt.id, self.attempt.id)
 
-    
-
     @patch("sandbox.views.get_free_port")
     @patch("sandbox.views.create_terminal_container")
     @patch("sandbox.views.create_task_container")
@@ -742,10 +778,10 @@ class TaskFlowTests(SandboxTestCase):
             self.attempt.last_check_output,
         )
 
-    @patch("sandbox.views.create_task_container")
+    @patch("sandbox.views.start_environment_in_background")
     def test_start_task_does_not_start_locked_task(
         self,
-        create_task_container_mock,
+        start_environment_in_background_mock,
     ):
         second_task = self.create_task(
             queue=self.queue,
@@ -764,7 +800,7 @@ class TaskFlowTests(SandboxTestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        create_task_container_mock.assert_not_called()
+        start_environment_in_background_mock.assert_not_called()
 
         second_attempt.refresh_from_db()
 
@@ -867,14 +903,10 @@ class TaskFlowTests(SandboxTestCase):
             "locked-terminal-container",
         )
 
-    @patch("sandbox.views.get_free_port")
-    @patch("sandbox.views.create_terminal_container")
-    @patch("sandbox.views.create_task_container")
+    @patch("sandbox.views.start_environment_in_background")
     def test_next_task_is_available_after_previous_technical_pass(
         self,
-        create_task_container_mock,
-        create_terminal_container_mock,
-        get_free_port_mock,
+        start_environment_in_background_mock,
     ):
         self.attempt.status = TaskAttempt.Status.ON_REVIEW
         self.attempt.technical_passed_at = timezone.now()
@@ -896,29 +928,24 @@ class TaskFlowTests(SandboxTestCase):
             task=second_task,
         )
 
-        create_task_container_mock.return_value = SimpleNamespace(
-            id="second-container-id",
-            name="second-task-container",
-        )
-
-        create_terminal_container_mock.return_value = SimpleNamespace(
-            name="second-terminal-container",
-        )
-
-        get_free_port_mock.return_value = 25002
-
         response = self.client.post(
             reverse("sandbox:start_task", args=[second_attempt.id])
         )
 
         self.assertEqual(response.status_code, 302)
 
-        create_task_container_mock.assert_called_once()
+        start_environment_in_background_mock.assert_called_once_with(
+            second_attempt.id
+        )
 
         second_attempt.refresh_from_db()
 
-        self.assertEqual(second_attempt.status, TaskAttempt.Status.IN_PROGRESS)
-        self.assertEqual(second_attempt.container_name, "second-task-container")
+        self.assertEqual(second_attempt.status, TaskAttempt.Status.NEW)
+        self.assertEqual(
+            second_attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.STARTING,
+        )
+        self.assertEqual(second_attempt.container_name, "")
 
     @patch("sandbox.services.checks.check_task_container")
     def test_manual_review_resubmit_does_not_require_container(

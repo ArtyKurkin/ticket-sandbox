@@ -31,6 +31,10 @@ from .services.docker_service import (
     get_free_port,
 )
 from .services.checks import start_attempt_check_in_background
+from .services.environments import (
+    start_environment_in_background,
+    try_mark_environment_starting,
+)
 
 terminal_logger = logging.getLogger("sandbox.terminal")
 
@@ -181,6 +185,17 @@ def start_task(request, attempt_id):
             attempt_id=attempt.id
         )
 
+    if attempt.environment_status == TaskAttempt.EnvironmentStatus.STARTING:
+        messages.info(
+            request,
+            "Окружение задания уже запускается."
+        )
+
+        return redirect(
+            "sandbox:task_detail",
+            attempt_id=attempt.id
+        )
+
     if attempt.container_name:
         messages.info(
             request,
@@ -195,51 +210,10 @@ def start_task(request, attempt_id):
     if not attempt.is_available:
         return redirect("sandbox:dashboard")
 
-    try:
-        container = create_task_container(
-            queue_slug=attempt.task.queue.slug,
-            task_slug=attempt.task.slug,
-            attempt_id=attempt.id,
-        )
-
-        terminal_port = get_free_port()
-
-        terminal_container = create_terminal_container(
-            queue_slug=attempt.task.queue.slug,
-            task_slug=attempt.task.slug,
-            attempt_id=attempt.id,
-            target_container_name=container.name,
-            port=terminal_port,
-            base_path=build_terminal_base_path(
-                attempt_id=attempt.id,
-                port=terminal_port,
-            ),
-        )
-
-    except Exception as error:
-        attempt.status = TaskAttempt.Status.FAILED
-        attempt.last_check_output = (
-            "Не удалось запустить окружение задания из-за ошибки Docker API.\n\n"
-            f"{error}"
-        )
-        attempt.save(
-            update_fields=[
-                "status",
-                "last_check_output",
-            ]
-        )
-
-        terminal_logger.exception(
-            "task_environment_start_failed user_id=%s attempt_id=%s task_slug=%s queue_slug=%s",
-            request.user.id,
-            attempt.id,
-            attempt.task.slug,
-            attempt.task.queue.slug,
-        )
-
-        messages.error(
+    if not try_mark_environment_starting(attempt):
+        messages.info(
             request,
-            "Не удалось запустить окружение задания. Попробуй позже или обратись к наставнику."
+            "Окружение задания уже запускается."
         )
 
         return redirect(
@@ -247,40 +221,11 @@ def start_task(request, attempt_id):
             attempt_id=attempt.id
         )
 
-    attempt.status = TaskAttempt.Status.IN_PROGRESS
-    attempt.started_at = timezone.now()
+    start_environment_in_background(attempt.id)
 
-    attempt.container_id = container.id
-    attempt.container_name = container.name
-
-    attempt.terminal_container_name = terminal_container.name
-    attempt.terminal_port = terminal_port
-
-    attempt.terminal_url = build_terminal_url(
-        attempt_id=attempt.id,
-        port=terminal_port,
-    )
-
-    attempt.shell_command = (
-        f"docker exec -it {container.name} bash"
-    )
-
-    attempt.last_check_output = (
-        f"Контейнер {container.name} успешно создан."
-    )
-
-    attempt.save()
-
-    terminal_logger.info(
-        "task_environment_started user_id=%s attempt_id=%s task_slug=%s queue_slug=%s container_name=%s terminal_container_name=%s terminal_port=%s terminal_gateway_enabled=%s",
-        request.user.id,
-        attempt.id,
-        attempt.task.slug,
-        attempt.task.queue.slug,
-        attempt.container_name,
-        attempt.terminal_container_name,
-        attempt.terminal_port,
-        terminal_gateway_enabled(),
+    messages.info(
+        request,
+        "Окружение запускается. Страница обновится после готовности."
     )
 
     return redirect("sandbox:task_detail", attempt_id=attempt.id)
@@ -670,6 +615,51 @@ def check_task_status(request, attempt_id):
                 TaskAttempt.CheckStatus.FAILED,
                 TaskAttempt.CheckStatus.ERROR,
             ],
+            "redirect_url": reverse(
+                "sandbox:task_detail",
+                args=[attempt.id],
+            ),
+        }
+    )
+
+
+@login_required
+@require_GET
+def environment_status(request, attempt_id):
+    lookup_kwargs = {
+        "id": attempt_id,
+    }
+
+    if not request.user.is_staff:
+        lookup_kwargs["user"] = request.user
+
+    attempt = get_object_or_404(
+        TaskAttempt.objects.select_related("task", "task__queue", "user"),
+        **lookup_kwargs,
+    )
+
+    is_running = attempt.environment_status in [
+        TaskAttempt.EnvironmentStatus.STARTING,
+        TaskAttempt.EnvironmentStatus.RESTARTING,
+    ]
+
+    is_finished = attempt.environment_status in [
+        TaskAttempt.EnvironmentStatus.READY,
+        TaskAttempt.EnvironmentStatus.ERROR,
+    ]
+
+    return JsonResponse(
+        {
+            "attempt_id": attempt.id,
+            "attempt_status": attempt.status,
+            "environment_status": attempt.environment_status,
+            "environment_status_label": attempt.get_environment_status_display(),
+            "environment_ready": (
+                attempt.environment_status == TaskAttempt.EnvironmentStatus.READY
+            ),
+            "last_check_output": attempt.last_check_output,
+            "is_running": is_running,
+            "is_finished": is_finished,
             "redirect_url": reverse(
                 "sandbox:task_detail",
                 args=[attempt.id],
