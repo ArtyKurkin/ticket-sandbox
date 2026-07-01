@@ -142,11 +142,33 @@
                   {{ attempt.get_status_display }}
                 </span>
               {% elif attempt.status == "failed" %}
-                <span class="status status-danger">
-                  <i data-lucide="triangle-alert"></i>
+                {% if attempt.mentor_decision == "needs_revision" %}
+                  <span class="status status-danger">
+                    <i data-lucide="triangle-alert"></i>
+                    Доработка ответа
+                  </span>
+                {% elif attempt.check_status == "failed" %}
+                  <span class="status status-danger">
+                    <i data-lucide="triangle-alert"></i>
+                    Автопроверка не пройдена
+                  </span>
+                {% elif attempt.check_status == "error" %}
+                  <span class="status status-danger">
+                    <i data-lucide="badge-alert"></i>
+                    Ошибка автопроверки
+                  </span>
+                {% else %}
+                  <span class="status status-danger">
+                    <i data-lucide="triangle-alert"></i>
+                    Требует внимания
+                  </span>
+                {% endif %}
+              {% elif attempt.status == "in_progress" %}
+                <span class="status status-warning">
+                  <i data-lucide="loader-circle"></i>
                   {{ attempt.get_status_display }}
                 </span>
-              {% elif attempt.status == "in_progress" or attempt.status == "on_review" %}
+              {% elif attempt.status == "on_review" %}
                 <span class="status status-warning">
                   <i data-lucide="loader-circle"></i>
                   {{ attempt.get_status_display }}
