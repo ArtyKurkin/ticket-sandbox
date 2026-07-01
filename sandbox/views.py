@@ -403,6 +403,10 @@ def restart_task(request, attempt_id):
         f"Окружение задания возвращено в начальное состояние."
     )
 
+    attempt.check_status = TaskAttempt.CheckStatus.IDLE
+    attempt.check_started_at = None
+    attempt.check_finished_at = None
+
     attempt.save()
 
     terminal_logger.info(
