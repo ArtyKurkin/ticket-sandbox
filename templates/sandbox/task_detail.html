@@ -46,10 +46,27 @@
             Пройдено
           </span>
         {% elif attempt.status == "failed" %}
-          <span class="status status-danger ticket-state-badge">
-            <i data-lucide="triangle-alert"></i>
-            Доработать
-          </span>
+          {% if attempt.mentor_decision == "needs_revision" %}
+            <span class="status status-danger ticket-state-badge">
+              <i data-lucide="triangle-alert"></i>
+              Доработать ответ
+            </span>
+          {% elif attempt.check_status == "failed" %}
+            <span class="status status-danger ticket-state-badge">
+              <i data-lucide="triangle-alert"></i>
+              Техническая часть не пройдена
+            </span>
+          {% elif attempt.check_status == "error" %}
+            <span class="status status-danger ticket-state-badge">
+              <i data-lucide="badge-alert"></i>
+              Ошибка автопроверки
+            </span>
+          {% else %}
+            <span class="status status-danger ticket-state-badge">
+              <i data-lucide="triangle-alert"></i>
+              Требует внимания
+            </span>
+          {% endif %}
         {% elif attempt.status == "on_review" %}
           <span class="status status-primary ticket-state-badge">
             <i data-lucide="badge-info"></i>

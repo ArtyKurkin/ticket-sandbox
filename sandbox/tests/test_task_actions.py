@@ -51,6 +51,76 @@ class TaskDetailAccessTests(SandboxTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "sandbox/task_detail.html")
 
+    def test_task_detail_shows_failed_check_status_badge(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
+        self.attempt.mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "mentor_decision",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Техническая часть не пройдена")
+        self.assertContains(response, "Автопроверка не пройдена")
+
+    def test_task_detail_shows_check_error_status_badge(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.check_status = TaskAttempt.CheckStatus.ERROR
+        self.attempt.mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "mentor_decision",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ошибка автопроверки")
+        self.assertContains(response, "Автопроверка завершилась с ошибкой")
+
+    def test_task_detail_shows_manual_revision_status_badge(self):
+        self.task.requires_manual_review = True
+        self.task.save(update_fields=["requires_manual_review"])
+
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.check_status = TaskAttempt.CheckStatus.PASSED
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.mentor_decision = TaskAttempt.MentorDecision.NEEDS_REVISION
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "technical_passed_at",
+                "mentor_decision",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Доработать ответ")
+
     def test_manual_review_badge_is_visible_when_task_requires_manual_review(self):
         self.task.requires_manual_review = True
         self.task.save(update_fields=["requires_manual_review"])

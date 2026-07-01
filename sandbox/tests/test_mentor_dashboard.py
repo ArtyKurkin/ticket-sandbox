@@ -66,6 +66,113 @@ class MentorDashboardTests(SandboxTestCase):
         self.assertContains(response, "2")
         self.assertContains(response, "1")
 
+    def test_mentor_dashboard_revision_stat_counts_only_manual_revisions(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "mentor_decision",
+            ]
+        )
+
+        revision_task = self.create_task(
+            queue=self.queue,
+            slug="manual-revision-task",
+            order=2,
+            title="Ответ требует доработки",
+        )
+
+        TaskAttempt.objects.create(
+            user=self.trainee,
+            task=revision_task,
+            status=TaskAttempt.Status.FAILED,
+            mentor_decision=TaskAttempt.MentorDecision.NEEDS_REVISION,
+        )
+
+        self.client.login(
+            username="mentor-dashboard-mentor",
+            password="test-password",
+        )
+
+        response = self.client.get(reverse("sandbox:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+
+        dashboard_stats = response.context["dashboard_stats"]
+
+        self.assertEqual(dashboard_stats["failed"], 2)
+        self.assertEqual(dashboard_stats["needs_revision"], 1)
+
+    def test_mentor_dashboard_shows_failed_check_status_reason(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
+        self.attempt.mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "mentor_decision",
+            ]
+        )
+
+        self.client.login(
+            username="mentor-dashboard-mentor",
+            password="test-password",
+        )
+
+        response = self.client.get(reverse("sandbox:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Автопроверка не пройдена")
+        self.assertNotContains(response, "Доработка ответа")
+
+    def test_mentor_dashboard_shows_check_error_status_reason(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.check_status = TaskAttempt.CheckStatus.ERROR
+        self.attempt.mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "mentor_decision",
+            ]
+        )
+
+        self.client.login(
+            username="mentor-dashboard-mentor",
+            password="test-password",
+        )
+
+        response = self.client.get(reverse("sandbox:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ошибка автопроверки")
+        self.assertNotContains(response, "Доработка ответа")
+
+    def test_mentor_dashboard_shows_manual_revision_status_reason(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
+        self.attempt.mentor_decision = TaskAttempt.MentorDecision.NEEDS_REVISION
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "mentor_decision",
+            ]
+        )
+
+        self.client.login(
+            username="mentor-dashboard-mentor",
+            password="test-password",
+        )
+
+        response = self.client.get(reverse("sandbox:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Доработка ответа")
+        self.assertContains(response, "Нужна доработка")
+
     def test_regular_user_does_not_see_mentor_dashboard(self):
         self.client.login(
             username="mentor-dashboard-trainee",
