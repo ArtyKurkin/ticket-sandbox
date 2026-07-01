@@ -57,7 +57,7 @@ class TechnicalLockTests(TestCase):
             args=[self.attempt.id],
         )
 
-        with patch("sandbox.views.create_task_container") as create_task_container:
+        with patch("sandbox.views.start_environment_in_background") as start_environment_in_background:
             response = self.client.post(url)
 
         self.assertRedirects(
@@ -68,7 +68,7 @@ class TechnicalLockTests(TestCase):
             ),
         )
 
-        create_task_container.assert_not_called()
+        start_environment_in_background.assert_not_called()
 
         self.attempt.refresh_from_db()
 
@@ -105,10 +105,9 @@ class TechnicalLockTests(TestCase):
             args=[self.attempt.id],
         )
 
-        with patch("sandbox.views.remove_terminal_container") as remove_terminal_container, \
-             patch("sandbox.views.remove_task_container") as remove_task_container, \
-             patch("sandbox.views.create_task_container") as create_task_container, \
-             patch("sandbox.views.create_terminal_container") as create_terminal_container:
+        with patch(
+            "sandbox.views.start_environment_restart_in_background"
+        ) as start_environment_restart_in_background:
             response = self.client.post(url)
 
         self.assertRedirects(
@@ -119,10 +118,7 @@ class TechnicalLockTests(TestCase):
             ),
         )
 
-        remove_terminal_container.assert_not_called()
-        remove_task_container.assert_not_called()
-        create_task_container.assert_not_called()
-        create_terminal_container.assert_not_called()
+        start_environment_restart_in_background.assert_not_called()
 
         self.attempt.refresh_from_db()
 
@@ -137,6 +133,10 @@ class TechnicalLockTests(TestCase):
         self.assertEqual(
             self.attempt.container_name,
             "old-task-container",
+        )
+        self.assertEqual(
+            self.attempt.terminal_container_name,
+            "old-terminal-container",
         )
         self.assertIsNotNone(
             self.attempt.technical_passed_at,

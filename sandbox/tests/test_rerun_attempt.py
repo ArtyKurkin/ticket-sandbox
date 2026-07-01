@@ -373,8 +373,11 @@ class HistoricalAttemptActionTests(SandboxTestCase):
             status=TaskAttempt.Status.NEW,
         )
 
-    @patch("sandbox.views.create_task_container")
-    def test_start_task_is_blocked_for_historical_attempt(self, create_task_container):
+    @patch("sandbox.views.start_environment_in_background")
+    def test_start_task_is_blocked_for_historical_attempt(
+        self,
+        start_environment_in_background_mock,
+    ):
         response = self.client.post(
             reverse(
                 "sandbox:start_task",
@@ -390,10 +393,13 @@ class HistoricalAttemptActionTests(SandboxTestCase):
             ),
         )
 
-        create_task_container.assert_not_called()
+        start_environment_in_background_mock.assert_not_called()
 
-    @patch("sandbox.views.create_task_container")
-    def test_restart_task_is_blocked_for_historical_attempt(self, create_task_container):
+    @patch("sandbox.views.start_environment_restart_in_background")
+    def test_restart_task_is_blocked_for_historical_attempt(
+        self,
+        start_environment_restart_in_background_mock,
+    ):
         response = self.client.post(
             reverse(
                 "sandbox:restart_task",
@@ -409,7 +415,7 @@ class HistoricalAttemptActionTests(SandboxTestCase):
             ),
         )
 
-        create_task_container.assert_not_called()
+        start_environment_restart_in_background_mock.assert_not_called()
 
     @patch("sandbox.views.start_attempt_check_in_background")
     def test_check_task_is_blocked_for_historical_attempt(

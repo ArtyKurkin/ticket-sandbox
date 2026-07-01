@@ -648,18 +648,10 @@ class TaskFlowTests(SandboxTestCase):
         notified_attempt = notify_manual_review_required_mock.call_args.args[0]
         self.assertEqual(notified_attempt.id, self.attempt.id)
 
-    @patch("sandbox.views.get_free_port")
-    @patch("sandbox.views.create_terminal_container")
-    @patch("sandbox.views.create_task_container")
-    @patch("sandbox.views.remove_task_container")
-    @patch("sandbox.views.remove_terminal_container")
-    def test_restart_task_removes_old_containers_and_creates_new_environment(
+    @patch("sandbox.views.start_environment_restart_in_background")
+    def test_restart_task_marks_environment_as_restarting(
         self,
-        remove_terminal_container_mock,
-        remove_task_container_mock,
-        create_task_container_mock,
-        create_terminal_container_mock,
-        get_free_port_mock,
+        start_environment_restart_in_background_mock,
     ):
         self.attempt.status = TaskAttempt.Status.FAILED
         self.attempt.container_id = "old-container-id"
@@ -670,28 +662,11 @@ class TaskFlowTests(SandboxTestCase):
         self.attempt.shell_command = "docker exec -it old-task-container bash"
         self.attempt.finished_at = timezone.now()
         self.attempt.restart_count = 1
+        self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
+        self.attempt.check_started_at = timezone.now()
+        self.attempt.check_finished_at = timezone.now()
+        self.attempt.last_check_output = "ERROR: nginx не запущен"
         self.attempt.save()
-
-        remove_terminal_container_mock.return_value = (
-            True,
-            "Старый терминал удален.",
-        )
-
-        remove_task_container_mock.return_value = (
-            True,
-            "Старый контейнер удален.",
-        )
-
-        create_task_container_mock.return_value = SimpleNamespace(
-            id="new-container-id",
-            name="new-task-container",
-        )
-
-        create_terminal_container_mock.return_value = SimpleNamespace(
-            name="new-terminal-container",
-        )
-
-        get_free_port_mock.return_value = 25001
 
         response = self.client.post(
             reverse("sandbox:restart_task", args=[self.attempt.id])
@@ -699,58 +674,54 @@ class TaskFlowTests(SandboxTestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        remove_terminal_container_mock.assert_called_once_with(
-            "old-terminal-container"
-        )
-
-        remove_task_container_mock.assert_called_once_with(
-            "old-task-container"
+        start_environment_restart_in_background_mock.assert_called_once_with(
+            self.attempt.id
         )
 
         self.attempt.refresh_from_db()
 
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.IN_PROGRESS)
-        self.assertEqual(self.attempt.restart_count, 2)
-        self.assertIsNone(self.attempt.finished_at)
-
-        self.assertEqual(self.attempt.container_id, "new-container-id")
-        self.assertEqual(self.attempt.container_name, "new-task-container")
         self.assertEqual(
-            self.attempt.terminal_container_name,
-            "new-terminal-container",
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.RESTARTING,
         )
-        self.assertEqual(self.attempt.terminal_port, 25001)
-        self.assertIn(
-            "docker exec -it new-task-container bash",
-            self.attempt.shell_command,
+        self.assertIsNotNone(self.attempt.environment_started_at)
+        self.assertIsNone(self.attempt.environment_finished_at)
+
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.IDLE,
         )
+        self.assertIsNone(self.attempt.check_started_at)
+        self.assertIsNone(self.attempt.check_finished_at)
+
         self.assertIn(
-            "перезапущен",
+            "Окружение перезапускается",
             self.attempt.last_check_output,
         )
 
-    @patch("sandbox.views.remove_task_container")
-    @patch("sandbox.views.remove_terminal_container")
-    @patch("sandbox.views.create_task_container")
-    def test_restart_task_handles_docker_api_error(
+        self.assertEqual(self.attempt.restart_count, 1)
+        self.assertEqual(self.attempt.container_name, "old-task-container")
+        self.assertEqual(
+            self.attempt.terminal_container_name,
+            "old-terminal-container",
+        )
+
+    @patch("sandbox.views.start_environment_restart_in_background")
+    def test_restart_task_does_not_start_background_when_environment_is_already_restarting(
         self,
-        create_task_container_mock,
-        remove_terminal_container_mock,
-        remove_task_container_mock,
+        start_environment_restart_in_background_mock,
     ):
         self.attempt.status = TaskAttempt.Status.IN_PROGRESS
         self.attempt.container_name = "old-task-container"
         self.attempt.terminal_container_name = "old-terminal-container"
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.RESTARTING
         self.attempt.save(
             update_fields=[
                 "status",
                 "container_name",
                 "terminal_container_name",
+                "environment_status",
             ]
-        )
-
-        create_task_container_mock.side_effect = RuntimeError(
-            "Docker API unavailable"
         )
 
         response = self.client.post(
@@ -759,23 +730,13 @@ class TaskFlowTests(SandboxTestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        remove_terminal_container_mock.assert_called_once_with(
-            "old-terminal-container"
-        )
-        remove_task_container_mock.assert_called_once_with(
-            "old-task-container"
-        )
+        start_environment_restart_in_background_mock.assert_not_called()
 
         self.attempt.refresh_from_db()
 
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.FAILED)
-        self.assertIn(
-            "Не удалось перезапустить окружение из-за ошибки Docker API.",
-            self.attempt.last_check_output,
-        )
-        self.assertIn(
-            "Docker API unavailable",
-            self.attempt.last_check_output,
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.RESTARTING,
         )
 
     @patch("sandbox.views.start_environment_in_background")
@@ -862,12 +823,10 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(self.attempt.status, TaskAttempt.Status.ON_REVIEW)
         self.assertEqual(self.attempt.attempts_count, 0)
 
-    @patch("sandbox.views.remove_task_container")
-    @patch("sandbox.views.remove_terminal_container")
-    def test_restart_task_does_not_remove_containers_for_locked_task(
+    @patch("sandbox.views.start_environment_restart_in_background")
+    def test_restart_task_does_not_start_background_for_locked_task(
         self,
-        remove_terminal_container_mock,
-        remove_task_container_mock,
+        start_environment_restart_in_background_mock,
     ):
         locked_task = self.create_task(
             queue=self.queue,
@@ -889,8 +848,7 @@ class TaskFlowTests(SandboxTestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        remove_terminal_container_mock.assert_not_called()
-        remove_task_container_mock.assert_not_called()
+        start_environment_restart_in_background_mock.assert_not_called()
 
         locked_attempt.refresh_from_db()
 
@@ -901,6 +859,43 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(
             locked_attempt.terminal_container_name,
             "locked-terminal-container",
+        )
+        self.assertEqual(
+            locked_attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.IDLE,
+        )
+
+    @patch("sandbox.views.start_environment_restart_in_background")
+    def test_restart_task_does_not_start_background_when_check_is_running(
+        self,
+        start_environment_restart_in_background_mock,
+    ):
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.container_name = "task-container"
+        self.attempt.terminal_container_name = "terminal-container"
+        self.attempt.check_status = TaskAttempt.CheckStatus.RUNNING
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+                "terminal_container_name",
+                "check_status",
+            ]
+        )
+
+        response = self.client.post(
+            reverse("sandbox:restart_task", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        start_environment_restart_in_background_mock.assert_not_called()
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.RUNNING,
         )
 
     @patch("sandbox.views.start_environment_in_background")

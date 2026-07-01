@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-from sandbox.views import (
+from sandbox.services.terminal_gateway import (
     build_terminal_base_path,
     build_terminal_url,
     terminal_gateway_enabled,

@@ -17,24 +17,17 @@ from .services.notifications import (
     notify_user_completed_all_tasks,
 )
 from .services.terminal_gateway import (
-    build_terminal_base_path,
-    build_terminal_url,
     log_terminal_auth_denied,
     parse_terminal_uri,
-    terminal_gateway_enabled,
-)
-from .services.docker_service import (
-    create_task_container,
-    remove_task_container,
-    create_terminal_container,
-    remove_terminal_container,
-    get_free_port,
 )
 from .services.checks import start_attempt_check_in_background
 from .services.environments import (
     start_environment_in_background,
+    start_environment_restart_in_background,
+    try_mark_environment_restarting,
     try_mark_environment_starting,
 )
+
 
 terminal_logger = logging.getLogger("sandbox.terminal")
 
@@ -262,109 +255,51 @@ def restart_task(request, attempt_id):
             attempt_id=attempt.id
         )
 
+    if attempt.environment_status in [
+        TaskAttempt.EnvironmentStatus.STARTING,
+        TaskAttempt.EnvironmentStatus.RESTARTING,
+    ]:
+        messages.info(
+            request,
+            "Окружение задания уже запускается или перезапускается."
+        )
+
+        return redirect(
+            "sandbox:task_detail",
+            attempt_id=attempt.id
+        )
+
+    if attempt.check_status == TaskAttempt.CheckStatus.RUNNING:
+        messages.info(
+            request,
+            "Автопроверка уже выполняется. Дождись результата перед перезапуском окружения."
+        )
+
+        return redirect(
+            "sandbox:task_detail",
+            attempt_id=attempt.id
+        )
+
     if not attempt.is_available:
         messages.error(request, "Этот тикет пока недоступен.")
         return redirect("sandbox:dashboard")
 
-    try:
-        if attempt.terminal_container_name:
-            remove_terminal_container(attempt.terminal_container_name)
-
-        if attempt.container_name:
-            remove_task_container(attempt.container_name)
-
-        container = create_task_container(
-            queue_slug=attempt.task.queue.slug,
-            task_slug=attempt.task.slug,
-            attempt_id=attempt.id,
-        )
-
-        terminal_port = get_free_port()
-
-        terminal_container = create_terminal_container(
-            queue_slug=attempt.task.queue.slug,
-            task_slug=attempt.task.slug,
-            attempt_id=attempt.id,
-            target_container_name=container.name,
-            port=terminal_port,
-            base_path=build_terminal_base_path(
-                attempt_id=attempt.id,
-                port=terminal_port,
-            ),
-        )
-
-    except Exception as error:
-        attempt.status = TaskAttempt.Status.FAILED
-        attempt.last_check_output = (
-            "Не удалось перезапустить окружение из-за ошибки Docker API.\n\n"
-            f"{error}"
-        )
-        attempt.save(
-            update_fields=[
-                "status",
-                "last_check_output",
-            ]
-        )
-
-        terminal_logger.exception(
-            "task_restart_docker_error user_id=%s attempt_id=%s task_slug=%s queue_slug=%s container_name=%s terminal_container_name=%s",
-            request.user.id,
-            attempt.id,
-            attempt.task.slug,
-            attempt.task.queue.slug,
-            attempt.container_name,
-            attempt.terminal_container_name,
-        )
-
-        messages.error(
+    if not try_mark_environment_restarting(attempt):
+        messages.info(
             request,
-            "Не удалось перезапустить окружение. Попробуй позже или обратись к наставнику."
+            "Окружение задания уже запускается или перезапускается."
         )
 
-        return redirect("sandbox:task_detail", attempt_id=attempt.id)
+        return redirect(
+            "sandbox:task_detail",
+            attempt_id=attempt.id
+        )
 
-    attempt.status = TaskAttempt.Status.IN_PROGRESS
-    attempt.restart_count += 1
-    attempt.started_at = timezone.now()
-    attempt.finished_at = None
+    start_environment_restart_in_background(attempt.id)
 
-    attempt.container_id = container.id
-    attempt.container_name = container.name
-
-    attempt.terminal_container_name = terminal_container.name
-    attempt.terminal_port = terminal_port
-
-    attempt.terminal_url = build_terminal_url(
-        attempt_id=attempt.id,
-        port=terminal_port,
-    )
-
-    attempt.shell_command = (
-        f"docker exec -it {container.name} bash"
-    )
-
-    attempt.last_check_output = (
-        f"Контейнер {container.name} перезапущен. "
-        f"Окружение задания возвращено в начальное состояние."
-    )
-
-    attempt.check_status = TaskAttempt.CheckStatus.IDLE
-    attempt.check_started_at = None
-    attempt.check_finished_at = None
-
-    attempt.save()
-
-    terminal_logger.info(
-        "task_environment_restarted user_id=%s attempt_id=%s task_slug=%s queue_slug=%s restart_count=%s container_name=%s terminal_container_name=%s terminal_port=%s terminal_gateway_enabled=%s",
-        request.user.id,
-        attempt.id,
-        attempt.task.slug,
-        attempt.task.queue.slug,
-        attempt.restart_count,
-        attempt.container_name,
-        attempt.terminal_container_name,
-        attempt.terminal_port,
-        terminal_gateway_enabled(),
+    messages.info(
+        request,
+        "Окружение перезапускается. Страница обновится после готовности."
     )
 
     return redirect("sandbox:task_detail", attempt_id=attempt.id)
