@@ -116,6 +116,56 @@ class TaskDetailAccessTests(SandboxTestCase):
         self.assertContains(response, "data-environment-poll-url")
         self.assertContains(response, "data-environment-poll-output")
 
+    def test_task_detail_does_not_show_check_button_when_environment_is_starting(self):
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.container_name = "old-task-container"
+        self.attempt.terminal_container_name = "old-terminal-container"
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+                "terminal_container_name",
+                "environment_status",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Окружение запускается")
+        self.assertNotContains(response, "Сдать техническую часть")
+        self.assertNotContains(response, "Запустить автопроверку ещё раз")
+
+    def test_task_detail_does_not_show_check_button_when_environment_is_restarting(self):
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.container_name = "old-task-container"
+        self.attempt.terminal_container_name = "old-terminal-container"
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.RESTARTING
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+                "terminal_container_name",
+                "environment_status",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Окружение перезапускается")
+        self.assertNotContains(response, "Сдать техническую часть")
+        self.assertNotContains(response, "Запустить автопроверку ещё раз")
+
     def test_environment_error_card_is_visible(self):
         self.attempt.status = TaskAttempt.Status.FAILED
         self.attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
@@ -139,6 +189,62 @@ class TaskDetailAccessTests(SandboxTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Ошибка запуска окружения")
         self.assertContains(response, "Окружение не запустилось")
+
+    def test_task_detail_does_not_show_check_button_when_environment_has_error(self):
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.container_name = "old-task-container"
+        self.attempt.terminal_container_name = "old-terminal-container"
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+                "terminal_container_name",
+                "environment_status",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Окружение завершилось с ошибкой")
+        self.assertContains(response, "Перезапустить")
+        self.assertNotContains(response, "Сдать техническую часть")
+        self.assertNotContains(response, "Запустить автопроверку ещё раз")
+
+    def test_task_detail_shows_start_button_when_environment_error_without_containers(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
+        self.attempt.container_name = ""
+        self.attempt.terminal_container_name = ""
+        self.attempt.terminal_url = ""
+        self.attempt.last_check_output = "Запуск окружения был прерван."
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "environment_status",
+                "container_name",
+                "terminal_container_name",
+                "terminal_url",
+                "last_check_output",
+            ]
+        )
+
+        self.client.login(username="owner", password="test-password")
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Окружение завершилось с ошибкой")
+        self.assertContains(response, "Запустить окружение заново")
+        self.assertNotContains(response, "Сдать техническую часть")
+        self.assertNotContains(response, "Запустить автопроверку ещё раз")
 
     def test_task_detail_shows_manual_revision_status_badge(self):
         self.task.requires_manual_review = True
@@ -465,6 +571,76 @@ class TaskFlowTests(SandboxTestCase):
             TaskAttempt.EnvironmentStatus.STARTING,
         )
 
+    @patch("sandbox.views.start_environment_in_background")
+    def test_start_task_does_not_start_background_when_environment_is_restarting(
+        self,
+        start_environment_in_background_mock,
+    ):
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.RESTARTING
+        self.attempt.save(update_fields=["environment_status"])
+
+        response = self.client.post(
+            reverse("sandbox:start_task", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        start_environment_in_background_mock.assert_not_called()
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.RESTARTING,
+        )
+
+    @patch("sandbox.views.start_environment_in_background")
+    def test_start_task_can_start_after_environment_error_without_containers(
+        self,
+        start_environment_in_background_mock,
+    ):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
+        self.attempt.environment_started_at = timezone.now()
+        self.attempt.environment_finished_at = timezone.now()
+        self.attempt.last_check_output = "Запуск окружения был прерван."
+        self.attempt.container_name = ""
+        self.attempt.terminal_container_name = ""
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "environment_status",
+                "environment_started_at",
+                "environment_finished_at",
+                "last_check_output",
+                "container_name",
+                "terminal_container_name",
+            ]
+        )
+
+        response = self.client.post(
+            reverse("sandbox:start_task", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        start_environment_in_background_mock.assert_called_once_with(
+            self.attempt.id
+        )
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.STARTING,
+        )
+        self.assertIsNotNone(self.attempt.environment_started_at)
+        self.assertIsNone(self.attempt.environment_finished_at)
+        self.assertIn(
+            "Окружение запускается",
+            self.attempt.last_check_output,
+        )
+
     def test_check_task_requires_started_container(self):
         response = self.client.post(
             reverse("sandbox:check_task", args=[self.attempt.id]),
@@ -481,7 +657,122 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(self.attempt.status, TaskAttempt.Status.NEW)
         self.assertEqual(self.attempt.attempts_count, 0)
 
-    
+    @patch("sandbox.views.start_attempt_check_in_background")
+    def test_check_task_does_not_start_when_environment_is_restarting(
+        self,
+        start_attempt_check_in_background_mock,
+    ):
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.container_name = "old-task-container"
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.RESTARTING
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+                "environment_status",
+            ]
+        )
+
+        response = self.client.post(
+            reverse("sandbox:check_task", args=[self.attempt.id]),
+            data={
+                "client_answer": "Здравствуйте, проблема исправлена.",
+                "trainee_report": "Проверил сервис.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        start_attempt_check_in_background_mock.assert_not_called()
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.RESTARTING,
+        )
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.IDLE,
+        )
+
+    @patch("sandbox.views.start_attempt_check_in_background")
+    def test_check_task_does_not_start_when_environment_is_starting(
+        self,
+        start_attempt_check_in_background_mock,
+    ):
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.container_name = "old-task-container"
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+                "environment_status",
+            ]
+        )
+
+        response = self.client.post(
+            reverse("sandbox:check_task", args=[self.attempt.id]),
+            data={
+                "client_answer": "Здравствуйте, проблема исправлена.",
+                "trainee_report": "Проверил сервис.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        start_attempt_check_in_background_mock.assert_not_called()
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.STARTING,
+        )
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.IDLE,
+        )
+
+    @patch("sandbox.views.start_attempt_check_in_background")
+    def test_check_task_does_not_start_when_environment_has_error(
+        self,
+        start_attempt_check_in_background_mock,
+    ):
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.container_name = "old-task-container"
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+                "environment_status",
+            ]
+        )
+
+        response = self.client.post(
+            reverse("sandbox:check_task", args=[self.attempt.id]),
+            data={
+                "client_answer": "Здравствуйте, проблема исправлена.",
+                "trainee_report": "Проверил сервис.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        start_attempt_check_in_background_mock.assert_not_called()
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.ERROR,
+        )
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.IDLE,
+        )
 
     def test_check_task_requires_client_answer(self):
         self.attempt.status = TaskAttempt.Status.IN_PROGRESS
@@ -611,7 +902,6 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(self.attempt.client_answer, "Старый ответ клиенту.")
         self.assertEqual(self.attempt.trainee_report, "Старый внутренний комментарий.")
 
-    
     @patch("sandbox.views.notify_manual_review_required")
     def test_check_task_after_technical_pass_sends_manual_review_notification(
         self,
@@ -704,6 +994,96 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(
             self.attempt.terminal_container_name,
             "old-terminal-container",
+        )
+
+    @patch("sandbox.views.start_environment_restart_in_background")
+    def test_restart_task_can_restart_after_environment_error(
+        self,
+        start_environment_restart_in_background_mock,
+    ):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.container_name = "old-task-container"
+        self.attempt.terminal_container_name = "old-terminal-container"
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
+        self.attempt.environment_started_at = timezone.now()
+        self.attempt.environment_finished_at = timezone.now()
+        self.attempt.last_check_output = "Запуск окружения был прерван."
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+                "terminal_container_name",
+                "environment_status",
+                "environment_started_at",
+                "environment_finished_at",
+                "last_check_output",
+            ]
+        )
+
+        response = self.client.post(
+            reverse("sandbox:restart_task", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        start_environment_restart_in_background_mock.assert_called_once_with(
+            self.attempt.id
+        )
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.RESTARTING,
+        )
+        self.assertIsNotNone(self.attempt.environment_started_at)
+        self.assertIsNone(self.attempt.environment_finished_at)
+        self.assertIn(
+            "Окружение перезапускается",
+            self.attempt.last_check_output,
+        )
+
+    @patch("sandbox.views.start_environment_restart_in_background")
+    def test_restart_task_can_restart_after_environment_error_with_check_error(
+        self,
+        start_environment_restart_in_background_mock,
+    ):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.container_name = "old-task-container"
+        self.attempt.terminal_container_name = "old-terminal-container"
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
+        self.attempt.check_status = TaskAttempt.CheckStatus.ERROR
+        self.attempt.last_check_output = "Запуск окружения был прерван."
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "container_name",
+                "terminal_container_name",
+                "environment_status",
+                "check_status",
+                "last_check_output",
+            ]
+        )
+
+        response = self.client.post(
+            reverse("sandbox:restart_task", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        start_environment_restart_in_background_mock.assert_called_once_with(
+            self.attempt.id
+        )
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.RESTARTING,
+        )
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.IDLE,
         )
 
     @patch("sandbox.views.start_environment_restart_in_background")

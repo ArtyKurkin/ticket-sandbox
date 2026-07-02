@@ -54,7 +54,12 @@ def try_mark_environment_starting(attempt):
     updated_count = (
         TaskAttempt.objects
         .filter(id=attempt.id)
-        .exclude(environment_status=TaskAttempt.EnvironmentStatus.STARTING)
+        .exclude(
+            environment_status__in=[
+                TaskAttempt.EnvironmentStatus.STARTING,
+                TaskAttempt.EnvironmentStatus.RESTARTING,
+            ]
+        )
         .update(
             environment_status=TaskAttempt.EnvironmentStatus.STARTING,
             environment_started_at=now,
@@ -80,6 +85,7 @@ def mark_environment_restarting(attempt):
     attempt.environment_status = TaskAttempt.EnvironmentStatus.RESTARTING
     attempt.environment_started_at = now
     attempt.environment_finished_at = None
+    attempt.finished_at = None
     attempt.last_check_output = ENVIRONMENT_RESTARTING_OUTPUT
 
     attempt.check_status = TaskAttempt.CheckStatus.IDLE
@@ -95,6 +101,7 @@ def mark_environment_restarting(attempt):
             "check_status",
             "check_started_at",
             "check_finished_at",
+            "finished_at",
         ]
     )
 
@@ -115,6 +122,7 @@ def try_mark_environment_restarting(attempt):
             environment_status=TaskAttempt.EnvironmentStatus.RESTARTING,
             environment_started_at=now,
             environment_finished_at=None,
+            finished_at=None,
             last_check_output=ENVIRONMENT_RESTARTING_OUTPUT,
             check_status=TaskAttempt.CheckStatus.IDLE,
             check_started_at=None,
@@ -128,6 +136,7 @@ def try_mark_environment_restarting(attempt):
     attempt.environment_status = TaskAttempt.EnvironmentStatus.RESTARTING
     attempt.environment_started_at = now
     attempt.environment_finished_at = None
+    attempt.finished_at = None
     attempt.last_check_output = ENVIRONMENT_RESTARTING_OUTPUT
 
     attempt.check_status = TaskAttempt.CheckStatus.IDLE

@@ -66,6 +66,11 @@ class Command(BaseCommand):
             attempt.terminal_port = None
 
             attempt.status = TaskAttempt.Status.NEW
+
+            attempt.environment_status = TaskAttempt.EnvironmentStatus.IDLE
+            attempt.environment_started_at = None
+            attempt.environment_finished_at = None
+
             attempt.check_status = TaskAttempt.CheckStatus.IDLE
             attempt.check_started_at = None
             attempt.check_finished_at = None
@@ -79,6 +84,9 @@ class Command(BaseCommand):
                     "terminal_url",
                     "terminal_port",
                     "status",
+                    "environment_status",
+                    "environment_started_at",
+                    "environment_finished_at",
                     "check_status",
                     "check_started_at",
                     "check_finished_at",

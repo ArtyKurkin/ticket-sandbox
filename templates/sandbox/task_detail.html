@@ -583,6 +583,42 @@
               Дождись завершения проверки. Страница обновится автоматически.
             </p>
 
+          {% elif attempt.environment_status == "error" %}
+            <div class="status status-danger status-full">
+              <i data-lucide="badge-alert"></i>
+              Окружение завершилось с ошибкой
+            </div>
+
+            <p class="muted-text">
+              Перезапусти окружение перед автопроверкой.
+            </p>
+
+            {% if attempt.terminal_url or attempt.container_name %}
+              <form method="post" action="{% url 'sandbox:restart_task' attempt.id %}">
+                {% csrf_token %}
+                <button
+                  type="submit"
+                  class="button danger"
+                  data-loading-text="Перезапускаем окружение..."
+                >
+                  <i data-lucide="rotate-ccw"></i>
+                  <span class="button-label">Перезапустить</span>
+                </button>
+              </form>
+            {% else %}
+              <form method="post" action="{% url 'sandbox:start_task' attempt.id %}">
+                {% csrf_token %}
+                <button
+                  type="submit"
+                  class="button"
+                  data-loading-text="Запускаем окружение..."
+                >
+                  <i data-lucide="play"></i>
+                  <span class="button-label">Запустить окружение заново</span>
+                </button>
+              </form>
+            {% endif %}
+
           {% elif attempt.terminal_url or attempt.container_name %}
             <form method="post" action="{% url 'sandbox:check_task' attempt.id %}">
             

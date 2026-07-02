@@ -198,11 +198,21 @@ function initCheckStatusPolling() {
 
   const url = pollCard.dataset.checkPollUrl;
   const intervalMs = Number(pollCard.dataset.checkPollInterval || "2000");
+  const maxFailedAttempts = Number(pollCard.dataset.checkPollMaxFailures || "5");
   const label = pollCard.querySelector("[data-check-poll-label]");
   const output = pollCard.querySelector("[data-check-poll-output]");
 
   let timerId = null;
   let isStopped = false;
+  let failedAttempts = 0;
+
+  function stopPolling() {
+    isStopped = true;
+
+    if (timerId) {
+      window.clearInterval(timerId);
+    }
+  }
 
   async function pollCheckStatus() {
     if (isStopped) {
@@ -222,6 +232,8 @@ function initCheckStatusPolling() {
         throw new Error(`HTTP ${response.status}`);
       }
 
+      failedAttempts = 0;
+
       const data = await response.json();
 
       if (label) {
@@ -235,11 +247,7 @@ function initCheckStatusPolling() {
       }
 
       if (data.is_finished) {
-        isStopped = true;
-
-        if (timerId) {
-          window.clearInterval(timerId);
-        }
+        stopPolling();
 
         if (label) {
           label.textContent = "Проверка завершена. Обновляем страницу...";
@@ -250,6 +258,23 @@ function initCheckStatusPolling() {
         }, 1500);
       }
     } catch (error) {
+      failedAttempts += 1;
+
+      if (failedAttempts >= maxFailedAttempts) {
+        stopPolling();
+
+        if (label) {
+          label.textContent = "Не удалось получить статус проверки.";
+        }
+
+        if (output) {
+          output.textContent =
+            "Обнови страницу вручную. Если проблема повторится, обратись к наставнику.";
+        }
+
+        return;
+      }
+
       if (label) {
         label.textContent =
           "Не удалось обновить статус проверки. Следующая попытка через пару секунд...";
@@ -270,11 +295,23 @@ function initEnvironmentStatusPolling() {
 
   const url = pollCard.dataset.environmentPollUrl;
   const intervalMs = Number(pollCard.dataset.environmentPollInterval || "2000");
+  const maxFailedAttempts = Number(
+    pollCard.dataset.environmentPollMaxFailures || "5"
+  );
   const label = pollCard.querySelector("[data-environment-poll-label]");
   const output = pollCard.querySelector("[data-environment-poll-output]");
 
   let timerId = null;
   let isStopped = false;
+  let failedAttempts = 0;
+
+  function stopPolling() {
+    isStopped = true;
+
+    if (timerId) {
+      window.clearInterval(timerId);
+    }
+  }
 
   async function pollEnvironmentStatus() {
     if (isStopped) {
@@ -294,6 +331,8 @@ function initEnvironmentStatusPolling() {
         throw new Error(`HTTP ${response.status}`);
       }
 
+      failedAttempts = 0;
+
       const data = await response.json();
 
       if (label) {
@@ -307,11 +346,7 @@ function initEnvironmentStatusPolling() {
       }
 
       if (data.is_finished) {
-        isStopped = true;
-
-        if (timerId) {
-          window.clearInterval(timerId);
-        }
+        stopPolling();
 
         if (label) {
           label.textContent = data.environment_ready
@@ -324,6 +359,23 @@ function initEnvironmentStatusPolling() {
         }, 1500);
       }
     } catch (error) {
+      failedAttempts += 1;
+
+      if (failedAttempts >= maxFailedAttempts) {
+        stopPolling();
+
+        if (label) {
+          label.textContent = "Не удалось получить статус окружения.";
+        }
+
+        if (output) {
+          output.textContent =
+            "Обнови страницу вручную. Если проблема повторится, обратись к наставнику.";
+        }
+
+        return;
+      }
+
       if (label) {
         label.textContent =
           "Не удалось обновить статус окружения. Следующая попытка через пару секунд...";

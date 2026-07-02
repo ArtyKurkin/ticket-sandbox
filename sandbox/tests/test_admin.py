@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import CommandError
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from sandbox.models import CheckRun, Queue, Task, TaskAttempt
 
@@ -128,6 +129,70 @@ class SandboxAdminTests(TestCase):
         self.task.refresh_from_db()
 
         self.assertFalse(self.task.requires_manual_review)
+
+    def test_task_attempt_admin_can_reset_environment_status(self):
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
+        self.attempt.environment_started_at = timezone.now()
+        self.attempt.environment_finished_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "environment_status",
+                "environment_started_at",
+                "environment_finished_at",
+            ]
+        )
+
+        response = self.client.post(
+            reverse("admin:sandbox_taskattempt_changelist"),
+            data={
+                "action": "reset_environment_status",
+                "_selected_action": [self.attempt.id],
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.IDLE,
+        )
+        self.assertIsNone(self.attempt.environment_started_at)
+        self.assertIsNone(self.attempt.environment_finished_at)
+
+    def test_task_attempt_admin_can_reset_check_status(self):
+        self.attempt.check_status = TaskAttempt.CheckStatus.ERROR
+        self.attempt.check_started_at = timezone.now()
+        self.attempt.check_finished_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "check_status",
+                "check_started_at",
+                "check_finished_at",
+            ]
+        )
+
+        response = self.client.post(
+            reverse("admin:sandbox_taskattempt_changelist"),
+            data={
+                "action": "reset_check_status",
+                "_selected_action": [self.attempt.id],
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.IDLE,
+        )
+        self.assertIsNone(self.attempt.check_started_at)
+        self.assertIsNone(self.attempt.check_finished_at)
 
     @patch("sandbox.admin.call_command")
     def test_task_admin_sync_training_tasks_page_runs_dry_run_for_superuser(

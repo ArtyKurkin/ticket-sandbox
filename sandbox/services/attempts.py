@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from django.db.models import Q
 
 from sandbox.models import TaskAttempt
@@ -33,12 +34,24 @@ def get_current_attempt(user, task):
         latest_attempt.save(update_fields=["is_current"])
         return latest_attempt
 
-    return TaskAttempt.objects.create(
-        user=user,
-        task=task,
-        attempt_number=1,
-        is_current=True,
-    )
+    try:
+        return TaskAttempt.objects.create(
+            user=user,
+            task=task,
+            attempt_number=1,
+            is_current=True,
+        )
+    except IntegrityError:
+        return (
+            TaskAttempt.objects
+            .filter(
+                user=user,
+                task=task,
+                is_current=True,
+            )
+            .order_by("-attempt_number", "-id")
+            .get()
+        )
 
 
 def get_next_attempt_number(user, task):

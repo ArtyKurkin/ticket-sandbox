@@ -11,6 +11,13 @@
         <i data-lucide="bell"></i>
         Ждут проверки: {{ pending_review_count }}
       </div>
+
+      {% if stuck_attempts_count %}
+        <div class="dashboard-badge dashboard-badge--warning">
+          <i data-lucide="triangle-alert"></i>
+          Зависли за 24ч: {{ stuck_attempts_count }}
+        </div>
+      {% endif %}
     </div>
 
     <p>
@@ -146,6 +153,11 @@
                   <span class="status status-danger">
                     <i data-lucide="triangle-alert"></i>
                     Доработка ответа
+                  </span>
+                {% elif attempt.environment_status == "error" %}
+                  <span class="status status-danger">
+                    <i data-lucide="badge-alert"></i>
+                    Ошибка окружения
                   </span>
                 {% elif attempt.check_status == "failed" %}
                   <span class="status status-danger">

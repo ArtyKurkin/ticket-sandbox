@@ -13,6 +13,8 @@ from sandbox.services.environments import (
     mark_environment_starting,
     run_environment_restart,
     run_environment_start,
+    try_mark_environment_restarting,
+    try_mark_environment_starting,
 )
 
 from .base import SandboxTestCase
@@ -55,6 +57,98 @@ class EnvironmentServiceTests(SandboxTestCase):
             self.attempt.last_check_output,
             ENVIRONMENT_STARTING_OUTPUT,
         )
+
+    def test_try_mark_environment_starting_does_not_override_restarting_state(self):
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.RESTARTING
+        self.attempt.environment_started_at = timezone.now()
+        self.attempt.environment_finished_at = None
+        self.attempt.last_check_output = ENVIRONMENT_RESTARTING_OUTPUT
+        self.attempt.save(
+            update_fields=[
+                "environment_status",
+                "environment_started_at",
+                "environment_finished_at",
+                "last_check_output",
+            ]
+        )
+
+        result = try_mark_environment_starting(self.attempt)
+
+        self.assertFalse(result)
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.RESTARTING,
+        )
+        self.assertEqual(
+            self.attempt.last_check_output,
+            ENVIRONMENT_RESTARTING_OUTPUT,
+        )
+
+    def test_try_mark_environment_restarting_does_not_override_starting_state(self):
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
+        self.attempt.environment_started_at = timezone.now()
+        self.attempt.environment_finished_at = None
+        self.attempt.last_check_output = ENVIRONMENT_STARTING_OUTPUT
+        self.attempt.save(
+            update_fields=[
+                "environment_status",
+                "environment_started_at",
+                "environment_finished_at",
+                "last_check_output",
+            ]
+        )
+
+        result = try_mark_environment_restarting(self.attempt)
+
+        self.assertFalse(result)
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.STARTING,
+        )
+        self.assertEqual(
+            self.attempt.last_check_output,
+            ENVIRONMENT_STARTING_OUTPUT,
+        )
+
+    def test_try_mark_environment_restarting_resets_finished_at(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.finished_at = timezone.now()
+        self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
+        self.attempt.check_started_at = timezone.now()
+        self.attempt.check_finished_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "finished_at",
+                "check_status",
+                "check_started_at",
+                "check_finished_at",
+            ]
+        )
+
+        result = try_mark_environment_restarting(self.attempt)
+
+        self.assertTrue(result)
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.RESTARTING,
+        )
+        self.assertIsNone(self.attempt.finished_at)
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.IDLE,
+        )
+        self.assertIsNone(self.attempt.check_started_at)
+        self.assertIsNone(self.attempt.check_finished_at)
 
     @patch("sandbox.services.environments.get_free_port")
     @patch("sandbox.services.environments.create_terminal_container")
@@ -147,12 +241,14 @@ class EnvironmentServiceTests(SandboxTestCase):
         self.attempt.check_started_at = timezone.now()
         self.attempt.check_finished_at = timezone.now()
         self.attempt.last_check_output = "ERROR: nginx не запущен"
+        self.attempt.finished_at = timezone.now()
         self.attempt.save(
             update_fields=[
                 "check_status",
                 "check_started_at",
                 "check_finished_at",
                 "last_check_output",
+                "finished_at",
             ]
         )
 
@@ -166,6 +262,7 @@ class EnvironmentServiceTests(SandboxTestCase):
         )
         self.assertIsNotNone(self.attempt.environment_started_at)
         self.assertIsNone(self.attempt.environment_finished_at)
+        self.assertIsNone(self.attempt.finished_at)
         self.assertEqual(
             self.attempt.last_check_output,
             ENVIRONMENT_RESTARTING_OUTPUT,

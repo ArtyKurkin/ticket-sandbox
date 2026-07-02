@@ -178,10 +178,13 @@ def start_task(request, attempt_id):
             attempt_id=attempt.id
         )
 
-    if attempt.environment_status == TaskAttempt.EnvironmentStatus.STARTING:
+    if attempt.environment_status in [
+        TaskAttempt.EnvironmentStatus.STARTING,
+        TaskAttempt.EnvironmentStatus.RESTARTING,
+    ]:
         messages.info(
             request,
-            "Окружение задания уже запускается."
+            "Окружение задания уже запускается или перезапускается."
         )
 
         return redirect(
@@ -206,7 +209,7 @@ def start_task(request, attempt_id):
     if not try_mark_environment_starting(attempt):
         messages.info(
             request,
-            "Окружение задания уже запускается."
+            "Окружение задания уже запускается или перезапускается."
         )
 
         return redirect(
@@ -407,7 +410,7 @@ def check_task(request, attempt_id):
             "Ответ уже зафиксирован и находится на проверке у наставника."
         )
         return redirect("sandbox:task_detail", attempt_id=attempt.id)
-    
+
     if attempt.check_status == TaskAttempt.CheckStatus.RUNNING:
         messages.info(
             request,
@@ -469,6 +472,23 @@ def check_task(request, attempt_id):
             "Ответ отправлен наставнику на ручную проверку."
         )
 
+        return redirect("sandbox:task_detail", attempt_id=attempt.id)
+
+    if attempt.environment_status in [
+        TaskAttempt.EnvironmentStatus.STARTING,
+        TaskAttempt.EnvironmentStatus.RESTARTING,
+    ]:
+        messages.info(
+            request,
+            "Окружение задания ещё запускается или перезапускается. Дождись готовности."
+        )
+        return redirect("sandbox:task_detail", attempt_id=attempt.id)
+
+    if attempt.environment_status == TaskAttempt.EnvironmentStatus.ERROR:
+        messages.error(
+            request,
+            "Окружение задания завершилось с ошибкой. Перезапусти окружение перед автопроверкой."
+        )
         return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
     if not attempt.container_name:

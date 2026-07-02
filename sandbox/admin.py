@@ -295,6 +295,8 @@ class TaskAttemptAdmin(admin.ModelAdmin):
         "attempt_type",
         "is_current",
         "status",
+        "environment_status",
+        "check_status",
         "attempts_count",
         "restart_count",
         "technical_passed_at",
@@ -305,6 +307,8 @@ class TaskAttemptAdmin(admin.ModelAdmin):
 
     list_filter = (
         "status",
+        "environment_status",
+        "check_status",
         "task__queue",
         "attempt_number",
         "is_current",
@@ -331,6 +335,10 @@ class TaskAttemptAdmin(admin.ModelAdmin):
         "started_at",
         "technical_passed_at",
         "finished_at",
+        "environment_started_at",
+        "environment_finished_at",
+        "check_started_at",
+        "check_finished_at",
         "last_check_output",
         "container_id",
         "container_name",
@@ -341,6 +349,11 @@ class TaskAttemptAdmin(admin.ModelAdmin):
         "mentor_reviewed_by",
         "mentor_feedback_seen_at",
         "mentor_reviewed_at",
+    )
+
+    actions = (
+        "reset_environment_status",
+        "reset_check_status",
     )
 
     fieldsets = (
@@ -366,6 +379,9 @@ class TaskAttemptAdmin(admin.ModelAdmin):
                 "fields": (
                     "attempts_count",
                     "restart_count",
+                    "check_status",
+                    "check_started_at",
+                    "check_finished_at",
                     "last_check_output",
                 )
             },
@@ -396,6 +412,9 @@ class TaskAttemptAdmin(admin.ModelAdmin):
             {
                 "classes": ("collapse",),
                 "fields": (
+                    "environment_status",
+                    "environment_started_at",
+                    "environment_finished_at",
                     "container_id",
                     "container_name",
                     "shell_command",
@@ -419,6 +438,32 @@ class TaskAttemptAdmin(admin.ModelAdmin):
             return "Тренировочная"
 
         return "Зачетная"
+
+    @admin.action(description="Сбросить статус окружения")
+    def reset_environment_status(self, request, queryset):
+        updated = queryset.update(
+            environment_status=TaskAttempt.EnvironmentStatus.IDLE,
+            environment_started_at=None,
+            environment_finished_at=None,
+        )
+
+        self.message_user(
+            request,
+            f"Статус окружения сброшен у попыток: {updated}",
+        )
+
+    @admin.action(description="Сбросить статус автопроверки")
+    def reset_check_status(self, request, queryset):
+        updated = queryset.update(
+            check_status=TaskAttempt.CheckStatus.IDLE,
+            check_started_at=None,
+            check_finished_at=None,
+        )
+
+        self.message_user(
+            request,
+            f"Статус автопроверки сброшен у попыток: {updated}",
+        )
 
 
 @admin.register(CheckRun)

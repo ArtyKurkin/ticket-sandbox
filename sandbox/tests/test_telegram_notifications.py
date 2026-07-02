@@ -8,6 +8,7 @@ from django.utils import timezone
 from sandbox.models import TaskAttempt, TraineeProfile
 from sandbox.services.notifications import (
     notify_manual_review_required,
+    notify_stuck_attempt_detected,
     notify_user_completed_all_tasks,
     user_completed_all_available_tasks,
 )
@@ -311,3 +312,39 @@ class TrainingNotificationTests(SandboxTestCase):
 
         self.assertFalse(result)
         mocked_send_telegram.assert_not_called()
+
+    @patch("sandbox.services.notifications.send_telegram")
+    def test_notify_stuck_attempt_detected_sends_message(
+        self,
+        mocked_send_telegram,
+    ):
+        task = self.create_task(
+            queue=self.queue,
+            slug="stuck-task",
+            order=1,
+            title="Nginx не запускается",
+        )
+
+        attempt = TaskAttempt.objects.create(
+            user=self.user,
+            task=task,
+            status=TaskAttempt.Status.FAILED,
+            attempt_number=1,
+        )
+
+        mocked_send_telegram.return_value = True
+
+        result = notify_stuck_attempt_detected(
+            attempt=attempt,
+            reason="зависла автопроверка",
+        )
+
+        self.assertTrue(result)
+        mocked_send_telegram.assert_called_once()
+
+        message = mocked_send_telegram.call_args.args[0]
+        self.assertIn("Зависшая попытка переведена в ошибку", message)
+        self.assertIn("trainee", message)
+        self.assertIn("Nginx не запускается", message)
+        self.assertIn("ОТП Cloud L1", message)
+        self.assertIn("зависла автопроверка", message)

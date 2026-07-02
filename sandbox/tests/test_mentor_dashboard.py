@@ -150,6 +150,32 @@ class MentorDashboardTests(SandboxTestCase):
         self.assertContains(response, "Ошибка автопроверки")
         self.assertNotContains(response, "Доработка ответа")
 
+    def test_mentor_dashboard_shows_environment_error_status_reason(self):
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
+        self.attempt.check_status = TaskAttempt.CheckStatus.IDLE
+        self.attempt.mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "environment_status",
+                "check_status",
+                "mentor_decision",
+            ]
+        )
+
+        self.client.login(
+            username="mentor-dashboard-mentor",
+            password="test-password",
+        )
+
+        response = self.client.get(reverse("sandbox:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ошибка окружения")
+        self.assertNotContains(response, "Ошибка автопроверки")
+        self.assertNotContains(response, "Доработка ответа")
+
     def test_mentor_dashboard_shows_manual_revision_status_reason(self):
         self.attempt.status = TaskAttempt.Status.FAILED
         self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
@@ -373,6 +399,33 @@ class MentorDashboardTests(SandboxTestCase):
         self.assertContains(response, "Всего попыток")
         self.assertContains(response, "Доработать")
         self.assertContains(response, "Пройдено")
+
+    def test_mentor_dashboard_context_counts_recent_stuck_attempts(self):
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
+        self.attempt.environment_finished_at = timezone.now()
+        self.attempt.last_check_output = "Запуск окружения был прерван."
+        self.attempt.is_current = True
+        self.attempt.attempt_number = 1
+        self.attempt.save(
+            update_fields=[
+                "environment_status",
+                "environment_finished_at",
+                "last_check_output",
+                "is_current",
+                "attempt_number",
+            ]
+        )
+
+        self.client.login(
+            username="mentor-dashboard-mentor",
+            password="test-password",
+        )
+
+        response = self.client.get(reverse("sandbox:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["stuck_attempts_count"], 1)
+        self.assertContains(response, "Зависли за 24ч: 1")
 
     def test_mentor_can_save_feedback_for_attempt(self):
         self.client.login(

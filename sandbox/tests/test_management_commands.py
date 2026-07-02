@@ -591,6 +591,9 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
             terminal_container_name="old-terminal-container",
             terminal_url="http://localhost:24000",
             terminal_port=24000,
+            environment_status=TaskAttempt.EnvironmentStatus.READY,
+            environment_started_at=started_at,
+            environment_finished_at=started_at,
             check_status=TaskAttempt.CheckStatus.RUNNING,
             check_started_at=started_at,
         )
@@ -629,6 +632,12 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
         self.assertEqual(attempt.terminal_container_name, "")
         self.assertEqual(attempt.terminal_url, "")
         self.assertIsNone(attempt.terminal_port)
+        self.assertEqual(
+            attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.IDLE,
+        )
+        self.assertIsNone(attempt.environment_started_at)
+        self.assertIsNone(attempt.environment_finished_at)
         self.assertEqual(attempt.check_status, TaskAttempt.CheckStatus.IDLE)
         self.assertIsNone(attempt.check_started_at)
         self.assertIsNone(attempt.check_finished_at)
@@ -778,6 +787,9 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
             terminal_container_name="old-terminal-container",
             terminal_url="/terminal/1/24000/",
             terminal_port=24000,
+            environment_status=TaskAttempt.EnvironmentStatus.READY,
+            environment_started_at=old_time,
+            environment_finished_at=old_time,
             check_status=TaskAttempt.CheckStatus.RUNNING,
             check_started_at=old_time,
         )
@@ -798,8 +810,362 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
         self.assertEqual(attempt.status, TaskAttempt.Status.IN_PROGRESS)
         self.assertEqual(attempt.container_name, "old-task-container")
         self.assertEqual(attempt.terminal_container_name, "old-terminal-container")
+        self.assertEqual(
+            attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.READY,
+        )
+        self.assertIsNotNone(attempt.environment_started_at)
+        self.assertIsNotNone(attempt.environment_finished_at)
         self.assertEqual(attempt.check_status, TaskAttempt.CheckStatus.RUNNING)
         self.assertIsNotNone(attempt.check_started_at)
 
         self.assertIn("WOULD CLEANUP attempt", output.getvalue())
         self.assertIn("would_cleanup=1", output.getvalue())
+
+
+class DetectStuckAttemptsCommandTests(SandboxTestCase):
+    def setUp(self):
+        self.queue = self.create_queue(
+            slug="l1",
+            name="ОТП Cloud L1",
+            order=1,
+            required_level=TraineeProfile.Level.L1,
+        )
+        self.task = self.create_task(
+            queue=self.queue,
+            slug="nginx-not-starting",
+            order=1,
+        )
+        self.user = self.create_user(username="trainee")
+        self.attempt = TaskAttempt.objects.create(
+            user=self.user,
+            task=self.task,
+            attempt_number=1,
+            is_current=True,
+        )
+
+    @patch("sandbox.management.commands.detect_stuck_attempts.notify_stuck_attempt_detected")
+    def test_detect_stuck_attempts_marks_stuck_environment_as_error(
+        self,
+        notify_stuck_attempt_detected_mock,
+    ):
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
+        self.attempt.environment_started_at = timezone.now() - timedelta(minutes=11)
+        self.attempt.save(
+            update_fields=[
+                "environment_status",
+                "environment_started_at",
+            ]
+        )
+
+        stdout = StringIO()
+
+        call_command(
+            "detect_stuck_attempts",
+            stdout=stdout,
+        )
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.ERROR,
+        )
+        self.assertEqual(
+            self.attempt.status,
+            TaskAttempt.Status.FAILED,
+        )
+        self.assertIsNotNone(self.attempt.environment_finished_at)
+        self.assertIn(
+            "Запуск окружения был прерван",
+            self.attempt.last_check_output,
+        )
+        self.assertIn(
+            "marked_environment=1",
+            stdout.getvalue(),
+        )
+
+        notify_stuck_attempt_detected_mock.assert_called_once_with(
+            attempt=self.attempt,
+            reason="завис запуск или перезапуск окружения",
+        )
+
+    @patch("sandbox.management.commands.detect_stuck_attempts.notify_stuck_attempt_detected")
+    def test_detect_stuck_attempts_marks_stuck_check_as_error(
+        self,
+        notify_stuck_attempt_detected_mock,
+    ):
+        self.attempt.check_status = TaskAttempt.CheckStatus.RUNNING
+        self.attempt.check_started_at = timezone.now() - timedelta(minutes=11)
+        self.attempt.save(
+            update_fields=[
+                "check_status",
+                "check_started_at",
+            ]
+        )
+
+        stdout = StringIO()
+
+        call_command(
+            "detect_stuck_attempts",
+            stdout=stdout,
+        )
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.ERROR,
+        )
+        self.assertEqual(
+            self.attempt.status,
+            TaskAttempt.Status.FAILED,
+        )
+        self.assertIsNotNone(self.attempt.check_finished_at)
+        self.assertIn(
+            "Автопроверка была прервана",
+            self.attempt.last_check_output,
+        )
+        self.assertIn(
+            "marked_check=1",
+            stdout.getvalue(),
+        )
+
+        notify_stuck_attempt_detected_mock.assert_called_once_with(
+            attempt=self.attempt,
+            reason="зависла автопроверка",
+        )
+
+    @patch("sandbox.management.commands.detect_stuck_attempts.notify_stuck_attempt_detected")
+    def test_detect_stuck_attempts_dry_run_does_not_change_attempt(
+        self,
+        notify_stuck_attempt_detected_mock,
+    ):
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
+        self.attempt.environment_started_at = timezone.now() - timedelta(minutes=11)
+        self.attempt.save(
+            update_fields=[
+                "environment_status",
+                "environment_started_at",
+            ]
+        )
+
+        stdout = StringIO()
+
+        call_command(
+            "detect_stuck_attempts",
+            "--dry-run",
+            stdout=stdout,
+        )
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.STARTING,
+        )
+        self.assertIsNone(self.attempt.environment_finished_at)
+        self.assertIn(
+            "would_mark_environment=1",
+            stdout.getvalue(),
+        )
+
+        notify_stuck_attempt_detected_mock.assert_not_called()
+
+    @patch("sandbox.management.commands.detect_stuck_attempts.notify_stuck_attempt_detected")
+    def test_detect_stuck_attempts_ignores_recent_background_state(
+        self,
+        notify_stuck_attempt_detected_mock,
+    ):
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
+        self.attempt.environment_started_at = timezone.now() - timedelta(minutes=3)
+        self.attempt.check_status = TaskAttempt.CheckStatus.RUNNING
+        self.attempt.check_started_at = timezone.now() - timedelta(minutes=3)
+        self.attempt.save(
+            update_fields=[
+                "environment_status",
+                "environment_started_at",
+                "check_status",
+                "check_started_at",
+            ]
+        )
+
+        stdout = StringIO()
+
+        call_command(
+            "detect_stuck_attempts",
+            stdout=stdout,
+        )
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.STARTING,
+        )
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.RUNNING,
+        )
+        self.assertIsNone(self.attempt.environment_finished_at)
+        self.assertIsNone(self.attempt.check_finished_at)
+        self.assertIn(
+            "marked_environment=0",
+            stdout.getvalue(),
+        )
+        self.assertIn(
+            "marked_check=0",
+            stdout.getvalue(),
+        )
+
+        notify_stuck_attempt_detected_mock.assert_not_called()
+
+    @patch("sandbox.management.commands.detect_stuck_attempts.notify_stuck_attempt_detected")
+    def test_detect_stuck_attempts_respects_custom_minutes_threshold(
+        self,
+        notify_stuck_attempt_detected_mock,
+    ):
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
+        self.attempt.environment_started_at = timezone.now() - timedelta(minutes=6)
+        self.attempt.save(
+            update_fields=[
+                "environment_status",
+                "environment_started_at",
+            ]
+        )
+
+        stdout = StringIO()
+
+        call_command(
+            "detect_stuck_attempts",
+            "--minutes",
+            "5",
+            stdout=stdout,
+        )
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.ERROR,
+        )
+        self.assertIsNotNone(self.attempt.environment_finished_at)
+        self.assertIn(
+            "marked_environment=1",
+            stdout.getvalue(),
+        )
+        notify_stuck_attempt_detected_mock.assert_called_once_with(
+            attempt=self.attempt,
+            reason="завис запуск или перезапуск окружения",
+        )
+
+    @patch("sandbox.management.commands.detect_stuck_attempts.notify_stuck_attempt_detected")
+    def test_detect_stuck_attempts_does_not_touch_technically_passed_attempt(
+        self,
+        notify_stuck_attempt_detected_mock,
+    ):
+        self.attempt.status = TaskAttempt.Status.ON_REVIEW
+        self.attempt.technical_passed_at = timezone.now() - timedelta(minutes=20)
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
+        self.attempt.environment_started_at = timezone.now() - timedelta(minutes=20)
+        self.attempt.check_status = TaskAttempt.CheckStatus.RUNNING
+        self.attempt.check_started_at = timezone.now() - timedelta(minutes=20)
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+                "environment_status",
+                "environment_started_at",
+                "check_status",
+                "check_started_at",
+            ]
+        )
+
+        stdout = StringIO()
+
+        call_command(
+            "detect_stuck_attempts",
+            stdout=stdout,
+        )
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(self.attempt.status, TaskAttempt.Status.ON_REVIEW)
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.STARTING,
+        )
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.RUNNING,
+        )
+        self.assertIsNone(self.attempt.environment_finished_at)
+        self.assertIsNone(self.attempt.check_finished_at)
+
+        self.assertIn(
+            "marked_environment=0",
+            stdout.getvalue(),
+        )
+        self.assertIn(
+            "marked_check=0",
+            stdout.getvalue(),
+        )
+
+        notify_stuck_attempt_detected_mock.assert_not_called()
+
+    @patch("sandbox.management.commands.detect_stuck_attempts.notify_stuck_attempt_detected")
+    def test_detect_stuck_attempts_prioritizes_stuck_environment_over_stuck_check(
+        self,
+        notify_stuck_attempt_detected_mock,
+    ):
+        old_time = timezone.now() - timedelta(minutes=11)
+
+        self.attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
+        self.attempt.environment_started_at = old_time
+        self.attempt.check_status = TaskAttempt.CheckStatus.RUNNING
+        self.attempt.check_started_at = old_time
+        self.attempt.save(
+            update_fields=[
+                "environment_status",
+                "environment_started_at",
+                "check_status",
+                "check_started_at",
+            ]
+        )
+
+        stdout = StringIO()
+
+        call_command(
+            "detect_stuck_attempts",
+            stdout=stdout,
+        )
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.ERROR,
+        )
+        self.assertEqual(
+            self.attempt.check_status,
+            TaskAttempt.CheckStatus.ERROR,
+        )
+        self.assertIsNotNone(self.attempt.environment_finished_at)
+        self.assertIsNotNone(self.attempt.check_finished_at)
+        self.assertIn(
+            "Запуск окружения был прерван",
+            self.attempt.last_check_output,
+        )
+        self.assertIn(
+            "marked_environment=1",
+            stdout.getvalue(),
+        )
+        self.assertIn(
+            "marked_check=0",
+            stdout.getvalue(),
+        )
+
+        notify_stuck_attempt_detected_mock.assert_called_once_with(
+            attempt=self.attempt,
+            reason="завис запуск или перезапуск окружения",
+        )

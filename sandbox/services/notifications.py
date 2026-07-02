@@ -60,6 +60,27 @@ def notify_user_completed_all_tasks(attempt: TaskAttempt) -> bool:
     return send_telegram(text)
 
 
+def notify_stuck_attempt_detected(
+    attempt: TaskAttempt,
+    reason: str,
+) -> bool:
+    """
+    Уведомляет наставников, что watchdog нашёл зависшую попытку.
+
+    Это инфраструктурное уведомление, поэтому отправляем его и для зачётных,
+    и для тренировочных попыток.
+    """
+    text = (
+        "⚠️ <b>Зависшая попытка переведена в ошибку</b>\n\n"
+        f"Стажёр: {escape(_get_user_display_name(attempt.user))}\n"
+        f"Задача: {escape(attempt.task.title)}\n"
+        f"Очередь: {escape(attempt.task.queue.name)}\n"
+        f"Причина: {escape(reason)}"
+    )
+
+    return send_telegram(text)
+
+
 def user_completed_all_available_tasks(user) -> bool:
     """
     Проверяет, прошёл ли пользователь технически все активные задания
