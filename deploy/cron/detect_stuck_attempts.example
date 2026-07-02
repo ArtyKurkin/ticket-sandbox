@@ -1,0 +1,4 @@
+# Detect stuck background attempt states every 5 minutes.
+# Default stuck threshold is 10 minutes.
+
+*/5 * * * * cd /opt/ticket-sandbox && /opt/ticket-sandbox/.venv/bin/python manage.py detect_stuck_attempts >> /var/log/ticket-sandbox/detect_stuck_attempts.log 2>&1
