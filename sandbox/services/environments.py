@@ -1,6 +1,8 @@
 import logging
 import threading
 
+from sentry_sdk import capture_exception
+
 from django.db import close_old_connections
 from django.utils import timezone
 
@@ -406,6 +408,8 @@ def _run_environment_start_background(attempt_id):
         run_environment_start(attempt)
 
     except Exception as error:
+        capture_exception(error)
+
         _mark_background_environment_start_error(
             attempt_id=attempt_id,
             error=error,
@@ -462,6 +466,8 @@ def _run_environment_restart_background(attempt_id):
         run_environment_restart(attempt)
 
     except Exception as error:
+        capture_exception(error)
+
         _mark_background_environment_restart_error(
             attempt_id=attempt_id,
             error=error,

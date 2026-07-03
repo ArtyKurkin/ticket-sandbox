@@ -9,5 +9,6 @@ psycopg==3.3.4
 psycopg-binary==3.3.4
 python-dotenv==1.2.2
 requests==2.34.2
+sentry-sdk[django]==2.64.0
 sqlparse==0.5.5
 urllib3==2.7.0

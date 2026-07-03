@@ -1,5 +1,8 @@
 import os
 
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -19,6 +22,22 @@ SECRET_KEY = os.getenv("SECRET_KEY", "fallback-dev-secret-key")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+        ],
+        environment=os.getenv("SENTRY_ENVIRONMENT", "local"),
+        release=os.getenv("SENTRY_RELEASE", ""),
+        send_default_pii=False,
+        traces_sample_rate=float(
+            os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0")
+        ),
+    )
 
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()

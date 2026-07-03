@@ -23,3 +23,5 @@ ticket-sandbox.zip
 venv/
 
 *.zip
+
+.vscode/

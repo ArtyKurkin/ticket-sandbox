@@ -2,6 +2,8 @@ import logging
 import threading
 from dataclasses import dataclass
 
+from sentry_sdk import capture_exception
+
 from django.db import close_old_connections, transaction
 from django.db.models import F
 from django.utils import timezone
@@ -322,6 +324,8 @@ def _run_attempt_check_background(
         )
 
     except Exception as error:
+        capture_exception(error)
+
         _mark_background_check_error(
             attempt_id=attempt_id,
             user_id=user_id,

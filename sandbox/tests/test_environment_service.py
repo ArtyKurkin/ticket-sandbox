@@ -15,6 +15,8 @@ from sandbox.services.environments import (
     run_environment_start,
     try_mark_environment_restarting,
     try_mark_environment_starting,
+    _run_environment_restart_background,
+    _run_environment_start_background,
 )
 
 from .base import SandboxTestCase
@@ -403,5 +405,61 @@ class EnvironmentServiceTests(SandboxTestCase):
         )
         self.assertIn(
             "Docker API unavailable",
+            self.attempt.last_check_output,
+        )
+
+    @patch("sandbox.services.environments.capture_exception")
+    @patch("sandbox.services.environments.run_environment_start")
+    def test_environment_start_background_captures_exception(
+        self,
+        run_environment_start_mock,
+        capture_exception_mock,
+    ):
+        error = RuntimeError("Docker API unavailable")
+        run_environment_start_mock.side_effect = error
+
+        with patch("sandbox.services.environments.close_old_connections"):
+            _run_environment_start_background(self.attempt.id)
+
+        capture_exception_mock.assert_called_once_with(error)
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(self.attempt.status, TaskAttempt.Status.FAILED)
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.ERROR,
+        )
+        self.assertIsNotNone(self.attempt.environment_finished_at)
+        self.assertIn(
+            "Не удалось запустить окружение задания из-за ошибки Docker API.",
+            self.attempt.last_check_output,
+        )
+
+    @patch("sandbox.services.environments.capture_exception")
+    @patch("sandbox.services.environments.run_environment_restart")
+    def test_environment_restart_background_captures_exception(
+        self,
+        run_environment_restart_mock,
+        capture_exception_mock,
+    ):
+        error = RuntimeError("Docker API unavailable")
+        run_environment_restart_mock.side_effect = error
+
+        with patch("sandbox.services.environments.close_old_connections"):
+            _run_environment_restart_background(self.attempt.id)
+
+        capture_exception_mock.assert_called_once_with(error)
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(self.attempt.status, TaskAttempt.Status.FAILED)
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.ERROR,
+        )
+        self.assertIsNotNone(self.attempt.environment_finished_at)
+        self.assertIn(
+            "Не удалось перезапустить окружение из-за ошибки Docker API.",
             self.attempt.last_check_output,
         )
