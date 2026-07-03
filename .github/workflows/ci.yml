@@ -133,6 +133,10 @@ jobs:
             "GIT_SSH_COMMAND=\"ssh -i /root/.ssh/ticket_sandbox_deploy -o IdentitiesOnly=yes\" git pull --ff-only"
 
           run_as_app_user \
+            "Install dependencies" \
+            "python -m pip install -r requirements.txt && python -m pip check"
+
+          run_as_app_user \
             "Run migrations" \
             "python manage.py migrate --noinput"
 
