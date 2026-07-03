@@ -159,11 +159,16 @@ def run_attempt_check(
             container_name=attempt.container_name,
         )
 
-        attempt.last_check_output = (
-            f"{output}\n\n"
-            f"---\n"
-            f"{terminal_removed}\n"
-            f"{remove_output}"
+        attempt.last_check_output = output
+
+        terminal_logger.info(
+            "task_check_cleanup_done user_id=%s attempt_id=%s task_slug=%s queue_slug=%s terminal_removed=%s remove_output=%s",
+            user_id,
+            attempt.id,
+            attempt.task.slug,
+            attempt.task.queue.slug,
+            terminal_removed,
+            remove_output,
         )
 
         attempt.container_id = ""
