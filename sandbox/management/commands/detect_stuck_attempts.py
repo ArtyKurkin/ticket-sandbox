@@ -132,12 +132,14 @@ class Command(BaseCommand):
             attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
             attempt.environment_finished_at = now
             attempt.status = TaskAttempt.Status.FAILED
+            attempt.stuck_reason = TaskAttempt.StuckReason.ENVIRONMENT
             attempt.last_check_output = ENVIRONMENT_STUCK_MESSAGE
 
             update_fields = [
                 "environment_status",
                 "environment_finished_at",
                 "status",
+                "stuck_reason",
                 "last_check_output",
             ]
 
@@ -181,6 +183,7 @@ class Command(BaseCommand):
             attempt.check_status = TaskAttempt.CheckStatus.ERROR
             attempt.check_finished_at = now
             attempt.status = TaskAttempt.Status.FAILED
+            attempt.stuck_reason = TaskAttempt.StuckReason.CHECK
             attempt.last_check_output = CHECK_STUCK_MESSAGE
 
             attempt.save(
@@ -188,6 +191,7 @@ class Command(BaseCommand):
                     "check_status",
                     "check_finished_at",
                     "status",
+                    "stuck_reason",
                     "last_check_output",
                 ]
             )

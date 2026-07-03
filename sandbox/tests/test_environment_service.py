@@ -43,6 +43,9 @@ class EnvironmentServiceTests(SandboxTestCase):
         )
 
     def test_mark_environment_starting_updates_attempt_state(self):
+        self.attempt.stuck_reason = TaskAttempt.StuckReason.CHECK
+        self.attempt.save(update_fields=["stuck_reason"])
+
         mark_environment_starting(self.attempt)
 
         self.attempt.refresh_from_db()
@@ -56,6 +59,10 @@ class EnvironmentServiceTests(SandboxTestCase):
         self.assertEqual(
             self.attempt.last_check_output,
             ENVIRONMENT_STARTING_OUTPUT,
+        )
+        self.assertEqual(
+            self.attempt.stuck_reason,
+            TaskAttempt.StuckReason.NONE,
         )
 
     def test_try_mark_environment_starting_does_not_override_restarting_state(self):
@@ -122,6 +129,7 @@ class EnvironmentServiceTests(SandboxTestCase):
         self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
         self.attempt.check_started_at = timezone.now()
         self.attempt.check_finished_at = timezone.now()
+        self.attempt.stuck_reason = TaskAttempt.StuckReason.CHECK
         self.attempt.save(
             update_fields=[
                 "status",
@@ -129,6 +137,7 @@ class EnvironmentServiceTests(SandboxTestCase):
                 "check_status",
                 "check_started_at",
                 "check_finished_at",
+                "stuck_reason",
             ]
         )
 
@@ -149,6 +158,10 @@ class EnvironmentServiceTests(SandboxTestCase):
         )
         self.assertIsNone(self.attempt.check_started_at)
         self.assertIsNone(self.attempt.check_finished_at)
+        self.assertEqual(
+            self.attempt.stuck_reason,
+            TaskAttempt.StuckReason.NONE,
+        )
 
     @patch("sandbox.services.environments.get_free_port")
     @patch("sandbox.services.environments.create_terminal_container")
@@ -240,6 +253,7 @@ class EnvironmentServiceTests(SandboxTestCase):
         self.attempt.check_status = TaskAttempt.CheckStatus.FAILED
         self.attempt.check_started_at = timezone.now()
         self.attempt.check_finished_at = timezone.now()
+        self.attempt.stuck_reason = TaskAttempt.StuckReason.CHECK
         self.attempt.last_check_output = "ERROR: nginx не запущен"
         self.attempt.finished_at = timezone.now()
         self.attempt.save(
@@ -249,6 +263,7 @@ class EnvironmentServiceTests(SandboxTestCase):
                 "check_finished_at",
                 "last_check_output",
                 "finished_at",
+                "stuck_reason",
             ]
         )
 
@@ -263,6 +278,10 @@ class EnvironmentServiceTests(SandboxTestCase):
         self.assertIsNotNone(self.attempt.environment_started_at)
         self.assertIsNone(self.attempt.environment_finished_at)
         self.assertIsNone(self.attempt.finished_at)
+        self.assertEqual(
+            self.attempt.stuck_reason,
+            TaskAttempt.StuckReason.NONE,
+        )
         self.assertEqual(
             self.attempt.last_check_output,
             ENVIRONMENT_RESTARTING_OUTPUT,

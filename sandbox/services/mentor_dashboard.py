@@ -86,14 +86,12 @@ def build_mentor_dashboard_context(request):
         )
         .filter(
             Q(
-                environment_status=TaskAttempt.EnvironmentStatus.ERROR,
+                stuck_reason=TaskAttempt.StuckReason.ENVIRONMENT,
                 environment_finished_at__gte=stuck_since,
-                last_check_output__icontains="Запуск окружения был прерван",
             )
             | Q(
-                check_status=TaskAttempt.CheckStatus.ERROR,
+                stuck_reason=TaskAttempt.StuckReason.CHECK,
                 check_finished_at__gte=stuck_since,
-                last_check_output__icontains="Автопроверка была прервана",
             )
         )
         .count()

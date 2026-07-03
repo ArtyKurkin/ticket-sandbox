@@ -37,6 +37,7 @@ def mark_environment_starting(attempt):
     attempt.environment_started_at = now
     attempt.environment_finished_at = None
     attempt.last_check_output = ENVIRONMENT_STARTING_OUTPUT
+    attempt.stuck_reason = TaskAttempt.StuckReason.NONE
 
     attempt.save(
         update_fields=[
@@ -44,6 +45,7 @@ def mark_environment_starting(attempt):
             "environment_started_at",
             "environment_finished_at",
             "last_check_output",
+            "stuck_reason",
         ]
     )
 
@@ -65,6 +67,7 @@ def try_mark_environment_starting(attempt):
             environment_started_at=now,
             environment_finished_at=None,
             last_check_output=ENVIRONMENT_STARTING_OUTPUT,
+            stuck_reason=TaskAttempt.StuckReason.NONE,
         )
     )
 
@@ -74,6 +77,7 @@ def try_mark_environment_starting(attempt):
     attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
     attempt.environment_started_at = now
     attempt.environment_finished_at = None
+    attempt.stuck_reason = TaskAttempt.StuckReason.NONE
     attempt.last_check_output = ENVIRONMENT_STARTING_OUTPUT
 
     return True
@@ -87,6 +91,7 @@ def mark_environment_restarting(attempt):
     attempt.environment_finished_at = None
     attempt.finished_at = None
     attempt.last_check_output = ENVIRONMENT_RESTARTING_OUTPUT
+    attempt.stuck_reason = TaskAttempt.StuckReason.NONE
 
     attempt.check_status = TaskAttempt.CheckStatus.IDLE
     attempt.check_started_at = None
@@ -102,6 +107,7 @@ def mark_environment_restarting(attempt):
             "check_started_at",
             "check_finished_at",
             "finished_at",
+            "stuck_reason",
         ]
     )
 
@@ -127,6 +133,7 @@ def try_mark_environment_restarting(attempt):
             check_status=TaskAttempt.CheckStatus.IDLE,
             check_started_at=None,
             check_finished_at=None,
+            stuck_reason=TaskAttempt.StuckReason.NONE,
         )
     )
 
@@ -137,6 +144,7 @@ def try_mark_environment_restarting(attempt):
     attempt.environment_started_at = now
     attempt.environment_finished_at = None
     attempt.finished_at = None
+    attempt.stuck_reason = TaskAttempt.StuckReason.NONE
     attempt.last_check_output = ENVIRONMENT_RESTARTING_OUTPUT
 
     attempt.check_status = TaskAttempt.CheckStatus.IDLE

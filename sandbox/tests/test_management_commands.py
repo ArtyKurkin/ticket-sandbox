@@ -596,6 +596,7 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
             environment_finished_at=started_at,
             check_status=TaskAttempt.CheckStatus.RUNNING,
             check_started_at=started_at,
+            stuck_reason=TaskAttempt.StuckReason.CHECK,
         )
 
         remove_task_container_mock.return_value = (
@@ -641,6 +642,10 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
         self.assertEqual(attempt.check_status, TaskAttempt.CheckStatus.IDLE)
         self.assertIsNone(attempt.check_started_at)
         self.assertIsNone(attempt.check_finished_at)
+        self.assertEqual(
+            attempt.stuck_reason,
+            TaskAttempt.StuckReason.NONE,
+        )
 
         self.assertIn(
             f"Cleanup attempt #{attempt.id}",
@@ -792,6 +797,7 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
             environment_finished_at=old_time,
             check_status=TaskAttempt.CheckStatus.RUNNING,
             check_started_at=old_time,
+            stuck_reason=TaskAttempt.StuckReason.CHECK,
         )
 
         output = StringIO()
@@ -818,6 +824,10 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
         self.assertIsNotNone(attempt.environment_finished_at)
         self.assertEqual(attempt.check_status, TaskAttempt.CheckStatus.RUNNING)
         self.assertIsNotNone(attempt.check_started_at)
+        self.assertEqual(
+            attempt.stuck_reason,
+            TaskAttempt.StuckReason.CHECK,
+        )
 
         self.assertIn("WOULD CLEANUP attempt", output.getvalue())
         self.assertIn("would_cleanup=1", output.getvalue())
@@ -875,6 +885,10 @@ class DetectStuckAttemptsCommandTests(SandboxTestCase):
             self.attempt.status,
             TaskAttempt.Status.FAILED,
         )
+        self.assertEqual(
+            self.attempt.stuck_reason,
+            TaskAttempt.StuckReason.ENVIRONMENT,
+        )
         self.assertIsNotNone(self.attempt.environment_finished_at)
         self.assertIn(
             "Запуск окружения был прерван",
@@ -921,6 +935,10 @@ class DetectStuckAttemptsCommandTests(SandboxTestCase):
             self.attempt.status,
             TaskAttempt.Status.FAILED,
         )
+        self.assertEqual(
+            self.attempt.stuck_reason,
+            TaskAttempt.StuckReason.CHECK,
+        )
         self.assertIsNotNone(self.attempt.check_finished_at)
         self.assertIn(
             "Автопроверка была прервана",
@@ -965,6 +983,10 @@ class DetectStuckAttemptsCommandTests(SandboxTestCase):
             TaskAttempt.EnvironmentStatus.STARTING,
         )
         self.assertIsNone(self.attempt.environment_finished_at)
+        self.assertEqual(
+            self.attempt.stuck_reason,
+            TaskAttempt.StuckReason.NONE,
+        )
         self.assertIn(
             "would_mark_environment=1",
             stdout.getvalue(),
@@ -1008,6 +1030,10 @@ class DetectStuckAttemptsCommandTests(SandboxTestCase):
             TaskAttempt.CheckStatus.RUNNING,
         )
         self.assertIsNone(self.attempt.environment_finished_at)
+        self.assertEqual(
+            self.attempt.stuck_reason,
+            TaskAttempt.StuckReason.NONE,
+        )
         self.assertIsNone(self.attempt.check_finished_at)
         self.assertIn(
             "marked_environment=0",
@@ -1048,6 +1074,10 @@ class DetectStuckAttemptsCommandTests(SandboxTestCase):
         self.assertEqual(
             self.attempt.environment_status,
             TaskAttempt.EnvironmentStatus.ERROR,
+        )
+        self.assertEqual(
+            self.attempt.stuck_reason,
+            TaskAttempt.StuckReason.ENVIRONMENT,
         )
         self.assertIsNotNone(self.attempt.environment_finished_at)
         self.assertIn(
@@ -1100,6 +1130,10 @@ class DetectStuckAttemptsCommandTests(SandboxTestCase):
             TaskAttempt.CheckStatus.RUNNING,
         )
         self.assertIsNone(self.attempt.environment_finished_at)
+        self.assertEqual(
+            self.attempt.stuck_reason,
+            TaskAttempt.StuckReason.NONE,
+        )
         self.assertIsNone(self.attempt.check_finished_at)
 
         self.assertIn(
@@ -1149,6 +1183,10 @@ class DetectStuckAttemptsCommandTests(SandboxTestCase):
         self.assertEqual(
             self.attempt.check_status,
             TaskAttempt.CheckStatus.ERROR,
+        )
+        self.assertEqual(
+            self.attempt.stuck_reason,
+            TaskAttempt.StuckReason.ENVIRONMENT,
         )
         self.assertIsNotNone(self.attempt.environment_finished_at)
         self.assertIsNotNone(self.attempt.check_finished_at)

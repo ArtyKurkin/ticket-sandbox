@@ -406,10 +406,12 @@ class MentorDashboardTests(SandboxTestCase):
         self.attempt.last_check_output = "Запуск окружения был прерван."
         self.attempt.is_current = True
         self.attempt.attempt_number = 1
+        self.attempt.stuck_reason = TaskAttempt.StuckReason.ENVIRONMENT
         self.attempt.save(
             update_fields=[
                 "environment_status",
                 "environment_finished_at",
+                "stuck_reason",
                 "last_check_output",
                 "is_current",
                 "attempt_number",

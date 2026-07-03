@@ -194,6 +194,11 @@ class TaskAttempt(models.Model):
         RESTARTING = "restarting", "Перезапускается"
         ERROR = "error", "Ошибка"
 
+    class StuckReason(models.TextChoices):
+        NONE = "", "Не зависала"
+        ENVIRONMENT = "environment", "Окружение"
+        CHECK = "check", "Автопроверка"
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -286,6 +291,14 @@ class TaskAttempt(models.Model):
     environment_finished_at = models.DateTimeField(
         null=True,
         blank=True,
+    )
+
+    stuck_reason = models.CharField(
+        max_length=32,
+        choices=StuckReason.choices,
+        default=StuckReason.NONE,
+        blank=True,
+        verbose_name="Причина зависания",
     )
 
     last_check_output = models.TextField(

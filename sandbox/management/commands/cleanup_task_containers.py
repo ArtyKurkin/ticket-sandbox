@@ -75,6 +75,8 @@ class Command(BaseCommand):
             attempt.check_started_at = None
             attempt.check_finished_at = None
 
+            attempt.stuck_reason = TaskAttempt.StuckReason.NONE
+
             attempt.save(
                 update_fields=[
                     "container_id",
@@ -90,6 +92,7 @@ class Command(BaseCommand):
                     "check_status",
                     "check_started_at",
                     "check_finished_at",
+                    "stuck_reason",
                 ]
             )
 
