@@ -834,52 +834,199 @@ make validate
 - Пройти полный staging checklist на реальных стажерских и наставнических пользователях.
 
 ---
+---
+
+## Неделя 10 — Background lifecycle, watchdog, Sentry и эксплуатационная готовность
+
+### Архитектурные решения
+
+- Запуск окружения, перезапуск окружения и автопроверка больше не должны держать пользовательский HTTP-запрос до завершения Docker-операции.
+- Для долгих операций используется промежуточный background lifecycle:
+  - `environment_status` для запуска и перезапуска окружения;
+  - `check_status` для автопроверки.
+- Frontend получает актуальный статус через polling endpoint и обновляет страницу без ручного refresh.
+- Так как текущая background-реализация использует `threading.Thread`, добавлен watchdog для восстановления зависших состояний после рестарта gunicorn/сервиса, OOM или падения worker-процесса.
+- Зависшие попытки определяются не по тексту `last_check_output`, а через явное поле `TaskAttempt.stuck_reason`.
+- Sentry подключается только при наличии `SENTRY_DSN` и используется для ошибок Django и background-wrapper-ов.
+- Технический вывод удаления контейнеров после успешной автопроверки не показывается стажёру, а пишется в application logs.
+
+### Добавлено
+
+- Добавлен lifecycle автопроверки:
+  - `TaskAttempt.CheckStatus.IDLE`;
+  - `TaskAttempt.CheckStatus.RUNNING`;
+  - `TaskAttempt.CheckStatus.PASSED`;
+  - `TaskAttempt.CheckStatus.FAILED`;
+  - `TaskAttempt.CheckStatus.ERROR`.
+- Добавлены поля автопроверки:
+  - `check_status`;
+  - `check_started_at`;
+  - `check_finished_at`.
+- Логика автопроверки вынесена в `sandbox/services/checks.py`.
+- Добавлен background-запуск автопроверки через `start_attempt_check_in_background`.
+- Добавлена защита от повторного запуска автопроверки через атомарный `try_mark_attempt_check_running`.
+- Добавлен endpoint статуса автопроверки.
+- Добавлен polling статуса автопроверки в `static/js/app.js`.
+- Добавлен lifecycle окружения:
+  - `TaskAttempt.EnvironmentStatus.IDLE`;
+  - `TaskAttempt.EnvironmentStatus.STARTING`;
+  - `TaskAttempt.EnvironmentStatus.READY`;
+  - `TaskAttempt.EnvironmentStatus.RESTARTING`;
+  - `TaskAttempt.EnvironmentStatus.ERROR`.
+- Добавлены поля окружения:
+  - `environment_status`;
+  - `environment_started_at`;
+  - `environment_finished_at`.
+- Логика запуска и перезапуска окружения вынесена в `sandbox/services/environments.py`.
+- `start_task` переведён на background-запуск окружения.
+- `restart_task` переведён на background-перезапуск окружения.
+- Добавлен endpoint статуса окружения.
+- Добавлен polling статуса окружения в `static/js/app.js`.
+- Добавлены UI-состояния:
+  - «Окружение запускается»;
+  - «Окружение перезапускается»;
+  - «Окружение не запустилось»;
+  - «Проверка выполняется».
+- Добавлен backoff для polling после нескольких подряд сетевых ошибок.
+- Добавлена management command `detect_stuck_attempts`.
+- Для `detect_stuck_attempts` добавлен `--dry-run`.
+- Добавлен cron example `deploy/cron/detect_stuck_attempts.example`.
+- Добавлено поле `TaskAttempt.stuck_reason`.
+- Watchdog заполняет `stuck_reason=environment` или `stuck_reason=check`.
+- Mentor dashboard считает зависшие попытки через `stuck_reason`.
+- В mentor dashboard добавлен бейдж зависших попыток за последние 24 часа.
+- В Django admin для `TaskAttempt` добавлены `environment_status`, `check_status`, `stuck_reason`.
+- В Django admin добавлены фильтры по `environment_status`, `check_status`, `stuck_reason`.
+- В Django admin добавлены actions для сброса статуса окружения и автопроверки.
+- Добавлено Telegram-уведомление о зависших попытках, найденных watchdog.
+- Добавлен race-fix в `get_current_attempt` через обработку `IntegrityError`.
+- Добавлена Sentry-интеграция через `sentry-sdk[django]`.
+- Добавлены env-переменные:
+  - `SENTRY_DSN`;
+  - `SENTRY_ENVIRONMENT`;
+  - `SENTRY_RELEASE`;
+  - `SENTRY_TRACES_SAMPLE_RATE`.
+- В background-wrapper-ы окружения и автопроверки добавлен `capture_exception(error)`.
+- Добавлен тестовый модуль `sandbox/tests/test_checks_service.py`.
+- Добавлены тесты для background Sentry capture.
+- Добавлены тесты для watchdog, `stuck_reason`, admin visibility/actions, mentor dashboard и recovery-сценариев.
+
+### Изменено
+
+- POST `check_task` больше не ждёт завершения `check.sh`, а запускает проверку в фоне.
+- POST `start_task` больше не ждёт полного создания окружения, а запускает создание в фоне.
+- POST `restart_task` больше не ждёт полного пересоздания окружения, а запускает перезапуск в фоне.
+- UI страницы задания теперь зависит от `environment_status` и `check_status`.
+- Автопроверка запрещена, если окружение находится в `starting`, `restarting` или `error`.
+- Start/restart защищены от повторного запуска, если окружение уже `starting` или `restarting`.
+- После `environment_status=error` разрешён recovery через перезапуск окружения.
+- При перезапуске окружения сбрасываются `finished_at`, `check_status`, timestamps автопроверки и `stuck_reason`.
+- `cleanup_task_containers` сбрасывает environment/check lifecycle-поля и `stuck_reason`.
+- После успешной автопроверки `last_check_output` содержит только вывод `check.sh`, без строк про удаление контейнеров.
+- Технический результат удаления task/terminal-контейнеров теперь пишется в `sandbox.terminal` logs.
+- `requirements.txt` обновлён зависимостью `sentry-sdk[django]`.
+- `.env.example` обновлён Sentry-переменными.
+
+### Исправлено
+
+- Закрыт риск вечного зависания попытки в `check_status=running`, если background thread оборвался.
+- Закрыт риск вечного зависания попытки в `environment_status=starting/restarting`, если background thread оборвался.
+- Закрыт риск, что mentor dashboard перестанет считать stuck-попытки из-за изменения текста `last_check_output`.
+- Закрыт race condition при одновременном создании текущей попытки.
+- Закрыт риск двойного запуска автопроверки по двойному клику.
+- Закрыт риск запуска автопроверки во время запуска или перезапуска окружения.
+- Закрыт риск показа кнопки автопроверки при ошибке окружения.
+- Закрыт риск, что `finished_at` останется заполненным после recovery-перезапуска окружения.
+- Убран технический шум про удаление контейнеров из интерфейса стажёра.
+
+### Документация
+
+- README сокращён до входной точки проекта, без попытки хранить всю архитектуру в одном файле.
+- Обновлён `ARCHITECTURE.md`:
+  - background lifecycle;
+  - polling;
+  - watchdog;
+  - `stuck_reason`;
+  - Sentry;
+  - скрытие cleanup-output от стажёра.
+- Обновлён `CONTRIBUTING.md`:
+  - правила для background lifecycle;
+  - правила для watchdog;
+  - правила для Sentry;
+  - правило не показывать стажёру инфраструктурный cleanup-output;
+  - актуальные точечные тесты.
+- Обновлён `STAGING_CHECKLIST.md`:
+  - проверки `environment_status`;
+  - проверки `check_status`;
+  - проверки polling;
+  - проверки watchdog cron;
+  - проверки Sentry;
+  - проверка отсутствия cleanup-output в интерфейсе стажёра.
+- Обновлён `CHANGELOG.md`.
+
+### Проверки
+
+Точечные проверки для этой пачки:
+
+```bash
+python manage.py test sandbox.tests.test_environment_service
+python manage.py test sandbox.tests.test_checks_service
+python manage.py test sandbox.tests.test_task_actions
+python manage.py test sandbox.tests.test_management_commands
+python manage.py test sandbox.tests.test_mentor_dashboard
+python manage.py test sandbox.tests.test_admin
+python manage.py test sandbox.tests.test_telegram_notifications
+python manage.py check
+```
+
+Полная проверка перед push/review/deploy:
+
+```bash
+make validate
+```
+
+### Технический долг
+
+- Вынести background thread-операции в Celery + Redis.
+- Добавить более детальные типы ошибок Docker API.
+- Настроить реальные Sentry DSN/env на staging.
+- Проверить watchdog cron на staging после деплоя.
+- Проверить Sentry-события для background-ошибок на staging.
+- Добавить аналитику по времени запуска окружения и времени автопроверки.
+- Подумать над структурированной оценкой ответа клиенту.
+- Добавить hints для сложных заданий.
+- Добавить SLA-таймер для учебных тикетов.
+
+---
 
 ## Ближайший план
 
-### Сразу после текущей пачки
+### Сразу после документационной пачки
 
-- Дождаться зеленого GitHub Actions после документационного коммита.
-- Проверить staging вручную по `STAGING_CHECKLIST.md`:
-  - `/`;
-  - `/healthz/`;
-  - вход стажером;
-  - вход наставником;
-  - запуск L1-задания;
-  - терминал в iframe;
-  - `check.sh`;
-  - отправка ответа на ручную проверку;
-  - бейдж «Ждут проверки»;
-  - Telegram-уведомление, если env настроен;
-  - повторная тренировочная попытка;
-  - историческая попытка read-only;
-  - cleanup контейнеров.
-- Проверить серверные вещи:
-  - `journalctl -u ticket-sandbox -f`;
-  - `docker ps`;
-  - `docker ps -a`;
-  - `crontab -l` или systemd timer для cleanup;
-  - nginx access/error logs.
+- Дождаться зелёного GitHub Actions после push.
+- Проверить staging вручную по `STAGING_CHECKLIST.md`.
+- Проверить, что cron для `detect_stuck_attempts` настроен на staging.
+- Проверить, что cron или timer для `cleanup_task_containers` настроен на staging.
+- Если Sentry нужен на staging — добавить `SENTRY_DSN` и проверить тестовое событие через реальную ошибку background-сценария.
+- Проверить, что стажёр больше не видит строки про удаление контейнеров после успешной автопроверки.
 
 ### Следующий рабочий блок
 
-- Проверить завершенную пачку polling/autocheck на staging:
-  - запуск автопроверки;
-  - live-status `running`;
-  - успешный результат `passed`;
-  - неуспешный результат `failed`;
-  - техническую ошибку `error`;
-  - повторный запуск автопроверки после `failed/error`;
-  - сброс статуса автопроверки после обычного перезапуска окружения.
-- Проверить первый L1-пакет заданий глазами стажера и наставника.
-- По итогам ручного staging-прогона поправить формулировки задач, `check.sh` и UX.
-- После polling перейти к фоновым статусам для долгих операций:
-  - `starting`;
-  - `restarting`.
+- Запустить 1–2 реальных стажёров или кандидатов через L1-очередь.
+- Посмотреть, где они застревают:
+  - запуск окружения;
+  - терминал;
+  - формулировки заданий;
+  - `check.sh`;
+  - ответ клиенту;
+  - комментарии наставника.
+- По итогам пилота поправить тексты задач, `check.sh` и UX.
 
 ### Позже
 
-- Вынести Docker-операции в Celery + Redis.
-- Подготовить production-инструкцию.
-- Улучшить аналитику по стажерам, заданиям, подсказкам и времени прохождения.
-
+- Celery + Redis вместо background thread.
+- Hints для сложных заданий.
+- SLA-таймер на тикете.
+- Структурированная оценка ответа клиенту.
+- Метрики по стажёрам и заданиям.
+- Эталонные ответы после прохождения.
