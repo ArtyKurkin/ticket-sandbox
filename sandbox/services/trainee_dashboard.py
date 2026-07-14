@@ -1,4 +1,4 @@
-from sandbox.models import Task, TraineeProfile
+from sandbox.models import Task
 from sandbox.services.attempt_display import enrich_attempts_display_state
 from sandbox.services.attempts import (
     get_current_attempt,
@@ -6,28 +6,15 @@ from sandbox.services.attempts import (
 )
 
 
-LEVEL_ACCESS = {
-    TraineeProfile.Level.CANDIDATE: ["candidate"],
-    TraineeProfile.Level.L1: ["l1"],
-    TraineeProfile.Level.L2: ["l1", "l2"],
-    TraineeProfile.Level.ADMIN: ["candidate", "l1", "l2", "admin"],
-}
-
-
 def build_trainee_dashboard_context(user):
     profile = user.trainee_profile
-
-    available_queue_slugs = LEVEL_ACCESS.get(
-        profile.level,
-        ["candidate"],
-    )
 
     tasks = (
         Task.objects
         .filter(
             is_active=True,
             queue__is_active=True,
-            queue__slug__in=available_queue_slugs,
+            queue__required_level=profile.level,
         )
         .select_related("queue")
         .order_by("queue__order", "order")

@@ -84,7 +84,7 @@ class QueueAccessTests(SandboxTestCase):
         self.assertFalse(attempts.filter(task=self.candidate_task).exists())
         self.assertFalse(attempts.filter(task=self.l2_task).exists())
 
-    def test_l2_user_sees_l1_and_l2_queues(self):
+    def test_l2_user_sees_only_l2_queue(self):
         user = self.create_user(
             username="l2-user",
             level=TraineeProfile.Level.L2,
@@ -98,9 +98,42 @@ class QueueAccessTests(SandboxTestCase):
 
         attempts = TaskAttempt.objects.filter(user=user)
 
-        self.assertEqual(attempts.count(), 2)
-        self.assertTrue(attempts.filter(task=self.l1_task).exists())
+        self.assertEqual(attempts.count(), 1)
         self.assertTrue(attempts.filter(task=self.l2_task).exists())
+        self.assertFalse(attempts.filter(task=self.l1_task).exists())
+        self.assertFalse(attempts.filter(task=self.candidate_task).exists())
+
+    def test_admin_level_user_sees_only_admin_queue(self):
+        admin_queue = self.create_queue(
+            slug="sysadmin",
+            name="Системные администраторы",
+            order=3,
+            required_level=TraineeProfile.Level.ADMIN,
+        )
+
+        admin_task = self.create_task(
+            queue=admin_queue,
+            slug="admin-task",
+            order=1,
+        )
+
+        user = self.create_user(
+            username="admin-level-user",
+            level=TraineeProfile.Level.ADMIN,
+        )
+
+        self.client.login(username="admin-level-user", password="test-password")
+
+        response = self.client.get(reverse("sandbox:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+
+        attempts = TaskAttempt.objects.filter(user=user)
+
+        self.assertEqual(attempts.count(), 1)
+        self.assertTrue(attempts.filter(task=admin_task).exists())
+        self.assertFalse(attempts.filter(task=self.l1_task).exists())
+        self.assertFalse(attempts.filter(task=self.l2_task).exists())
         self.assertFalse(attempts.filter(task=self.candidate_task).exists())
 
     def test_staff_user_sees_mentor_dashboard(self):

@@ -3,7 +3,6 @@ from html import escape
 from sandbox.models import Task, TaskAttempt
 from sandbox.services.attempts import task_was_technically_completed
 from sandbox.services.telegram import send_telegram
-from sandbox.services.trainee_dashboard import LEVEL_ACCESS
 
 
 def notify_manual_review_required(attempt: TaskAttempt) -> bool:
@@ -91,17 +90,12 @@ def user_completed_all_available_tasks(user) -> bool:
     if profile is None:
         return False
 
-    available_queue_slugs = LEVEL_ACCESS.get(
-        profile.level,
-        ["candidate"],
-    )
-
     tasks = (
         Task.objects
         .filter(
             is_active=True,
             queue__is_active=True,
-            queue__slug__in=available_queue_slugs,
+            queue__required_level=profile.level,
         )
         .select_related("queue")
         .order_by("queue__order", "order")
