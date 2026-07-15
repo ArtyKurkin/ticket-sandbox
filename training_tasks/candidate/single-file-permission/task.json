@@ -1,0 +1,11 @@
+{
+  "title": "Сайт выдаёт ошибку доступа",
+  "ticket_title": "При заходе на сайт — ошибка доступа (403)",
+  "client_name": "Ольга Мельникова",
+  "client_email": "o.melnikova@example.com",
+  "description": "Здравствуйте.\n\nПри открытии нашего сайта появляется ошибка «403 Forbidden». Мы недавно обновляли файл главной страницы через FTP-клиент.\n\nПодскажите, пожалуйста, в чём проблема.",
+  "priority": "medium",
+  "order": 3,
+  "requires_manual_review": true,
+  "is_active": true
+}
