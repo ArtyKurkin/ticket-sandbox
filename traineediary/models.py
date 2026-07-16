@@ -192,36 +192,63 @@ class TraineeJourney(models.Model):
 
     # --- смена этапа ---
 
-    def move_to_stage(self, new_stage, changed_by=None, note=""):
+    def move_to_stage(
+        self,
+        new_stage,
+        changed_by=None,
+        note="",
+        transition_date=None,
+    ):
         """
         Единая точка смены этапа.
 
         Повторный перенос в текущий этап ничего не меняет.
-        Изменение Journey и StageHistory выполняется одной транзакцией.
+        Дату перехода можно указать вручную для корректной истории.
+        Обновление карточки и StageHistory выполняется одной транзакцией.
         """
         previous_stage = self.current_stage
         previous_stage_started_at = self.stage_started_at
 
-        # Drag-and-drop может отправить запрос в ту же колонку.
-        # В этом случае не сбрасываем дату этапа и не создаём дубль истории.
+        # Drag-and-drop может отправить запрос в текущую колонку.
+        # Не сбрасываем дату и не создаём дубликат истории.
         if self.current_stage_id == new_stage.pk:
             return previous_stage
 
+        transition_date = transition_date or timezone.localdate()
         today = timezone.localdate()
+
+        if transition_date > today:
+            raise ValidationError(
+                {
+                    "stage_started_at": (
+                        "Дата начала нового этапа не может быть в будущем."
+                    ),
+                },
+            )
+
+        if transition_date < self.stage_started_at:
+            raise ValidationError(
+                {
+                    "stage_started_at": (
+                        "Дата начала нового этапа не может быть раньше "
+                        "даты начала текущего этапа."
+                    ),
+                },
+            )
 
         try:
             with transaction.atomic():
                 self.current_stage = new_stage
-                self.stage_started_at = today
+                self.stage_started_at = transition_date
 
-                # Проверяет в том числе применимость этапа:
-                # внутренний переход нельзя вернуть в Teachbase или Sandbox.
+                # Проверяем применимость этапа к типу входа.
+                # Внутреннему переходу недоступны Teachbase и ticket-sandbox.
                 self.full_clean()
 
                 StageHistory.objects.filter(
                     journey=self,
                     ended_at__isnull=True,
-                ).update(ended_at=today)
+                ).update(ended_at=transition_date)
 
                 self.save(
                     update_fields=[
@@ -233,14 +260,13 @@ class TraineeJourney(models.Model):
                 StageHistory.objects.create(
                     journey=self,
                     stage=new_stage,
-                    started_at=today,
+                    started_at=transition_date,
                     changed_by=changed_by,
-                    note=note,
+                    note=note.strip(),
                 )
 
         except Exception:
-            # Транзакция откатит БД, а здесь возвращаем в исходное
-            # состояние сам Python-объект.
+            # Транзакция откатывает БД, но не значения внутри self.
             self.current_stage = previous_stage
             self.stage_started_at = previous_stage_started_at
             raise

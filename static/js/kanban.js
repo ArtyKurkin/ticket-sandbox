@@ -11,10 +11,87 @@ const AUTOSCROLL_MIN_SPEED_PX = 5;
 const AUTOSCROLL_MAX_SPEED_PX = 22;
 const DRAG_START_THRESHOLD_PX = 6;
 
+let pendingStageMove = null;
+
 function initKanban() {
   const container = document.getElementById("kanban-board-container");
   if (!container) return;
+
+  initStageMoveDialog(container);
   attachDragHandlers(container);
+}
+
+function initStageMoveDialog(container) {
+  const dialog = document.getElementById("stage-move-dialog");
+  const form = document.getElementById("stage-move-form");
+
+  if (!dialog || !form) return;
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    if (!pendingStageMove || !form.reportValidity()) {
+      return;
+    }
+
+    const dateInput = document.getElementById("stage-move-date");
+    const noteInput = document.getElementById("stage-move-note");
+
+    setStageMoveDialogBusy(dialog, true);
+
+    moveTraineeStage({
+      moveUrl: pendingStageMove.moveUrl,
+      stageId: pendingStageMove.stageId,
+      transitionDate: dateInput.value,
+      note: noteInput.value,
+    })
+      .then(function () {
+        closeStageMoveDialog(dialog);
+        return refreshKanbanBoard(container);
+      })
+      .catch(function (error) {
+        showMoveError(
+          error.message || "Не удалось изменить этап.",
+        );
+      })
+      .finally(function () {
+        setStageMoveDialogBusy(dialog, false);
+      });
+  });
+
+  dialog
+    .querySelectorAll("[data-stage-move-cancel]")
+    .forEach(function (button) {
+      button.addEventListener("click", function () {
+        closeStageMoveDialog(dialog);
+      });
+    });
+
+  // Нажатие Escape.
+  dialog.addEventListener("cancel", function (event) {
+    event.preventDefault();
+
+    if (dialog.getAttribute("aria-busy") === "true") {
+      return;
+    }
+
+    closeStageMoveDialog(dialog);
+  });
+
+  // Клик по затемнённой области за окном.
+  dialog.addEventListener("click", function (event) {
+    if (
+      event.target === dialog &&
+      dialog.getAttribute("aria-busy") !== "true"
+    ) {
+      closeStageMoveDialog(dialog);
+    }
+  });
+
+  dialog.addEventListener("close", function () {
+    pendingStageMove = null;
+    resetStageMoveDialog(dialog);
+  });
 }
 
 function attachDragHandlers(container) {
@@ -31,7 +108,14 @@ function attachDragHandlers(container) {
 function startPointerDrag(startEvent, card, container, scrollBox) {
   if (!startEvent.isPrimary || startEvent.button !== 0) return;
 
-  const journeyId = card.dataset.journeyId;
+  if (
+    startEvent.target.closest(
+      "a, button, input, textarea, select",
+    )
+  ) {
+    return;
+  }
+
   const startX = startEvent.clientX;
   const startY = startEvent.clientY;
   const pointerId = startEvent.pointerId;
@@ -83,7 +167,11 @@ function startPointerDrag(startEvent, card, container, scrollBox) {
     const rect = scrollBox.getBoundingClientRect();
     const maxScrollLeft = Math.max(0, scrollBox.scrollWidth - scrollBox.clientWidth);
 
-    if (maxScrollLeft === 0) {
+    if (
+      maxScrollLeft === 0 ||
+      pointerY < rect.top ||
+      pointerY > rect.bottom
+    ) {
       stopAutoscroll();
       return;
     }
@@ -174,44 +262,94 @@ function startPointerDrag(startEvent, card, container, scrollBox) {
     }
   }
 
-  function finishPointerDrag(event) {
-    if (event && "pointerId" in event && event.pointerId !== pointerId) return;
-
-    document.removeEventListener("pointermove", onPointerMove);
-    document.removeEventListener("pointerup", finishPointerDrag);
-    document.removeEventListener("pointercancel", finishPointerDrag);
-    window.removeEventListener("blur", finishPointerDrag);
-
-    stopAutoscroll();
-    card.classList.remove("is-dragging");
-    scrollBox.classList.remove("is-dragging");
-
-    try {
-      if (card.hasPointerCapture(pointerId)) {
-        card.releasePointerCapture(pointerId);
-      }
-    } catch (error) {
-      // Ничего не делаем, если браузер уже освободил pointer capture.
-    }
-
-    if (ghost) {
-      ghost.remove();
-    }
-
-    clearDropTargetHighlight(container);
-
-    if (!dragStarted || !currentDropColumn) {
-      return;
-    }
-
-    const stageId = currentDropColumn.dataset.stageId;
-    moveTraineeStage(journeyId, stageId, container);
+function finishPointerDrag(event, shouldConfirmMove) {
+  if (
+    event &&
+    "pointerId" in event &&
+    event.pointerId !== pointerId
+  ) {
+    return;
   }
 
-  document.addEventListener("pointermove", onPointerMove, { passive: false });
-  document.addEventListener("pointerup", finishPointerDrag);
-  document.addEventListener("pointercancel", finishPointerDrag);
-  window.addEventListener("blur", finishPointerDrag);
+  document.removeEventListener(
+    "pointermove",
+    onPointerMove,
+  );
+  document.removeEventListener(
+    "pointerup",
+    onPointerUp,
+  );
+  document.removeEventListener(
+    "pointercancel",
+    onPointerCancel,
+  );
+  window.removeEventListener(
+    "blur",
+    onWindowBlur,
+  );
+
+  stopAutoscroll();
+
+  card.classList.remove("is-dragging");
+  scrollBox.classList.remove("is-dragging");
+
+  try {
+    if (card.hasPointerCapture(pointerId)) {
+      card.releasePointerCapture(pointerId);
+    }
+  } catch (error) {
+    // Браузер мог уже освободить pointer capture.
+  }
+
+  if (ghost) {
+    ghost.remove();
+  }
+
+  clearDropTargetHighlight(container);
+
+  if (
+    !shouldConfirmMove ||
+    !dragStarted ||
+    !currentDropColumn
+  ) {
+    return;
+  }
+
+  openStageMoveDialog(
+    card,
+    currentDropColumn,
+  );
+}
+
+function onPointerUp(event) {
+  finishPointerDrag(event, true);
+}
+
+function onPointerCancel(event) {
+  finishPointerDrag(event, false);
+}
+
+function onWindowBlur() {
+  finishPointerDrag(null, false);
+}
+
+document.addEventListener(
+  "pointermove",
+  onPointerMove,
+  { passive: false },
+);
+document.addEventListener(
+  "pointerup",
+  onPointerUp,
+);
+document.addEventListener(
+  "pointercancel",
+  onPointerCancel,
+);
+window.addEventListener(
+  "blur",
+  onWindowBlur,
+);
 }
 
 function findDropColumn(pointerX, pointerY, ghost) {
@@ -219,21 +357,28 @@ function findDropColumn(pointerX, pointerY, ghost) {
     ghost.style.display = "none";
   }
 
-  const elementUnderPointer = document.elementFromPoint(pointerX, pointerY);
+  const elementUnderPointer = document.elementFromPoint(
+    pointerX,
+    pointerY,
+  );
 
   if (ghost) {
     ghost.style.display = "";
   }
 
   return elementUnderPointer
-    ? elementUnderPointer.closest(".kanban-column-body")
+    ? elementUnderPointer.closest(".kanban-dropzone")
     : null;
 }
 
 function clearDropTargetHighlight(container) {
-  container.querySelectorAll(".kanban-column-body.is-drop-target").forEach(function (element) {
-    element.classList.remove("is-drop-target");
-  });
+  container
+    .querySelectorAll(
+      ".kanban-dropzone.is-drop-target",
+    )
+    .forEach(function (element) {
+      element.classList.remove("is-drop-target");
+    });
 }
 
 function createGhost(card) {
@@ -251,55 +396,217 @@ function positionGhost(ghost, x, y) {
   ghost.style.top = y + "px";
 }
 
-function moveTraineeStage(journeyId, stageId, container) {
-  fetch("/diary/trainees/" + journeyId + "/move/", {
+function openStageMoveDialog(card, dropZone) {
+  const dialog = document.getElementById(
+    "stage-move-dialog",
+  );
+  const summary = document.getElementById(
+    "stage-move-summary",
+  );
+  const dateInput = document.getElementById(
+    "stage-move-date",
+  );
+  const noteInput = document.getElementById(
+    "stage-move-note",
+  );
+
+  if (
+    !dialog ||
+    !summary ||
+    !dateInput ||
+    !noteInput
+  ) {
+    showMoveError(
+      "Не удалось открыть окно смены этапа.",
+    );
+    return;
+  }
+
+  const currentStageId =
+    card.dataset.currentStageId;
+  const targetStageId =
+    dropZone.dataset.stageId;
+
+  // Отпустили карточку в её же колонке.
+  if (
+    !targetStageId ||
+    currentStageId === targetStageId
+  ) {
+    return;
+  }
+
+  const traineeName =
+    card.dataset.traineeName || "Стажёр";
+  const currentStageName =
+    card.dataset.currentStageName || "Текущий этап";
+  const targetStageName =
+    dropZone.dataset.stageName || "Новый этап";
+  const currentStageStartedAt =
+    card.dataset.currentStageStartedAt;
+  const defaultTransitionDate =
+    dialog.dataset.defaultTransitionDate;
+
+  pendingStageMove = {
+    moveUrl: card.dataset.moveUrl,
+    stageId: targetStageId,
+  };
+
+  summary.textContent =
+    traineeName +
+    ": " +
+    currentStageName +
+    " → " +
+    targetStageName;
+
+  // Нельзя выбрать дату раньше начала текущего этапа
+  // или позже сегодняшнего дня.
+  dateInput.min = currentStageStartedAt || "";
+  dateInput.max = defaultTransitionDate || "";
+  dateInput.value =
+    defaultTransitionDate ||
+    currentStageStartedAt ||
+    "";
+
+  noteInput.value = "";
+
+  dialog.showModal();
+  dateInput.focus();
+
+  if (typeof lucide !== "undefined") {
+    lucide.createIcons();
+  }
+}
+
+function closeStageMoveDialog(dialog) {
+  if (dialog.open) {
+    dialog.close();
+  }
+}
+
+function resetStageMoveDialog(dialog) {
+  const form = document.getElementById(
+    "stage-move-form",
+  );
+  const summary = document.getElementById(
+    "stage-move-summary",
+  );
+  const dateInput = document.getElementById(
+    "stage-move-date",
+  );
+
+  if (form) {
+    form.reset();
+  }
+
+  if (summary) {
+    summary.textContent =
+      "Подтверди перевод стажёра на новый этап.";
+  }
+
+  if (dateInput) {
+    dateInput.removeAttribute("min");
+    dateInput.max =
+      dialog.dataset.defaultTransitionDate || "";
+  }
+}
+
+function setStageMoveDialogBusy(
+  dialog,
+  isBusy,
+) {
+  dialog.setAttribute(
+    "aria-busy",
+    String(isBusy),
+  );
+
+  dialog
+    .querySelectorAll(
+      "button, input, textarea",
+    )
+    .forEach(function (element) {
+      element.disabled = isBusy;
+    });
+}
+
+function moveTraineeStage(options) {
+  return fetch(options.moveUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-CSRFToken": getCsrfCookie(),
     },
-    body: JSON.stringify({ stage_id: stageId }),
-  })
-    .then(function (response) {
-      return response.json().then(function (data) {
-        return { status: response.status, data: data };
-      });
-    })
-    .then(function (result) {
-      if (result.status === 200) {
-        refreshKanbanBoard(container);
-      } else {
-        showMoveError(result.data.error || "Не удалось изменить этап.");
+    body: JSON.stringify({
+      stage_id: options.stageId,
+      transition_date: options.transitionDate,
+      note: options.note,
+    }),
+  }).then(function (response) {
+    return response.text().then(function (text) {
+      let data = {};
+
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (error) {
+          data = {};
+        }
       }
-    })
-    .catch(function () {
-      showMoveError("Ошибка соединения с сервером.");
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+          "Не удалось изменить этап.",
+        );
+      }
+
+      return data;
     });
+  });
 }
 
 function refreshKanbanBoard(container) {
-  const scrollBox = container.querySelector(".kanban-board");
-  const scrollLeft = scrollBox ? scrollBox.scrollLeft : 0;
+  const refreshUrl =
+    container.dataset.refreshUrl;
+  const scrollBox =
+    container.querySelector(".kanban-board");
+  const scrollLeft =
+    scrollBox ? scrollBox.scrollLeft : 0;
 
-  fetch("/diary/trainees/board-fragment/")
+  if (!refreshUrl) {
+    return Promise.reject(
+      new Error(
+        "Не указан адрес обновления доски.",
+      ),
+    );
+  }
+
+  return fetch(refreshUrl)
     .then(function (response) {
+      if (!response.ok) {
+        throw new Error(
+          "Не удалось обновить доску. " +
+          "Обнови страницу вручную.",
+        );
+      }
+
       return response.text();
     })
     .then(function (html) {
       container.innerHTML = html;
+
+      // После замены HTML старые обработчики исчезли.
       attachDragHandlers(container);
 
       if (typeof lucide !== "undefined") {
         lucide.createIcons();
       }
 
-      const newScrollBox = container.querySelector(".kanban-board");
+      const newScrollBox =
+        container.querySelector(".kanban-board");
+
       if (newScrollBox) {
         newScrollBox.scrollLeft = scrollLeft;
       }
-    })
-    .catch(function () {
-      showMoveError("Не удалось обновить доску. Обнови страницу вручную.");
     });
 }
 

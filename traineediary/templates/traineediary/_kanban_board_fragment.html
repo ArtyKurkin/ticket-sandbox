@@ -2,25 +2,57 @@
   <div class="kanban-board">
     {% for column in columns %}
       <div class="kanban-column">
-        <div class="kanban-column-header" style="border-color: {{ column.stage.color }};">
+        <div
+          class="kanban-column-header"
+          style="border-color: {{ column.stage.color }};"
+        >
           <span>{{ column.stage.name }}</span>
-          <span class="kanban-column-count">{{ column.journeys|length }}</span>
+          <span class="kanban-column-count">
+            {{ column.journeys|length }}
+          </span>
         </div>
-        <div class="kanban-column-body" data-stage-id="{{ column.stage.id }}">
+
+        <div
+          class="kanban-column-body kanban-dropzone"
+          data-stage-id="{{ column.stage.id }}"
+          data-stage-name="{{ column.stage.name }}"
+        >
           {% for journey in column.journeys %}
-            <div class="kanban-card" data-journey-id="{{ journey.id }}">
-              <div class="kanban-card-name">{{ journey.user.get_full_name|default:journey.user.username }}</div>
-              <div class="kanban-card-meta">{{ journey.get_entry_type_display }}</div>
+            <div
+              class="kanban-card"
+              data-journey-id="{{ journey.id }}"
+              data-move-url="{% url 'traineediary:move_trainee_stage' journey.id %}"
+              data-trainee-name="{{ journey.user.get_full_name|default:journey.user.username }}"
+              data-current-stage-id="{{ journey.current_stage_id }}"
+              data-current-stage-name="{{ journey.current_stage.name }}"
+              data-current-stage-started-at="{{ journey.stage_started_at|date:'Y-m-d' }}"
+            >
+              <div class="kanban-card-name">
+                {{ journey.user.get_full_name|default:journey.user.username }}
+              </div>
+
+              <div class="kanban-card-meta">
+                {{ journey.get_entry_type_display }}
+              </div>
 
               {% if journey.risk_level == "high" %}
-                <span class="status status-danger status-full">Высокий риск</span>
+                <span class="status status-danger status-full">
+                  Высокий риск
+                </span>
               {% elif journey.risk_level == "medium" %}
-                <span class="status status-primary status-full">Средний риск</span>
+                <span class="status status-primary status-full">
+                  Средний риск
+                </span>
               {% endif %}
 
               <div class="kanban-card-footer">
-                <span class="kanban-card-days">{{ journey.days_on_stage }} дн. на этапе</span>
-                <span class="kanban-card-days">до {{ journey.expected_stage_transition_date|date:"d.m" }}</span>
+                <span class="kanban-card-days">
+                  {{ journey.days_on_stage }} дн. на этапе
+                </span>
+
+                <span class="kanban-card-days">
+                  до {{ journey.expected_stage_transition_date|date:"d.m" }}
+                </span>
               </div>
             </div>
           {% empty %}
@@ -33,23 +65,48 @@
 </div>
 
 {% if done_column %}
-<div class="kanban-done-section">
-  <div class="kanban-done-header">
-    <i data-lucide="trophy"></i>
-    <span>{{ done_column.stage.name }} ({{ done_column.journeys|length }})</span>
-  </div>
+  <details
+    class="kanban-done-section kanban-dropzone"
+    data-stage-id="{{ done_column.stage.id }}"
+    data-stage-name="{{ done_column.stage.name }}"
+  >
+    <summary class="kanban-done-header">
+      <span class="kanban-done-header-title">
+        <i data-lucide="trophy"></i>
 
-  {% if done_column.journeys %}
-    <div class="kanban-done-grid">
-      {% for journey in done_column.journeys %}
-        <div class="kanban-done-card">
-          <div class="kanban-done-card-name">{{ journey.user.get_full_name|default:journey.user.username }}</div>
-          <div class="kanban-done-card-meta">{{ journey.get_entry_type_display }}</div>
+        <span>{{ done_column.stage.name }}</span>
+
+        <span class="kanban-done-count">
+          {{ done_column.journeys|length }}
+        </span>
+      </span>
+
+      <i
+        data-lucide="chevron-down"
+        class="kanban-done-chevron"
+      ></i>
+    </summary>
+
+    <div class="kanban-done-content">
+      {% if done_column.journeys %}
+        <div class="kanban-done-grid">
+          {% for journey in done_column.journeys %}
+            <div class="kanban-done-card">
+              <div class="kanban-done-card-name">
+                {{ journey.user.get_full_name|default:journey.user.username }}
+              </div>
+
+              <div class="kanban-done-card-meta">
+                {{ journey.get_entry_type_display }}
+              </div>
+            </div>
+          {% endfor %}
         </div>
-      {% endfor %}
+      {% else %}
+        <p class="kanban-done-empty">
+          Перетащи сюда карточку после завершения испытательного срока.
+        </p>
+      {% endif %}
     </div>
-  {% else %}
-    <p class="kanban-done-empty">Пока никто не завершил испытательный срок.</p>
-  {% endif %}
-</div>
+  </details>
 {% endif %}

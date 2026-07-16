@@ -1706,20 +1706,82 @@ body.terminal-is-expanded {
 .kanban-done-section {
   margin-top: 16px;
   padding: 18px;
-  border-radius: 16px;
   border: 1px solid rgba(234, 179, 8, 0.35);
+  border-radius: 16px;
   background:
-    linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(234, 179, 8, 0.02)),
+    linear-gradient(
+      135deg,
+      rgba(234, 179, 8, 0.1),
+      rgba(234, 179, 8, 0.02)
+    ),
     var(--card);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .kanban-done-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
+  justify-content: space-between;
+  gap: 16px;
   color: #eab308;
   font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.kanban-done-header::-webkit-details-marker {
+  display: none;
+}
+
+.kanban-done-header-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.kanban-done-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 999px;
+  background: rgba(234, 179, 8, 0.1);
+  font-size: 13px;
+}
+
+.kanban-done-chevron {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  transition: transform 0.18s ease;
+}
+
+.kanban-done-section[open] .kanban-done-chevron {
+  transform: rotate(180deg);
+}
+
+.kanban-done-content {
+  margin-top: 16px;
+}
+
+.kanban-done-section.is-drop-target {
+  border-color: rgba(234, 179, 8, 0.75);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(234, 179, 8, 0.2),
+      rgba(234, 179, 8, 0.06)
+    ),
+    var(--card);
+  box-shadow: inset 0 0 0 2px rgba(234, 179, 8, 0.22);
 }
 
 .kanban-done-grid {
@@ -1761,4 +1823,119 @@ body.terminal-is-expanded {
   transform: translate(-50%, -50%) rotate(2deg);
   opacity: 0.92;
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.45);
+}
+
+
+/* === Traineediary: stage move dialog === */
+
+
+.stage-move-dialog {
+  width: min(520px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55);
+}
+
+.stage-move-dialog::backdrop {
+  background: rgba(4, 8, 25, 0.76);
+  backdrop-filter: blur(5px);
+}
+
+.stage-move-dialog-content {
+  padding: 24px;
+}
+
+.stage-move-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.stage-move-dialog-header h2 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.03em;
+}
+
+.stage-move-dialog-header p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.stage-move-dialog-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.stage-move-dialog-close:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.stage-move-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stage-move-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stage-move-field label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stage-move-field textarea {
+  min-height: 96px;
+}
+
+.stage-move-field-hint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.stage-move-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.stage-move-actions .button {
+  width: auto;
+  min-width: 120px;
+}
+
+@media (max-width: 560px) {
+  .stage-move-dialog-content {
+    padding: 20px;
+  }
+
+  .stage-move-actions {
+    flex-direction: column-reverse;
+  }
+
+  .stage-move-actions .button {
+    width: 100%;
+  }
 }

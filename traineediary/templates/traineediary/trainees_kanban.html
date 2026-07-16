@@ -4,20 +4,98 @@
 {% block title %}Стажёры{% endblock %}
 
 {% block content %}
+{% now "Y-m-d" as today %}
+
 <div class="hero flex-between">
   <div>
     <h1>Стажёры</h1>
     <p>Перетащи карточку в другую колонку, чтобы сменить этап.</p>
   </div>
-  <a href="{% url 'traineediary:create_trainee' %}" class="button" style="width: auto;">
-    <i data-lucide="user-plus"></i> Добавить стажёра
+
+  <a
+    href="{% url 'traineediary:create_trainee' %}"
+    class="button"
+    style="width: auto;"
+  >
+    <i data-lucide="user-plus"></i>
+    Добавить стажёра
   </a>
 </div>
 
-<div id="kanban-board-container">
+<div
+  id="kanban-board-container"
+  data-refresh-url="{% url 'traineediary:kanban_board_fragment' %}"
+>
   {% include "traineediary/_kanban_board_fragment.html" %}
 </div>
 
-<script src="{% static 'js/kanban.js' %}"></script>
+<dialog
+  id="stage-move-dialog"
+  class="stage-move-dialog"
+  data-default-transition-date="{{ today }}"
+  aria-labelledby="stage-move-title"
+>
+  <div class="stage-move-dialog-content">
+    <div class="stage-move-dialog-header">
+      <div>
+        <h2 id="stage-move-title">Смена этапа</h2>
+        <p id="stage-move-summary">
+          Подтверди перевод стажёра на новый этап.
+        </p>
+      </div>
 
+      <button
+        type="button"
+        class="stage-move-dialog-close"
+        data-stage-move-cancel
+        aria-label="Закрыть"
+      >
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <form id="stage-move-form" class="stage-move-form">
+      <div class="stage-move-field">
+        <label for="stage-move-date">Дата начала нового этапа</label>
+        <input
+          type="date"
+          id="stage-move-date"
+          name="transition_date"
+          value="{{ today }}"
+          required
+        >
+        <span class="stage-move-field-hint">
+          Предыдущий этап будет закрыт этой же датой.
+        </span>
+      </div>
+
+      <div class="stage-move-field">
+        <label for="stage-move-note">Комментарий</label>
+        <textarea
+          id="stage-move-note"
+          name="note"
+          rows="3"
+          placeholder="Например: переведён после проверки результатов"
+        ></textarea>
+      </div>
+
+      <div class="stage-move-actions">
+        <button
+          type="button"
+          class="button secondary"
+          data-stage-move-cancel
+        >
+          Отмена
+        </button>
+
+        <button type="submit" class="button">
+          <i data-lucide="arrow-right"></i>
+          Перевести
+        </button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<script src="{% static 'js/kanban.js' %}"></script>
 {% endblock %}
