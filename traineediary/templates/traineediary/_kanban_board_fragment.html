@@ -1,0 +1,55 @@
+<div class="card kanban-board-wrapper">
+  <div class="kanban-board">
+    {% for column in columns %}
+      <div class="kanban-column">
+        <div class="kanban-column-header" style="border-color: {{ column.stage.color }};">
+          <span>{{ column.stage.name }}</span>
+          <span class="kanban-column-count">{{ column.journeys|length }}</span>
+        </div>
+        <div class="kanban-column-body" data-stage-id="{{ column.stage.id }}">
+          {% for journey in column.journeys %}
+            <div class="kanban-card" data-journey-id="{{ journey.id }}">
+              <div class="kanban-card-name">{{ journey.user.get_full_name|default:journey.user.username }}</div>
+              <div class="kanban-card-meta">{{ journey.get_entry_type_display }}</div>
+
+              {% if journey.risk_level == "high" %}
+                <span class="status status-danger status-full">Высокий риск</span>
+              {% elif journey.risk_level == "medium" %}
+                <span class="status status-primary status-full">Средний риск</span>
+              {% endif %}
+
+              <div class="kanban-card-footer">
+                <span class="kanban-card-days">{{ journey.days_on_stage }} дн. на этапе</span>
+                <span class="kanban-card-days">до {{ journey.expected_stage_transition_date|date:"d.m" }}</span>
+              </div>
+            </div>
+          {% empty %}
+            <div class="kanban-column-empty">Пусто</div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if done_column %}
+<div class="kanban-done-section">
+  <div class="kanban-done-header">
+    <i data-lucide="trophy"></i>
+    <span>{{ done_column.stage.name }} ({{ done_column.journeys|length }})</span>
+  </div>
+
+  {% if done_column.journeys %}
+    <div class="kanban-done-grid">
+      {% for journey in done_column.journeys %}
+        <div class="kanban-done-card">
+          <div class="kanban-done-card-name">{{ journey.user.get_full_name|default:journey.user.username }}</div>
+          <div class="kanban-done-card-meta">{{ journey.get_entry_type_display }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="kanban-done-empty">Пока никто не завершил испытательный срок.</p>
+  {% endif %}
+</div>
+{% endif %}

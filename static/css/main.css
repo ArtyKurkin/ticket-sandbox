@@ -76,6 +76,50 @@ textarea:focus {
   border-color: rgba(109, 124, 255, 0.8);
 }
 
+input[type="text"],
+input[type="email"],
+input[type="date"],
+input[type="password"] {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  padding: 12px 16px;
+  font: inherit;
+  outline: none;
+  color-scheme: dark;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="date"]:focus,
+input[type="password"]:focus {
+  border-color: rgba(109, 124, 255, 0.8);
+}
+
+input[type="radio"] {
+  accent-color: var(--blue);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
 pre {
   white-space: pre-wrap;
   background: rgba(0, 0, 0, 0.28);
@@ -1459,4 +1503,262 @@ body.terminal-is-expanded {
     height: calc(100vh - 24px) !important;
     border-radius: 18px !important;
   }
+}
+
+
+
+/* === Traineediary === */
+
+.diary-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.diary-summary-card {
+  text-align: center;
+  padding: 20px;
+}
+
+.diary-summary-card-danger {
+  border-color: rgba(255, 59, 48, 0.25);
+}
+
+.diary-summary-count {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.diary-summary-label {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+
+/* === Traineediary: kanban === */
+
+.kanban-board-wrapper {
+  min-width: 0;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.kanban-board {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 10px;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kanban-board.is-dragging {
+  scroll-snap-type: none;
+}
+
+.kanban-board::-webkit-scrollbar {
+  height: 8px;
+}
+
+.kanban-board::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+}
+
+.kanban-board::-webkit-scrollbar-thumb {
+  background: rgba(109, 124, 255, 0.4);
+  border-radius: 999px;
+}
+
+.kanban-column {
+  flex: 0 0 280px;
+  scroll-snap-align: start;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  max-height: 520px;
+  min-height: 160px;
+}
+
+.kanban-column-header {
+  padding: 12px 14px;
+  border-bottom: 3px solid;
+  border-radius: 16px 16px 0 0;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: rgba(17, 27, 61, 0.9);
+  backdrop-filter: blur(4px);
+}
+
+.kanban-column-count {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.kanban-board,
+.kanban-card,
+.kanban-column-header,
+.kanban-column-count,
+.kanban-card-name,
+.kanban-card-meta,
+.kanban-card-days {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.kanban-column-body {
+  padding: 10px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: background 0.15s ease;
+}
+
+.kanban-column-body.is-drop-target {
+  background: rgba(79, 100, 255, 0.1);
+}
+
+.kanban-column-empty {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px 8px;
+}
+
+.kanban-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: grab;
+}
+
+.kanban-card:hover {
+  border-color: rgba(109, 124, 255, 0.3);
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+.kanban-card.is-dragging {
+  opacity: 0.4;
+}
+
+.kanban-card-name {
+  font-weight: 700;
+}
+
+.kanban-card-meta {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 4px 0 8px;
+}
+
+.kanban-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.kanban-card-days {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.kanban-done-section {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  background:
+    linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(234, 179, 8, 0.02)),
+    var(--card);
+}
+
+.kanban-done-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  color: #eab308;
+  font-weight: 800;
+}
+
+.kanban-done-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.kanban-done-card {
+  background: rgba(234, 179, 8, 0.06);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.kanban-done-card-name {
+  font-weight: 700;
+}
+
+.kanban-done-card-meta {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.kanban-done-empty {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.kanban-card {
+  touch-action: none;
+}
+
+.kanban-ghost-card {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(2deg);
+  opacity: 0.92;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.45);
 }

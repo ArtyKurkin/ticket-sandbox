@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 
     "sandbox.apps.SandboxConfig",
+    "traineediary",
 ]
 
 MIDDLEWARE = [

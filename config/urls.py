@@ -23,6 +23,8 @@ urlpatterns = [
     ),
 
     path("", include("sandbox.urls")),
+
+    path("diary/", include("traineediary.urls", namespace="traineediary")),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

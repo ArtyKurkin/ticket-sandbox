@@ -22,12 +22,24 @@
 <body>
   <header class="header">
     <div class="header-inner">
-      <a class="logo" href="{% url 'sandbox:dashboard' %}">
-        ticket<span>&gt;sandbox</span>
+      <a class="logo" href="{% block logo_href %}{% url 'sandbox:dashboard' %}{% endblock %}">
+        {% block logo_text %}ticket<span>&gt;sandbox</span>{% endblock %}
       </a>
 
       {% if request.user.is_authenticated %}
         <div class="user-panel">
+          {% if request.resolver_match.app_name == "traineediary" %}
+            <a href="{% url 'sandbox:dashboard' %}" class="user-chip">
+              <i data-lucide="terminal"></i>
+              <span>Ticket Sandbox</span>
+            </a>
+          {% elif request.user.is_staff %}
+            <a href="{% url 'traineediary:dashboard' %}" class="user-chip">
+              <i data-lucide="book-open"></i>
+              <span>Дневник</span>
+            </a>
+          {% endif %}
+
           <span class="user-chip">
             <i data-lucide="user-round"></i>
             <span>{{ request.user.first_name|default:request.user.username }}</span>

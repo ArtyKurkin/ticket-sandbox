@@ -1,0 +1,23 @@
+{% extends "traineediary/_base.html" %}
+{% load static %}
+
+{% block title %}Стажёры{% endblock %}
+
+{% block content %}
+<div class="hero flex-between">
+  <div>
+    <h1>Стажёры</h1>
+    <p>Перетащи карточку в другую колонку, чтобы сменить этап.</p>
+  </div>
+  <a href="{% url 'traineediary:create_trainee' %}" class="button" style="width: auto;">
+    <i data-lucide="user-plus"></i> Добавить стажёра
+  </a>
+</div>
+
+<div id="kanban-board-container">
+  {% include "traineediary/_kanban_board_fragment.html" %}
+</div>
+
+<script src="{% static 'js/kanban.js' %}"></script>
+
+{% endblock %}

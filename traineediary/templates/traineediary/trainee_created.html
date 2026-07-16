@@ -1,0 +1,16 @@
+{% extends "traineediary/_base.html" %}
+
+{% block title %}Стажёр создан{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <h1>Стажёр создан</h1>
+</div>
+
+<div class="card" style="max-width: 480px;">
+  <p>Данные для входа — сохрани их сейчас, повторно они не покажутся:</p>
+  <p><strong>Логин:</strong> {{ journey.user.username }}</p>
+  <p><strong>Пароль:</strong> <code>{{ password }}</code></p>
+  <a href="{% url 'traineediary:trainees_kanban' %}" class="button mt-16">К списку стажёров</a>
+</div>
+{% endblock %}
