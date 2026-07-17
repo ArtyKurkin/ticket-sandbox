@@ -166,6 +166,159 @@
   </div>
 </div>
 
+<div class="card trainee-gantt-card">
+  <div class="card-title-bar">
+    <i data-lucide="chart-no-axes-gantt"></i>
+    <h2>Этапы обучения</h2>
+  </div>
+
+  <div class="trainee-gantt-legend">
+    <span class="trainee-gantt-legend-item">
+      <span class="trainee-gantt-legend-plan"></span>
+      План до максимального срока
+    </span>
+
+    <span class="trainee-gantt-legend-item">
+      <span class="trainee-gantt-legend-fact"></span>
+      Фактическое время
+    </span>
+
+    <span class="trainee-gantt-legend-item">
+      <span class="trainee-gantt-legend-marker"></span>
+      Минимальный срок
+    </span>
+  </div>
+
+  <div class="trainee-gantt">
+    {% for row in gantt_rows %}
+      <div
+        class="
+          trainee-gantt-row
+          {% if row.is_current %} is-current{% endif %}
+          {% if row.is_completed %} is-completed{% endif %}
+          {% if row.is_overdue %} is-overdue{% endif %}
+        "
+        data-gantt-stage-id="{{ row.stage.id }}"
+        data-gantt-stage-state="
+          {% if row.is_current %}
+            current
+          {% elif row.is_completed %}
+            completed
+          {% elif row.has_started %}
+            started
+          {% else %}
+            future
+          {% endif %}
+        "
+      >
+        <div class="trainee-gantt-row-header">
+          <div class="trainee-gantt-stage">
+            <span
+              class="trainee-gantt-stage-dot"
+              style="background: {{ row.stage.color }};"
+            ></span>
+
+            <strong>{{ row.stage.name }}</strong>
+
+            {% if row.is_current %}
+              <span class="status status-success">
+                Текущий
+              </span>
+            {% elif row.is_completed %}
+              <span class="status status-muted">
+                Завершён
+              </span>
+            {% elif not row.has_started %}
+              <span class="status status-muted">
+                Впереди
+              </span>
+            {% endif %}
+          </div>
+
+          <div class="trainee-gantt-values">
+            <span>
+              План:
+              {{ row.stage.min_days }}–{{ row.stage.max_days }} дн.
+            </span>
+
+            {% if row.has_started %}
+              <span>
+                Факт:
+                <strong>{{ row.actual_days }} дн.</strong>
+              </span>
+            {% else %}
+              <span class="trainee-gantt-not-started">
+                Ещё не начат
+              </span>
+            {% endif %}
+
+            {% if row.is_overdue %}
+              <span class="status status-danger">
+                +{{ row.overdue_days }} дн.
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div
+          class="trainee-gantt-track"
+          role="img"
+          aria-label="
+            {{ row.stage.name }}.
+            План от {{ row.stage.min_days }}
+            до {{ row.stage.max_days }} дней.
+            {% if row.has_started %}
+              Фактически {{ row.actual_days }} дней.
+            {% else %}
+              Этап ещё не начат.
+            {% endif %}
+          "
+        >
+          <div
+            class="trainee-gantt-min-marker"
+            style="left: {{ row.min_marker_percent }}%;"
+            title="Минимальный срок: {{ row.stage.min_days }} дн."
+          ></div>
+
+          {% if row.has_started %}
+            <div
+              class="trainee-gantt-actual"
+              style="
+                width: {{ row.actual_width_percent }}%;
+                background: {{ row.stage.color }};
+              "
+            ></div>
+          {% endif %}
+        </div>
+
+        {% if row.has_started %}
+          <div class="trainee-gantt-dates">
+            <span>
+              Начало:
+              {{ row.fact_started_at|date:"d.m.Y" }}
+            </span>
+
+            <span>
+              Завершение:
+              {% if row.fact_ended_at %}
+                {{ row.fact_ended_at|date:"d.m.Y" }}
+              {% elif row.is_current %}
+                текущий этап
+              {% else %}
+                —
+              {% endif %}
+            </span>
+          </div>
+        {% endif %}
+      </div>
+    {% empty %}
+      <p class="trainee-empty-text">
+        Для этого типа входа не настроены этапы.
+      </p>
+    {% endfor %}
+  </div>
+</div>
+
 <div class="card trainee-history-card">
   <div class="card-title-bar">
     <i data-lucide="history"></i>

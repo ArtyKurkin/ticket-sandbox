@@ -12,6 +12,7 @@ from django.views.decorators.http import require_POST
 from django.db.models import Prefetch
 
 from .models import (
+    EntryType,
     StageGroup,
     StageHistory,
     TraineeJourney,
@@ -140,6 +141,129 @@ def create_trainee(request):
     return render(request, "traineediary/create_trainee.html", {"form": form})
 
 
+def _build_gantt_rows(journey, history_entries, today):
+    """
+    Готовит этапы для шкалы «план против факта».
+
+    Для каждого применимого этапа считаются:
+    - плановые min/max дни;
+    - фактическое количество дней из StageHistory;
+    - состояние этапа;
+    - превышение максимального срока.
+    """
+    applicable_field = (
+        "applies_to_internal_transfer"
+        if journey.entry_type == EntryType.INTERNAL_TRANSFER
+        else "applies_to_new_hire"
+    )
+
+    stages = (
+        TraineeStage.objects
+        .filter(
+            is_active=True,
+            **{applicable_field: True},
+        )
+        .exclude(group=StageGroup.DONE)
+        .order_by("order")
+    )
+
+    history_by_stage = {}
+
+    for history_entry in history_entries:
+        history_by_stage.setdefault(
+            history_entry.stage_id,
+            [],
+        ).append(history_entry)
+
+    gantt_rows = []
+
+    for stage in stages:
+        stage_history = history_by_stage.get(stage.id, [])
+        has_started = bool(stage_history)
+
+        actual_days = 0
+        fact_started_at = None
+        fact_ended_at = None
+
+        if has_started:
+            fact_started_at = min(
+                entry.started_at
+                for entry in stage_history
+            )
+
+            has_open_entry = any(
+                entry.ended_at is None
+                for entry in stage_history
+            )
+
+            if not has_open_entry:
+                fact_ended_at = max(
+                    entry.ended_at
+                    for entry in stage_history
+                    if entry.ended_at is not None
+                )
+
+            for entry in stage_history:
+                effective_end_date = entry.ended_at or today
+
+                actual_days += max(
+                    (
+                        effective_end_date
+                        - entry.started_at
+                    ).days,
+                    0,
+                )
+
+        max_days = max(stage.max_days, 1)
+
+        actual_width_percent = (
+            min(
+                round(actual_days / max_days * 100),
+                100,
+            )
+            if has_started
+            else 0
+        )
+
+        min_marker_percent = min(
+            round(stage.min_days / max_days * 100),
+            100,
+        )
+
+        is_current = (
+            journey.current_stage_id == stage.id
+        )
+        is_overdue = (
+            has_started
+            and actual_days > stage.max_days
+        )
+
+        gantt_rows.append({
+            "stage": stage,
+            "has_started": has_started,
+            "is_current": is_current,
+            "is_completed": (
+                has_started
+                and not is_current
+                and all(
+                    entry.ended_at is not None
+                    for entry in stage_history
+                )
+            ),
+            "actual_days": actual_days,
+            "actual_width_percent": actual_width_percent,
+            "min_marker_percent": min_marker_percent,
+            "is_overdue": is_overdue,
+            "overdue_days": (
+                max(actual_days - stage.max_days, 0)
+            ),
+            "fact_started_at": fact_started_at,
+            "fact_ended_at": fact_ended_at,
+        })
+
+    return gantt_rows
+
+
 @login_required
 def trainee_detail(request, journey_id):
     if not request.user.is_staff:
@@ -169,7 +293,17 @@ def trainee_detail(request, journey_id):
     today = timezone.localdate()
     history_rows = []
 
-    for history_entry in journey.stage_history.all():
+    history_entries = list(
+        journey.stage_history.all(),
+    )
+
+    for history_entry in history_entries:
+        gantt_rows = _build_gantt_rows(
+            journey=journey,
+            history_entries=history_entries,
+            today=today,
+        )
+
         effective_end_date = history_entry.ended_at or today
 
         history_rows.append({
@@ -189,6 +323,7 @@ def trainee_detail(request, journey_id):
     context = {
         "journey": journey,
         "history_rows": history_rows,
+        "gantt_rows": gantt_rows,
         "probation_end_date": probation_end_date,
         "progress_percent": journey.progress_percent,
         "risk": journey.risk_level,

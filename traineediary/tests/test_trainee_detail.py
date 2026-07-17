@@ -172,3 +172,194 @@ class TraineeDetailViewTests(TestCase):
             response,
             f'href="{detail_url}"',
         )
+
+    def test_detail_builds_gantt_rows_from_stage_history(self):
+        self.client.login(
+            username="mentor-detail",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        gantt_rows = response.context["gantt_rows"]
+
+        self.assertEqual(len(gantt_rows), 2)
+
+        current_row = next(
+            row
+            for row in gantt_rows
+            if row["stage"] == self.stage
+        )
+        future_row = next(
+            row
+            for row in gantt_rows
+            if row["stage"] == self.next_stage
+        )
+
+        self.assertTrue(current_row["has_started"])
+        self.assertTrue(current_row["is_current"])
+        self.assertFalse(current_row["is_completed"])
+        self.assertEqual(current_row["actual_days"], 7)
+        self.assertFalse(current_row["is_overdue"])
+
+        self.assertFalse(future_row["has_started"])
+        self.assertFalse(future_row["is_current"])
+        self.assertEqual(future_row["actual_days"], 0)
+
+    def test_gantt_marks_overdue_stage(self):
+        self.journey.stage_started_at = (
+            date.today() - timedelta(days=25)
+        )
+        self.journey.save(
+            update_fields=["stage_started_at"],
+        )
+
+        current_history = self.journey.stage_history.get(
+            ended_at__isnull=True,
+        )
+        current_history.started_at = (
+            date.today() - timedelta(days=25)
+        )
+        current_history.save(
+            update_fields=["started_at"],
+        )
+
+        self.client.login(
+            username="mentor-detail",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        current_row = next(
+            row
+            for row in response.context["gantt_rows"]
+            if row["stage"] == self.stage
+        )
+
+        self.assertEqual(current_row["actual_days"], 25)
+        self.assertTrue(current_row["is_overdue"])
+        self.assertEqual(current_row["overdue_days"], 5)
+        self.assertEqual(
+            current_row["actual_width_percent"],
+            100,
+        )
+
+    def test_internal_transfer_gantt_excludes_teachbase(self):
+        teachbase_stage = TraineeStage.objects.create(
+            name="Teachbase",
+            slug="teachbase-detail-gantt",
+            order=1,
+            min_days=3,
+            max_days=5,
+            progress_weight_percent=10,
+            group=StageGroup.TEACHBASE,
+            applies_to_new_hire=True,
+            applies_to_internal_transfer=False,
+        )
+
+        internal_user = User.objects.create_user(
+            username="internal-detail",
+            password="test",
+        )
+        internal_journey = TraineeJourney.objects.create(
+            user=internal_user,
+            entry_type=EntryType.INTERNAL_TRANSFER,
+            probation_start_date=date.today(),
+            current_stage=self.stage,
+            stage_started_at=date.today(),
+        )
+
+        self.client.login(
+            username="mentor-detail",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[internal_journey.id],
+            ),
+        )
+
+        gantt_stages = [
+            row["stage"]
+            for row in response.context["gantt_rows"]
+        ]
+
+        self.assertNotIn(teachbase_stage, gantt_stages)
+        self.assertIn(self.stage, gantt_stages)
+        self.assertIn(self.next_stage, gantt_stages)
+
+    def test_detail_renders_gantt(self):
+        self.client.login(
+            username="mentor-detail",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'class="card trainee-gantt-card"',
+        )
+        self.assertContains(
+            response,
+            f'data-gantt-stage-id="{self.stage.id}"',
+        )
+        self.assertContains(
+            response,
+            f'data-gantt-stage-id="{self.next_stage.id}"',
+        )
+        self.assertContains(response, "План:")
+        self.assertContains(response, "Факт:")
+        self.assertContains(response, "Текущий")
+        self.assertContains(response, "Ещё не начат")
+
+    def test_detail_renders_overdue_gantt_badge(self):
+        started_at = date.today() - timedelta(days=25)
+
+        self.journey.stage_started_at = started_at
+        self.journey.save(
+            update_fields=["stage_started_at"],
+        )
+
+        current_history = self.journey.stage_history.get(
+            ended_at__isnull=True,
+        )
+        current_history.started_at = started_at
+        current_history.save(
+            update_fields=["started_at"],
+        )
+
+        self.client.login(
+            username="mentor-detail",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "is-overdue")
+        self.assertContains(response, "+5 дн.")
