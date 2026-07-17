@@ -27,9 +27,12 @@
               data-current-stage-name="{{ journey.current_stage.name }}"
               data-current-stage-started-at="{{ journey.stage_started_at|date:'Y-m-d' }}"
             >
-              <div class="kanban-card-name">
+              <a
+                href="{% url 'traineediary:trainee_detail' journey.id %}"
+                class="kanban-card-name kanban-card-detail-link"
+              >
                 {{ journey.user.get_full_name|default:journey.user.username }}
-              </div>
+              </a>
 
               <div class="kanban-card-meta">
                 {{ journey.get_entry_type_display }}
@@ -92,9 +95,12 @@
         <div class="kanban-done-grid">
           {% for journey in done_column.journeys %}
             <div class="kanban-done-card">
-              <div class="kanban-done-card-name">
+              <a
+                href="{% url 'traineediary:trainee_detail' journey.id %}"
+                class="kanban-done-card-name kanban-card-detail-link"
+              >
                 {{ journey.user.get_full_name|default:journey.user.username }}
-              </div>
+              </a>
 
               <div class="kanban-done-card-meta">
                 {{ journey.get_entry_type_display }}

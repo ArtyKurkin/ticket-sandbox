@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -8,8 +9,14 @@ from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
+from django.db.models import Prefetch
 
-from .models import TraineeJourney, TraineeStage, StageGroup
+from .models import (
+    StageGroup,
+    StageHistory,
+    TraineeJourney,
+    TraineeStage,
+)
 from .forms import NewTraineeForm
 
 
@@ -131,6 +138,67 @@ def create_trainee(request):
         form = NewTraineeForm()
 
     return render(request, "traineediary/create_trainee.html", {"form": form})
+
+
+@login_required
+def trainee_detail(request, journey_id):
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    history_queryset = (
+        StageHistory.objects
+        .select_related("stage", "changed_by")
+        .order_by("-started_at", "-id")
+    )
+
+    journey = get_object_or_404(
+        TraineeJourney.objects
+        .select_related(
+            "user",
+            "current_stage",
+        )
+        .prefetch_related(
+            Prefetch(
+                "stage_history",
+                queryset=history_queryset,
+            ),
+        ),
+        id=journey_id,
+    )
+
+    today = timezone.localdate()
+    history_rows = []
+
+    for history_entry in journey.stage_history.all():
+        effective_end_date = history_entry.ended_at or today
+
+        history_rows.append({
+            "entry": history_entry,
+            "is_current": history_entry.ended_at is None,
+            "duration_days": max(
+                (effective_end_date - history_entry.started_at).days,
+                0,
+            ),
+        })
+
+    probation_end_date = (
+        journey.probation_start_date
+        + timedelta(days=journey.probation_days_total)
+    )
+
+    context = {
+        "journey": journey,
+        "history_rows": history_rows,
+        "probation_end_date": probation_end_date,
+        "progress_percent": journey.progress_percent,
+        "risk": journey.risk_level,
+    }
+
+    return render(
+        request,
+        "traineediary/trainee_detail.html",
+        context,
+    )
 
 
 @login_required

@@ -43,9 +43,14 @@
     <tbody>
       {% for row in rows %}
         <tr>
-          <td>{{ row.journey.user.get_full_name|default:row.journey.user.username }}</td>
-          <td>{{ row.journey.get_entry_type_display }}</td>
           <td>
+            <a
+              href="{% url 'traineediary:trainee_detail' row.journey.id %}"
+              class="trainee-table-link"
+            >
+              {{ row.journey.user.get_full_name|default:row.journey.user.username }}
+            </a>
+          </td>
             <span class="status" style="background: {{ row.journey.current_stage.color }}22; color: {{ row.journey.current_stage.color }};">
               {{ row.journey.current_stage.name }}
             </span>

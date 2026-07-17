@@ -1,0 +1,233 @@
+{% extends "traineediary/_base.html" %}
+
+{% block title %}
+  {{ journey.user.get_full_name|default:journey.user.username }}
+{% endblock %}
+
+{% block content %}
+<div class="trainee-detail-toolbar">
+  <a
+    href="{% url 'traineediary:trainees_kanban' %}"
+    class="trainee-back-link"
+  >
+    <i data-lucide="arrow-left"></i>
+    Все стажёры
+  </a>
+
+  <a
+    href="{% url 'sandbox:dashboard' %}?q={{ journey.user.username|urlencode }}"
+    class="button secondary trainee-sandbox-link"
+  >
+    <i data-lucide="terminal"></i>
+    Открыть в Ticket Sandbox
+  </a>
+</div>
+
+<div class="hero trainee-detail-hero">
+  <div>
+    <div class="trainee-detail-title-row">
+      <h1>
+        {{ journey.user.get_full_name|default:journey.user.username }}
+      </h1>
+
+      {% if risk == "high" %}
+        <span class="status status-danger">
+          Высокий риск
+        </span>
+      {% elif risk == "medium" %}
+        <span class="status status-primary">
+          Средний риск
+        </span>
+      {% elif risk == "low" %}
+        <span class="status status-success">
+          Низкий риск
+        </span>
+      {% endif %}
+    </div>
+
+    <p>
+      {{ journey.get_entry_type_display }}
+      · {{ journey.current_stage.name }}
+    </p>
+  </div>
+</div>
+
+<div class="trainee-detail-grid">
+  <div class="card trainee-main-card">
+    <div class="card-title-bar">
+      <i data-lucide="user-round"></i>
+      <h2>Основная информация</h2>
+    </div>
+
+    <div class="trainee-info-grid">
+      <div class="trainee-info-item">
+        <span class="trainee-info-label">
+          Тип входа
+        </span>
+        <strong>
+          {{ journey.get_entry_type_display }}
+        </strong>
+      </div>
+
+      <div class="trainee-info-item">
+        <span class="trainee-info-label">
+          Начало испытательного срока
+        </span>
+        <strong>
+          {{ journey.probation_start_date|date:"d.m.Y" }}
+        </strong>
+      </div>
+
+      <div class="trainee-info-item">
+        <span class="trainee-info-label">
+          Плановое окончание ИС
+        </span>
+        <strong>
+          {{ probation_end_date|date:"d.m.Y" }}
+        </strong>
+      </div>
+
+      <div class="trainee-info-item">
+        <span class="trainee-info-label">
+          Осталось до конца ИС
+        </span>
+        <strong>
+          {{ journey.days_left_until_probation_end }} дн.
+        </strong>
+      </div>
+
+      <div class="trainee-info-item">
+        <span class="trainee-info-label">
+          Текущий этап
+        </span>
+        <strong style="color: {{ journey.current_stage.color }};">
+          {{ journey.current_stage.name }}
+        </strong>
+      </div>
+
+      <div class="trainee-info-item">
+        <span class="trainee-info-label">
+          Начало текущего этапа
+        </span>
+        <strong>
+          {{ journey.stage_started_at|date:"d.m.Y" }}
+        </strong>
+      </div>
+
+      <div class="trainee-info-item">
+        <span class="trainee-info-label">
+          На текущем этапе
+        </span>
+        <strong>
+          {{ journey.days_on_stage }} дн.
+        </strong>
+      </div>
+
+      <div class="trainee-info-item">
+        <span class="trainee-info-label">
+          Ожидаемый переход
+        </span>
+        <strong>
+          {{ journey.expected_stage_transition_date|date:"d.m.Y" }}
+        </strong>
+      </div>
+    </div>
+
+    <div class="trainee-progress-block">
+      <div class="trainee-progress-header">
+        <span>Общий прогресс</span>
+        <strong>{{ progress_percent }}%</strong>
+      </div>
+
+      <div class="progress-bar trainee-progress-bar">
+        <div
+          class="progress-bar-fill"
+          style="width: {{ progress_percent }}%;"
+        ></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card trainee-comment-card">
+    <div class="card-title-bar">
+      <i data-lucide="message-square-text"></i>
+      <h2>Комментарий наставника</h2>
+    </div>
+
+    {% if journey.comment %}
+      <div class="trainee-comment-text">
+        {{ journey.comment|linebreaksbr }}
+      </div>
+    {% else %}
+      <p class="trainee-empty-text">
+        Комментарий пока не добавлен.
+      </p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card trainee-history-card">
+  <div class="card-title-bar">
+    <i data-lucide="history"></i>
+    <h2>История этапов</h2>
+  </div>
+
+  <div class="trainee-stage-timeline">
+    {% for row in history_rows %}
+      <div
+        class="trainee-stage-timeline-item{% if row.is_current %} is-current{% endif %}"
+      >
+        <div
+          class="trainee-stage-timeline-marker"
+          style="background: {{ row.entry.stage.color }};"
+        ></div>
+
+        <div class="trainee-stage-timeline-content">
+          <div class="trainee-stage-timeline-header">
+            <div>
+              <strong>{{ row.entry.stage.name }}</strong>
+
+              {% if row.is_current %}
+                <span class="status status-success">
+                  Текущий этап
+                </span>
+              {% endif %}
+            </div>
+
+            <span class="trainee-stage-duration">
+              {{ row.duration_days }} дн.
+            </span>
+          </div>
+
+          <div class="trainee-stage-dates">
+            {{ row.entry.started_at|date:"d.m.Y" }}
+            —
+            {% if row.entry.ended_at %}
+              {{ row.entry.ended_at|date:"d.m.Y" }}
+            {% else %}
+              сейчас
+            {% endif %}
+          </div>
+
+          {% if row.entry.changed_by %}
+            <div class="trainee-stage-author">
+              Изменил:
+              {{ row.entry.changed_by.get_full_name|default:row.entry.changed_by.username }}
+            </div>
+          {% endif %}
+
+          {% if row.entry.note %}
+            <div class="trainee-stage-note">
+              {{ row.entry.note|linebreaksbr }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% empty %}
+      <p class="trainee-empty-text">
+        История этапов пока отсутствует.
+      </p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
