@@ -1,15 +1,17 @@
 import json
 from datetime import timedelta
+from decimal import Decimal
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
-from django.db.models import Prefetch
+from django.db.models import Max, Prefetch
 
 from .models import (
     EntryType,
@@ -17,8 +19,13 @@ from .models import (
     StageHistory,
     TraineeJourney,
     TraineeStage,
+    WeeklyMetric,
 )
-from .forms import NewTraineeForm
+from .forms import NewTraineeForm, WeeklyMetricForm
+
+
+WEEKLY_SPEED_TARGET = Decimal("6.0")
+WEEKLY_QUALITY_TARGET = 80
 
 
 @login_required
@@ -297,13 +304,13 @@ def trainee_detail(request, journey_id):
         journey.stage_history.all(),
     )
 
-    for history_entry in history_entries:
-        gantt_rows = _build_gantt_rows(
-            journey=journey,
-            history_entries=history_entries,
-            today=today,
-        )
+    gantt_rows = _build_gantt_rows(
+        journey=journey,
+        history_entries=history_entries,
+        today=today,
+    )
 
+    for history_entry in history_entries:
         effective_end_date = history_entry.ended_at or today
 
         history_rows.append({
@@ -333,6 +340,272 @@ def trainee_detail(request, journey_id):
         request,
         "traineediary/trainee_detail.html",
         context,
+    )
+
+
+def _weekly_metric_value_state(value, target):
+    if value is None:
+        return "empty"
+
+    if value >= target:
+        return "success"
+
+    return "warning"
+
+
+@login_required
+def weekly_metrics(request):
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    journeys = list(
+        TraineeJourney.objects
+        .select_related(
+            "user",
+            "current_stage",
+        )
+        .exclude(
+            current_stage__group=StageGroup.DONE,
+        )
+        .prefetch_related("weekly_metrics")
+        .order_by(
+            "user__last_name",
+            "user__first_name",
+            "user__username",
+        )
+    )
+
+    prepared_rows = []
+    max_week_number = 1
+
+    for journey in journeys:
+        metrics = list(
+            journey.weekly_metrics.all(),
+        )
+
+        metrics_by_week = {
+            metric.week_number: metric
+            for metric in metrics
+        }
+
+        last_week_number = max(
+            metrics_by_week,
+            default=0,
+        )
+        next_week_number = last_week_number + 1
+
+        max_week_number = max(
+            max_week_number,
+            next_week_number,
+        )
+
+        prepared_rows.append({
+            "journey": journey,
+            "metrics_by_week": metrics_by_week,
+            "next_week_number": next_week_number,
+        })
+
+    week_numbers = list(
+        range(1, max_week_number + 1),
+    )
+
+    rows = []
+
+    for prepared_row in prepared_rows:
+        journey = prepared_row["journey"]
+        metrics_by_week = prepared_row["metrics_by_week"]
+        next_week_number = prepared_row["next_week_number"]
+
+        cells = []
+
+        for week_number in week_numbers:
+            metric = metrics_by_week.get(
+                week_number,
+            )
+
+            is_next_week = (
+                metric is None
+                and week_number == next_week_number
+            )
+
+            is_editable = (
+                metric is not None
+                or is_next_week
+            )
+
+            form = None
+
+            if is_editable:
+                form = WeeklyMetricForm(
+                    instance=metric,
+                    auto_id=(
+                        f"id_metric_{journey.pk}_"
+                        f"{week_number}_%s"
+                    ),
+                )
+
+            if (
+                metric is not None
+                and metric.week_start_date is not None
+            ):
+                week_start_date = (
+                    metric.week_start_date
+                )
+            else:
+                week_start_date = (
+                    journey.probation_start_date
+                    + timedelta(
+                        weeks=week_number - 1,
+                    )
+                )
+
+            cells.append({
+                "week_number": week_number,
+                "metric": metric,
+                "form": form,
+                "is_editable": is_editable,
+                "is_next_week": is_next_week,
+                "week_start_date": week_start_date,
+                "speed_state": (
+                    _weekly_metric_value_state(
+                        metric.speed_hours,
+                        WEEKLY_SPEED_TARGET,
+                    )
+                    if metric
+                    else "empty"
+                ),
+                "quality_state": (
+                    _weekly_metric_value_state(
+                        metric.quality_percent,
+                        WEEKLY_QUALITY_TARGET,
+                    )
+                    if metric
+                    else "empty"
+                ),
+            })
+
+        rows.append({
+            "journey": journey,
+            "cells": cells,
+        })
+
+    return render(
+        request,
+        "traineediary/weekly_metrics.html",
+        {
+            "rows": rows,
+            "week_numbers": week_numbers,
+            "speed_target": WEEKLY_SPEED_TARGET,
+            "quality_target": WEEKLY_QUALITY_TARGET,
+        },
+    )
+
+
+@login_required
+@require_POST
+def save_weekly_metric(
+    request,
+    journey_id,
+    week_number,
+):
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    journey = get_object_or_404(
+        TraineeJourney,
+        id=journey_id,
+    )
+
+    if week_number < 1:
+        messages.error(
+            request,
+            "Номер недели должен быть больше нуля.",
+        )
+        return redirect(
+            "traineediary:weekly_metrics",
+        )
+
+    existing_metric = (
+        WeeklyMetric.objects
+        .filter(
+            journey=journey,
+            week_number=week_number,
+        )
+        .first()
+    )
+
+    last_week_number = (
+        journey.weekly_metrics
+        .aggregate(
+            max_week=Max("week_number"),
+        )
+        ["max_week"]
+        or 0
+    )
+
+    next_week_number = last_week_number + 1
+
+    if (
+        existing_metric is None
+        and week_number != next_week_number
+    ):
+        messages.error(
+            request,
+            (
+                f"Нельзя добавить неделю {week_number}: "
+                f"сначала заполни неделю "
+                f"{next_week_number}."
+            ),
+        )
+        return redirect(
+            "traineediary:weekly_metrics",
+        )
+
+    form = WeeklyMetricForm(
+        request.POST,
+        instance=existing_metric,
+    )
+
+    if not form.is_valid():
+        error_messages = [
+            str(message)
+            for errors in form.errors.values()
+            for message in errors
+        ]
+
+        messages.error(
+            request,
+            " ".join(error_messages)
+            or "Не удалось сохранить метрику.",
+        )
+        return redirect(
+            "traineediary:weekly_metrics",
+        )
+
+    metric = form.save(commit=False)
+    metric.journey = journey
+    metric.week_number = week_number
+
+    if metric.week_start_date is None:
+        metric.week_start_date = (
+            journey.probation_start_date
+            + timedelta(
+                weeks=week_number - 1,
+            )
+        )
+
+    metric.save()
+
+    messages.success(
+        request,
+        (
+            f"{journey}: неделя "
+            f"{week_number} сохранена."
+        ),
+    )
+
+    return redirect(
+        "traineediary:weekly_metrics",
     )
 
 

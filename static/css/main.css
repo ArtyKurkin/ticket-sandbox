@@ -2382,3 +2382,311 @@ body.terminal-is-expanded {
     gap: 4px;
   }
 }
+
+/* === Traineediary: weekly metrics === */
+
+.diary-hero-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.diary-hero-actions .button,
+.weekly-metrics-back {
+  width: auto;
+}
+
+.weekly-metrics-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* Плановые показатели */
+
+.weekly-metrics-targets {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.weekly-metrics-target {
+  display: flex;
+  align-items: baseline;
+  flex: 0 1 280px;
+  gap: 7px;
+  padding: 14px 18px;
+  border-radius: 14px;
+}
+
+.weekly-metrics-target-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.weekly-metrics-target strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+/* Основная таблица */
+
+.weekly-metrics-card {
+  min-width: 0;
+  padding-bottom: 14px;
+}
+
+.weekly-metrics-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: 8px;
+}
+
+.weekly-metrics-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.weekly-metrics-table th {
+  padding: 12px 14px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.weekly-metrics-table td {
+  padding: 12px;
+  vertical-align: middle;
+}
+
+/* Фиксированная колонка со стажёром */
+
+.weekly-metrics-trainee-column {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 250px;
+  min-width: 250px;
+  max-width: 250px;
+  background: var(--card);
+}
+
+.weekly-metrics-table thead
+  .weekly-metrics-trainee-column {
+  z-index: 4;
+}
+
+.weekly-metrics-table tbody
+  .weekly-metrics-trainee-column {
+  box-shadow: 12px 0 18px -18px rgba(0, 0, 0, 0.9);
+}
+
+.weekly-metrics-trainee-stage {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Размер одной недели */
+
+.weekly-metrics-week-column,
+.weekly-metrics-cell {
+  width: 190px;
+  min-width: 190px;
+  max-width: 190px;
+}
+
+.weekly-metrics-cell {
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.weekly-metrics-cell.is-next-week {
+  background: rgba(79, 100, 255, 0.035);
+}
+
+.weekly-metrics-cell.is-locked {
+  background: rgba(255, 255, 255, 0.008);
+}
+
+/* Форма внутри недели */
+
+.weekly-metric-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.weekly-metric-date {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.weekly-metric-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.weekly-metric-field {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.025);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.weekly-metric-field.is-success {
+  border-color: rgba(40, 209, 124, 0.35);
+  background: rgba(40, 209, 124, 0.07);
+}
+
+.weekly-metric-field.is-warning {
+  border-color: rgba(234, 179, 8, 0.35);
+  background: rgba(234, 179, 8, 0.07);
+}
+
+.weekly-metric-field label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.weekly-metric-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.weekly-metric-input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  outline: none;
+  background: rgba(5, 10, 31, 0.68);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.weekly-metric-input:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.weekly-metric-input:focus {
+  border-color: var(--blue-light);
+  box-shadow: 0 0 0 3px rgba(79, 100, 255, 0.15);
+}
+
+.weekly-metric-input-wrap span {
+  flex: 0 0 auto;
+  min-width: 24px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.weekly-metric-save {
+  justify-content: center;
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+
+.weekly-metric-save svg {
+  width: 15px;
+  height: 15px;
+}
+
+.weekly-metric-locked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 174px;
+  color: var(--muted);
+  opacity: 0.35;
+}
+
+/* Убираем стрелки у number input */
+
+.weekly-metric-input::-webkit-outer-spin-button,
+.weekly-metric-input::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.weekly-metric-input[type="number"] {
+  appearance: textfield;
+}
+
+/* Адаптив */
+
+@media (max-width: 760px) {
+  .diary-hero-actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .diary-hero-actions .button,
+  .weekly-metrics-back {
+    width: 100%;
+  }
+
+  .weekly-metrics-targets {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .weekly-metrics-target {
+    flex-basis: auto;
+  }
+
+  .weekly-metrics-trainee-column {
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
+  }
+
+  .weekly-metrics-week-column,
+  .weekly-metrics-cell {
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
+  }
+}

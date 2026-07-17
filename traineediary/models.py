@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
 from django.db.models import Sum
 from django.utils import timezone
@@ -297,20 +298,63 @@ class StageHistory(models.Model):
 
 class WeeklyMetric(models.Model):
     journey = models.ForeignKey(
-        TraineeJourney, on_delete=models.CASCADE, related_name="weekly_metrics",
+        TraineeJourney,
+        on_delete=models.CASCADE,
+        related_name="weekly_metrics",
     )
-    week_number = models.PositiveIntegerField()
-    week_start_date = models.DateField(null=True, blank=True)
+    week_number = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)],
+    )
+    week_start_date = models.DateField(
+        null=True,
+        blank=True,
+    )
     speed_hours = models.DecimalField(
-        max_digits=5, decimal_places=1, null=True, blank=True,
+        max_digits=5,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
     )
-    quality_percent = models.PositiveIntegerField(null=True, blank=True)
+    quality_percent = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(100),
+        ],
+    )
 
     class Meta:
         unique_together = ("journey", "week_number")
         ordering = ["week_number"]
         verbose_name = "Недельная метрика"
         verbose_name_plural = "Недельные метрики"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(week_number__gte=1),
+                name="weekly_metric_week_number_gte_1",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(speed_hours__isnull=True)
+                    | models.Q(speed_hours__gte=0)
+                ),
+                name="weekly_metric_speed_gte_0",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(quality_percent__isnull=True)
+                    | (
+                        models.Q(quality_percent__gte=0)
+                        & models.Q(quality_percent__lte=100)
+                    )
+                ),
+                name="weekly_metric_quality_between_0_100",
+            ),
+        ]
 
     def __str__(self):
-        return f"{self.journey} — неделя {self.week_number}"
+        return (
+            f"{self.journey} — неделя {self.week_number}"
+        )

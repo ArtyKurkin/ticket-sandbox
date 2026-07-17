@@ -1,0 +1,194 @@
+{% extends "traineediary/_base.html" %}
+
+{% block title %}Недельные метрики{% endblock %}
+
+{% block content %}
+<div class="hero flex-between">
+  <div>
+    <h1>Недельные <span class="accent">метрики</span></h1>
+    <p>
+      Скорость и качество работы стажёров
+      в реальных тикетах.
+    </p>
+  </div>
+
+  <a
+    href="{% url 'traineediary:dashboard' %}"
+    class="button secondary"
+    style="width: auto;"
+  >
+    <i data-lucide="arrow-left"></i>
+    На дашборд
+  </a>
+</div>
+
+{% if messages %}
+  <div class="weekly-metrics-messages">
+    {% for message in messages %}
+      <div
+        class="
+          status
+          status-full
+          {% if message.tags == 'success' %}
+            status-success
+          {% else %}
+            status-danger
+          {% endif %}
+        "
+      >
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="weekly-metrics-targets">
+  <div class="card weekly-metrics-target">
+    <span class="weekly-metrics-target-label">
+      Плановая скорость
+    </span>
+    <strong>
+      {{ speed_target|floatformat:1 }} тикетов/ч
+    </strong>
+  </div>
+
+  <div class="card weekly-metrics-target">
+    <span class="weekly-metrics-target-label">
+      Плановое качество
+    </span>
+    <strong>{{ quality_target }}%</strong>
+  </div>
+</div>
+
+<div class="card weekly-metrics-card">
+  <div class="card-title-bar">
+    <i data-lucide="chart-no-axes-column-increasing"></i>
+    <h2>Метрики по неделям</h2>
+  </div>
+
+  {% if rows %}
+    <div class="weekly-metrics-scroll">
+      <table class="table weekly-metrics-table">
+        <thead>
+          <tr>
+            <th class="weekly-metrics-trainee-column">
+              Стажёр
+            </th>
+
+            {% for week_number in week_numbers %}
+              <th class="weekly-metrics-week-column">
+                Неделя {{ week_number }}
+              </th>
+            {% endfor %}
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td class="weekly-metrics-trainee-column">
+                <a
+                  href="{% url 'traineediary:trainee_detail' row.journey.id %}"
+                  class="trainee-table-link"
+                >
+                  {{ row.journey.user.get_full_name|default:row.journey.user.username }}
+                </a>
+
+                <span class="weekly-metrics-trainee-stage">
+                  {{ row.journey.current_stage.name }}
+                </span>
+              </td>
+
+              {% for cell in row.cells %}
+                <td
+                  class="
+                    weekly-metrics-cell
+                    {% if cell.is_next_week %}
+                      is-next-week
+                    {% elif not cell.is_editable %}
+                      is-locked
+                    {% endif %}
+                  "
+                >
+                  {% if cell.is_editable %}
+                    <form
+                        method="post"
+                        action="{% url 'traineediary:save_weekly_metric' row.journey.id cell.week_number %}"
+                        class="weekly-metric-form"
+                        >
+                        {% csrf_token %}
+
+                        <div class="weekly-metric-date">
+                            с {{ cell.week_start_date|date:"d.m.Y" }}
+                        </div>
+
+                        <div class="weekly-metric-fields">
+                            <div
+                            class="
+                                weekly-metric-field
+                                is-{{ cell.speed_state }}
+                            "
+                            >
+                            <label
+                                for="{{ cell.form.speed_hours.id_for_label }}"
+                            >
+                                Скорость
+                            </label>
+
+                            <div class="weekly-metric-input-wrap">
+                                {{ cell.form.speed_hours }}
+                                <span>т/ч</span>
+                            </div>
+                            </div>
+
+                            <div
+                            class="
+                                weekly-metric-field
+                                is-{{ cell.quality_state }}
+                            "
+                            >
+                            <label
+                                for="{{ cell.form.quality_percent.id_for_label }}"
+                            >
+                                Качество
+                            </label>
+
+                            <div class="weekly-metric-input-wrap">
+                                {{ cell.form.quality_percent }}
+                                <span>%</span>
+                            </div>
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="button button-small weekly-metric-save"
+                        >
+                            <i data-lucide="save"></i>
+
+                            {% if cell.metric %}
+                            Сохранить
+                            {% else %}
+                            Добавить
+                            {% endif %}
+                        </button>
+                        </form>
+                  {% else %}
+                    <div class="weekly-metric-locked">
+                      <i data-lucide="minus"></i>
+                    </div>
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="trainee-empty-text">
+      Пока нет активных стажёров.
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

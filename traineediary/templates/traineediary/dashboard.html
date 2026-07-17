@@ -3,9 +3,29 @@
 {% block title %}Дневник стажёра{% endblock %}
 
 {% block content %}
-<div class="hero">
-  <h1>Дневник <span class="accent">стажёра</span></h1>
-  <p>Текущее состояние всех активных стажёров.</p>
+<div class="hero flex-between">
+  <div>
+    <h1>Дневник <span class="accent">стажёра</span></h1>
+    <p>Текущее состояние всех активных стажёров.</p>
+  </div>
+
+  <div class="diary-hero-actions">
+    <a
+      href="{% url 'traineediary:trainees_kanban' %}"
+      class="button secondary"
+    >
+      <i data-lucide="columns-3"></i>
+      Стажёры
+    </a>
+
+    <a
+      href="{% url 'traineediary:weekly_metrics' %}"
+      class="button"
+    >
+      <i data-lucide="chart-no-axes-column-increasing"></i>
+      Недельные метрики
+    </a>
+  </div>
 </div>
 
 <div class="diary-summary-grid mb-24">

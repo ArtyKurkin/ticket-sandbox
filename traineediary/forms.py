@@ -4,7 +4,12 @@ from django import forms
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from .models import EntryType, TraineeJourney, TraineeStage
+from .models import (
+    EntryType,
+    TraineeJourney,
+    TraineeStage,
+    WeeklyMetric,
+)
 
 
 class NewTraineeForm(forms.Form):
@@ -68,3 +73,50 @@ class NewTraineeForm(forms.Form):
         )
 
         return journey, generated_password
+
+
+class WeeklyMetricForm(forms.ModelForm):
+    class Meta:
+        model = WeeklyMetric
+        fields = (
+            "speed_hours",
+            "quality_percent",
+        )
+        labels = {
+            "speed_hours": "Скорость",
+            "quality_percent": "Качество",
+        }
+        widgets = {
+            "speed_hours": forms.NumberInput(
+                attrs={
+                    "class": "weekly-metric-input",
+                    "min": "0",
+                    "step": "0.1",
+                    "inputmode": "decimal",
+                    "placeholder": "6.0",
+                },
+            ),
+            "quality_percent": forms.NumberInput(
+                attrs={
+                    "class": "weekly-metric-input",
+                    "min": "0",
+                    "max": "100",
+                    "step": "1",
+                    "inputmode": "numeric",
+                    "placeholder": "80",
+                },
+            ),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        speed = cleaned_data.get("speed_hours")
+        quality = cleaned_data.get("quality_percent")
+
+        if speed is None or quality is None:
+            raise forms.ValidationError(
+                "Заполни скорость и качество.",
+            )
+
+        return cleaned_data
