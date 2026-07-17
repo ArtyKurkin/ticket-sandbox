@@ -2690,3 +2690,232 @@ body.terminal-is-expanded {
     max-width: 180px;
   }
 }
+
+/* === Traineediary: metrics on trainee detail === */
+
+.trainee-metrics-card {
+  margin-bottom: 20px;
+}
+
+.trainee-metrics-title {
+  justify-content: space-between;
+}
+
+.trainee-metrics-title-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trainee-metrics-edit-link {
+  width: auto;
+}
+
+.trainee-metrics-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.trainee-metric-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.trainee-metric-summary-item span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.trainee-metric-summary-item strong {
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+
+.trainee-metric-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.trainee-metric-chart {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.022);
+}
+
+.trainee-metric-chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.trainee-metric-chart-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trainee-metric-chart-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.trainee-metric-chart-canvas {
+  position: relative;
+  height: 190px;
+  margin: 0 8px 20px;
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 24%,
+      rgba(255, 255, 255, 0.045) 25%,
+      transparent 26%,
+      transparent 49%,
+      rgba(255, 255, 255, 0.045) 50%,
+      transparent 51%,
+      transparent 74%,
+      rgba(255, 255, 255, 0.045) 75%,
+      transparent 76%
+    );
+}
+
+.trainee-metric-chart-canvas svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.trainee-metric-chart-target {
+  stroke: rgba(234, 179, 8, 0.7);
+  stroke-width: 0.8;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.trainee-metric-chart-line {
+  fill: none;
+  stroke: var(--blue-light);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.trainee-metric-chart-point {
+  fill: var(--blue-light);
+  stroke: var(--card);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.trainee-metric-chart-weeks {
+  position: absolute;
+  right: 0;
+  bottom: -20px;
+  left: 0;
+  height: 16px;
+}
+
+.trainee-metric-chart-weeks span {
+  position: absolute;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.trainee-metrics-empty {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.trainee-metrics-empty > svg {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  color: var(--muted);
+}
+
+.trainee-metrics-empty > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.trainee-metrics-empty strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.trainee-metrics-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.trainee-metrics-empty .button {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+@media (max-width: 980px) {
+  .trainee-metrics-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .trainee-metric-charts {
+    grid-template-columns: 1fr;
+  }
+
+  .trainee-metrics-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .trainee-metrics-edit-link {
+    width: 100%;
+  }
+
+  .trainee-metrics-empty {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .trainee-metrics-empty .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .trainee-metrics-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .trainee-metric-chart-canvas {
+    height: 160px;
+  }
+}

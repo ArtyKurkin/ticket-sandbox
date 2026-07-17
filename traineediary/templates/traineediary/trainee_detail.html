@@ -166,6 +166,237 @@
   </div>
 </div>
 
+<div class="card trainee-metrics-card">
+  <div class="card-title-bar trainee-metrics-title">
+    <div class="trainee-metrics-title-main">
+      <i data-lucide="chart-no-axes-combined"></i>
+      <h2>Динамика метрик</h2>
+    </div>
+
+    <a
+      href="{% url 'traineediary:weekly_metrics' %}"
+      class="button secondary button-small trainee-metrics-edit-link"
+    >
+      <i data-lucide="pencil"></i>
+      Редактировать
+    </a>
+  </div>
+
+  {% if weekly_metrics_summary.count %}
+    <div class="trainee-metrics-summary">
+      <div class="trainee-metric-summary-item">
+        <span>Заполнено недель</span>
+        <strong>
+          {{ weekly_metrics_summary.count }}
+        </strong>
+      </div>
+
+      <div class="trainee-metric-summary-item">
+        <span>Средняя скорость</span>
+        <strong>
+          {% if weekly_metrics_summary.average_speed is not None %}
+            {{ weekly_metrics_summary.average_speed|floatformat:1 }}
+            т/ч
+          {% else %}
+            —
+          {% endif %}
+        </strong>
+      </div>
+
+      <div class="trainee-metric-summary-item">
+        <span>Среднее качество</span>
+        <strong>
+          {% if weekly_metrics_summary.average_quality is not None %}
+            {{ weekly_metrics_summary.average_quality }}%
+          {% else %}
+            —
+          {% endif %}
+        </strong>
+      </div>
+
+      <div class="trainee-metric-summary-item">
+        <span>
+          Последняя неделя
+          {% if weekly_metrics_summary.latest %}
+            №{{ weekly_metrics_summary.latest.week_number }}
+          {% endif %}
+        </span>
+
+        <strong>
+          {% if weekly_metrics_summary.latest %}
+            {{ weekly_metrics_summary.latest.speed_hours|default:"—" }}
+            т/ч ·
+            {{ weekly_metrics_summary.latest.quality_percent|default:"—" }}%
+          {% else %}
+            —
+          {% endif %}
+        </strong>
+      </div>
+    </div>
+
+    <div class="trainee-metric-charts">
+      <div class="trainee-metric-chart">
+        <div class="trainee-metric-chart-header">
+          <div>
+            <span class="trainee-metric-chart-label">
+              Скорость
+            </span>
+
+            <strong>
+              План {{ weekly_speed_target|floatformat:1 }} т/ч
+            </strong>
+          </div>
+
+          {% if weekly_metrics_summary.latest.speed_hours is not None %}
+            <span class="status
+              {% if weekly_metrics_summary.latest.speed_hours >= weekly_speed_target %}
+                status-success
+              {% else %}
+                status-primary
+              {% endif %}
+            ">
+              {{ weekly_metrics_summary.latest.speed_hours }} т/ч
+            </span>
+          {% endif %}
+        </div>
+
+        <div class="trainee-metric-chart-canvas">
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label="График скорости по неделям"
+          >
+            <line
+              x1="0"
+              y1="{{ speed_chart.target_y }}"
+              x2="100"
+              y2="{{ speed_chart.target_y }}"
+              class="trainee-metric-chart-target"
+            ></line>
+
+            <polyline
+              points="{{ speed_chart.polyline }}"
+              class="trainee-metric-chart-line"
+            ></polyline>
+
+            {% for point in speed_chart.points %}
+              <circle
+                cx="{{ point.x }}"
+                cy="{{ point.y }}"
+                r="1.7"
+                class="trainee-metric-chart-point"
+              >
+                <title>
+                  Неделя {{ point.week_number }}:
+                  {{ point.value }} т/ч
+                </title>
+              </circle>
+            {% endfor %}
+          </svg>
+
+          <div class="trainee-metric-chart-weeks">
+            {% for point in speed_chart.points %}
+              <span style="left: {{ point.x }}%;">
+                {{ point.week_number }}
+              </span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="trainee-metric-chart">
+        <div class="trainee-metric-chart-header">
+          <div>
+            <span class="trainee-metric-chart-label">
+              Качество
+            </span>
+
+            <strong>
+              План {{ weekly_quality_target }}%
+            </strong>
+          </div>
+
+          {% if weekly_metrics_summary.latest.quality_percent is not None %}
+            <span class="status
+              {% if weekly_metrics_summary.latest.quality_percent >= weekly_quality_target %}
+                status-success
+              {% else %}
+                status-primary
+              {% endif %}
+            ">
+              {{ weekly_metrics_summary.latest.quality_percent }}%
+            </span>
+          {% endif %}
+        </div>
+
+        <div class="trainee-metric-chart-canvas">
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label="График качества по неделям"
+          >
+            <line
+              x1="0"
+              y1="{{ quality_chart.target_y }}"
+              x2="100"
+              y2="{{ quality_chart.target_y }}"
+              class="trainee-metric-chart-target"
+            ></line>
+
+            <polyline
+              points="{{ quality_chart.polyline }}"
+              class="trainee-metric-chart-line"
+            ></polyline>
+
+            {% for point in quality_chart.points %}
+              <circle
+                cx="{{ point.x }}"
+                cy="{{ point.y }}"
+                r="1.7"
+                class="trainee-metric-chart-point"
+              >
+                <title>
+                  Неделя {{ point.week_number }}:
+                  {{ point.value }}%
+                </title>
+              </circle>
+            {% endfor %}
+          </svg>
+
+          <div class="trainee-metric-chart-weeks">
+            {% for point in quality_chart.points %}
+              <span style="left: {{ point.x }}%;">
+                {{ point.week_number }}
+              </span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="trainee-metrics-empty">
+      <i data-lucide="chart-no-axes-column"></i>
+
+      <div>
+        <strong>Метрики пока не заполнены</strong>
+        <p>
+          Добавь первую неделю, чтобы увидеть
+          средние показатели и динамику.
+        </p>
+      </div>
+
+      <a
+        href="{% url 'traineediary:weekly_metrics' %}"
+        class="button button-small"
+      >
+        Добавить метрики
+      </a>
+    </div>
+  {% endif %}
+</div>
+
 <div class="card trainee-gantt-card">
   <div class="card-title-bar">
     <i data-lucide="chart-no-axes-gantt"></i>

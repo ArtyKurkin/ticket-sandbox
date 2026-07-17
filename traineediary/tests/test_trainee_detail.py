@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -9,6 +10,7 @@ from traineediary.models import (
     StageGroup,
     TraineeJourney,
     TraineeStage,
+    WeeklyMetric,
 )
 
 
@@ -363,3 +365,111 @@ class TraineeDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "is-overdue")
         self.assertContains(response, "+5 дн.")
+
+    def test_detail_shows_weekly_metrics_summary_and_charts(self):
+        WeeklyMetric.objects.create(
+            journey=self.journey,
+            week_number=1,
+            week_start_date=self.journey.probation_start_date,
+            speed_hours=Decimal("4.5"),
+            quality_percent=75,
+        )
+        WeeklyMetric.objects.create(
+            journey=self.journey,
+            week_number=2,
+            week_start_date=(
+                self.journey.probation_start_date
+                + timedelta(days=7)
+            ),
+            speed_hours=Decimal("6.0"),
+            quality_percent=82,
+        )
+        WeeklyMetric.objects.create(
+            journey=self.journey,
+            week_number=3,
+            week_start_date=(
+                self.journey.probation_start_date
+                + timedelta(days=14)
+            ),
+            speed_hours=Decimal("6.5"),
+            quality_percent=88,
+        )
+
+        self.client.login(
+            username="mentor-detail",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        summary = response.context[
+            "weekly_metrics_summary"
+        ]
+
+        self.assertEqual(summary["count"], 3)
+        self.assertEqual(
+            summary["average_speed"],
+            Decimal("5.7"),
+        )
+        self.assertEqual(
+            summary["average_quality"],
+            82,
+        )
+        self.assertEqual(
+            summary["latest"].week_number,
+            3,
+        )
+
+        self.assertTrue(
+            response.context["speed_chart"]["polyline"],
+        )
+        self.assertTrue(
+            response.context["quality_chart"]["polyline"],
+        )
+
+        self.assertContains(response, "Динамика метрик")
+        self.assertContains(response, "Средняя скорость")
+        self.assertContains(
+            response,
+            "График скорости по неделям",
+        )
+        self.assertContains(
+            response,
+            "График качества по неделям",
+        )
+
+    def test_detail_shows_empty_weekly_metrics_state(self):
+        self.client.login(
+            username="mentor-detail",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context[
+                "weekly_metrics_summary"
+            ]["count"],
+            0,
+        )
+        self.assertContains(
+            response,
+            "Метрики пока не заполнены",
+        )
+        self.assertContains(
+            response,
+            reverse("traineediary:weekly_metrics"),
+        )
