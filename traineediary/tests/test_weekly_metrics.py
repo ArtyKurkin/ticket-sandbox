@@ -95,6 +95,12 @@ class WeeklyMetricsViewTests(TestCase):
             current_stage=self.stage,
             stage_started_at=date.today() - timedelta(days=5),
         )
+        self.optional_stage = TraineeStage.objects.create(
+            name="Кнопка по желанию",
+            slug="optional-review-weekly-view",
+            order=8,
+            group=StageGroup.OPTIONAL_REVIEW,
+        )
 
     def test_staff_can_view_weekly_metrics(self):
         self.client.login(
@@ -159,14 +165,14 @@ class WeeklyMetricsViewTests(TestCase):
         self.assertEqual(metric.quality_percent, 84)
         self.assertEqual(
             metric.week_start_date,
-            self.journey.probation_start_date,
+            self.journey.stage_started_at,
         )
 
     def test_save_updates_existing_week(self):
         metric = WeeklyMetric.objects.create(
             journey=self.journey,
             week_number=1,
-            week_start_date=self.journey.probation_start_date,
+            week_start_date=self.journey.stage_started_at,
             speed_hours=Decimal("5.0"),
             quality_percent=75,
         )
@@ -282,4 +288,211 @@ class WeeklyMetricsViewTests(TestCase):
             WeeklyMetric.objects.filter(
                 journey=self.journey,
             ).exists(),
+        )
+
+    def test_with_review_requires_quality(self):
+        self.client.login(
+            username="weekly-mentor",
+            password="test",
+        )
+
+        response = self.client.post(
+            reverse(
+                "traineediary:save_weekly_metric",
+                args=[self.journey.id, 1],
+            ),
+            {
+                "speed_hours": "6.0",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("traineediary:weekly_metrics"),
+        )
+
+        self.assertFalse(
+            WeeklyMetric.objects.filter(
+                journey=self.journey,
+            ).exists(),
+        )
+
+    def test_optional_review_allows_speed_without_quality(self):
+        self.journey.current_stage = (
+            self.optional_stage
+        )
+        self.journey.fixed_quality_percent = 84
+        self.journey.quality_fixed_at = date.today()
+
+        self.journey.save(
+            update_fields=[
+                "current_stage",
+                "fixed_quality_percent",
+                "quality_fixed_at",
+            ],
+        )
+
+        self.client.login(
+            username="weekly-mentor",
+            password="test",
+        )
+
+        response = self.client.post(
+            reverse(
+                "traineediary:save_weekly_metric",
+                args=[self.journey.id, 1],
+            ),
+            {
+                "speed_hours": "6.4",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("traineediary:weekly_metrics"),
+        )
+
+        metric = WeeklyMetric.objects.get(
+            journey=self.journey,
+            week_number=1,
+        )
+
+        self.assertEqual(
+            metric.speed_hours,
+            Decimal("6.4"),
+        )
+        self.assertIsNone(
+            metric.quality_percent,
+        )
+
+    def test_optional_review_preserves_existing_quality(self):
+        metric = WeeklyMetric.objects.create(
+            journey=self.journey,
+            week_number=1,
+            week_start_date=(
+                self.journey.probation_start_date
+            ),
+            speed_hours=Decimal("5.5"),
+            quality_percent=84,
+        )
+
+        self.journey.current_stage = (
+            self.optional_stage
+        )
+        self.journey.fixed_quality_percent = 84
+        self.journey.quality_fixed_at = date.today()
+
+        self.journey.save(
+            update_fields=[
+                "current_stage",
+                "fixed_quality_percent",
+                "quality_fixed_at",
+            ],
+        )
+
+        self.client.login(
+            username="weekly-mentor",
+            password="test",
+        )
+
+        response = self.client.post(
+            reverse(
+                "traineediary:save_weekly_metric",
+                args=[self.journey.id, 1],
+            ),
+            {
+                "speed_hours": "6.5",
+                # Пытаемся вручную подменить качество.
+                "quality_percent": "10",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("traineediary:weekly_metrics"),
+        )
+
+        metric.refresh_from_db()
+
+        self.assertEqual(
+            metric.speed_hours,
+            Decimal("6.5"),
+        )
+        self.assertEqual(
+            metric.quality_percent,
+            84,
+        )
+
+    def test_optional_review_hides_quality_input(self):
+        self.journey.current_stage = (
+            self.optional_stage
+        )
+        self.journey.fixed_quality_percent = 84
+        self.journey.quality_fixed_at = date.today()
+
+        self.journey.save(
+            update_fields=[
+                "current_stage",
+                "fixed_quality_percent",
+                "quality_fixed_at",
+            ],
+        )
+
+        self.client.login(
+            username="weekly-mentor",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse("traineediary:weekly_metrics"),
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        first_cell = (
+            response.context["rows"][0]["cells"][0]
+        )
+
+        self.assertNotIn(
+            "quality_percent",
+            first_cell["form"].fields,
+        )
+
+        self.assertContains(
+            response,
+            "Итоговое качество",
+        )
+        self.assertContains(response, "84%")
+
+    def test_pre_ticket_trainee_is_not_shown(self):
+        pre_ticket_stage = TraineeStage.objects.create(
+            name="Перед выходом в тикеты",
+            slug="before-tickets-weekly-test",
+            order=6,
+            group=StageGroup.SANDBOX_CANDIDATE,
+        )
+
+        self.journey.current_stage = pre_ticket_stage
+        self.journey.stage_started_at = date.today()
+
+        self.journey.save(
+            update_fields=[
+                "current_stage",
+                "stage_started_at",
+            ],
+        )
+
+        self.client.login(
+            username="weekly-mentor",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse("traineediary:weekly_metrics"),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            "Иван Петров",
         )

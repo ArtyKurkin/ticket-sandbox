@@ -3172,3 +3172,73 @@ body.terminal-is-expanded {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* === Traineediary: fixed and readonly quality === */
+
+.weekly-metrics-fixed-quality {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 5px 8px;
+  border: 1px solid rgba(40, 209, 124, 0.25);
+  border-radius: 8px;
+  background: rgba(40, 209, 124, 0.055);
+  color: #28d17c;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.weekly-metric-readonly {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(40, 209, 124, 0.22);
+  border-radius: 11px;
+  background: rgba(40, 209, 124, 0.045);
+}
+
+.weekly-metric-readonly span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.weekly-metric-readonly strong {
+  color: #28d17c;
+  font-size: 13px;
+}
+
+.weekly-metrics-week-column,
+.weekly-metrics-cell {
+  width: 205px;
+  min-width: 205px;
+  max-width: 205px;
+}
+
+.weekly-metric-form {
+  overflow: hidden;
+}
+
+.weekly-metric-field,
+.weekly-metric-readonly {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-scroll .table {
+  min-width: 1050px;
+}
+.weekly-pulse-delta.is-fixed {
+  color: var(--muted);
+}

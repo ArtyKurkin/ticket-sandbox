@@ -5,7 +5,11 @@
 {% block content %}
 <div class="hero flex-between">
   <div>
-    <h1>Недельные <span class="accent">метрики</span></h1>
+    <h1>
+      Недельные
+      <span class="accent">метрики</span>
+    </h1>
+
     <p>
       Скорость и качество работы стажёров
       в реальных тикетах.
@@ -14,8 +18,7 @@
 
   <a
     href="{% url 'traineediary:dashboard' %}"
-    class="button secondary"
-    style="width: auto;"
+    class="button secondary weekly-metrics-back"
   >
     <i data-lucide="arrow-left"></i>
     На дашборд
@@ -47,6 +50,7 @@
     <span class="weekly-metrics-target-label">
       Плановая скорость
     </span>
+
     <strong>
       {{ speed_target|floatformat:1 }} тикетов/ч
     </strong>
@@ -56,7 +60,10 @@
     <span class="weekly-metrics-target-label">
       Плановое качество
     </span>
-    <strong>{{ quality_target }}%</strong>
+
+    <strong>
+      {{ quality_target }}%
+    </strong>
   </div>
 </div>
 
@@ -97,6 +104,13 @@
                 <span class="weekly-metrics-trainee-stage">
                   {{ row.journey.current_stage.name }}
                 </span>
+
+                {% if row.journey.fixed_quality_percent is not None %}
+                  <span class="weekly-metrics-fixed-quality">
+                    Итоговое качество:
+                    {{ row.journey.fixed_quality_percent }}%
+                  </span>
+                {% endif %}
               </td>
 
               {% for cell in row.cells %}
@@ -112,67 +126,93 @@
                 >
                   {% if cell.is_editable %}
                     <form
-                        method="post"
-                        action="{% url 'traineediary:save_weekly_metric' row.journey.id cell.week_number %}"
-                        class="weekly-metric-form"
-                        >
-                        {% csrf_token %}
+                      method="post"
+                      action="{% url 'traineediary:save_weekly_metric' row.journey.id cell.week_number %}"
+                      class="weekly-metric-form"
+                    >
+                      {% csrf_token %}
 
-                        <div class="weekly-metric-date">
-                            с {{ cell.week_start_date|date:"d.m.Y" }}
+                      <div class="weekly-metric-date">
+                        с {{ cell.week_start_date|date:"d.m.Y" }}
+                      </div>
+
+                      {% if cell.stage_for_week %}
+                        <div class="weekly-metric-stage">
+                          {{ cell.stage_for_week.name }}
+                        </div>
+                      {% endif %}
+
+                      <div class="weekly-metric-fields">
+                        <div
+                          class="
+                            weekly-metric-field
+                            is-{{ cell.speed_state }}
+                          "
+                        >
+                          <label
+                            for="{{ cell.form.speed_hours.id_for_label }}"
+                          >
+                            Скорость
+                          </label>
+
+                          <div class="weekly-metric-input-wrap">
+                            {{ cell.form.speed_hours }}
+                            <span>т/ч</span>
+                          </div>
                         </div>
 
-                        <div class="weekly-metric-fields">
-                            <div
+                        {% if cell.quality_editable %}
+                          <div
                             class="
-                                weekly-metric-field
-                                is-{{ cell.speed_state }}
+                              weekly-metric-field
+                              is-{{ cell.quality_state }}
                             "
-                            >
+                          >
                             <label
-                                for="{{ cell.form.speed_hours.id_for_label }}"
+                              for="{{ cell.form.quality_percent.id_for_label }}"
                             >
-                                Скорость
+                              Качество
                             </label>
 
                             <div class="weekly-metric-input-wrap">
-                                {{ cell.form.speed_hours }}
-                                <span>т/ч</span>
+                              {{ cell.form.quality_percent }}
+                              <span>%</span>
                             </div>
-                            </div>
+                          </div>
 
-                            <div
-                            class="
-                                weekly-metric-field
-                                is-{{ cell.quality_state }}
-                            "
-                            >
-                            <label
-                                for="{{ cell.form.quality_percent.id_for_label }}"
-                            >
-                                Качество
-                            </label>
+                        {% elif cell.quality_belongs_to_week %}
+                          {% if cell.metric %}
+                            {% if cell.metric.quality_percent is not None %}
+                              <div class="weekly-metric-readonly">
+                                <span>Качество</span>
 
-                            <div class="weekly-metric-input-wrap">
-                                {{ cell.form.quality_percent }}
-                                <span>%</span>
-                            </div>
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            class="button button-small weekly-metric-save"
-                        >
-                            <i data-lucide="save"></i>
-
-                            {% if cell.metric %}
-                            Сохранить
-                            {% else %}
-                            Добавить
+                                <strong>
+                                  {{ cell.metric.quality_percent }}%
+                                </strong>
+                              </div>
                             {% endif %}
-                        </button>
-                        </form>
+                          {% endif %}
+                        {% endif %}
+                      </div>
+
+                      <button
+                        type="submit"
+                        class="
+                          button
+                          button-small
+                          weekly-metric-save
+                        "
+                      >
+                        <i data-lucide="save"></i>
+
+                        {% if cell.metric %}
+                          Сохранить
+                        {% else %}
+                          Добавить
+                        {% endif %}
+                      </button>
+                    </form>
+
                   {% else %}
                     <div class="weekly-metric-locked">
                       <i data-lucide="minus"></i>
@@ -185,10 +225,22 @@
         </tbody>
       </table>
     </div>
+
   {% else %}
-    <p class="trainee-empty-text">
-      Пока нет активных стажёров.
-    </p>
+    <div class="weekly-pulse-empty">
+      <i data-lucide="chart-no-axes-column"></i>
+
+      <div>
+        <strong>
+          Пока нет стажёров в реальных тикетах
+        </strong>
+
+        <p>
+          Недельные метрики станут доступны после
+          перехода на этап работы с тикетами.
+        </p>
+      </div>
+    </div>
   {% endif %}
 </div>
 {% endblock %}

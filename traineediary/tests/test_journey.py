@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from datetime import date, timedelta
 from unittest.mock import patch
 
@@ -12,6 +14,7 @@ from traineediary.models import (
     StageHistory,
     TraineeJourney,
     TraineeStage,
+    WeeklyMetric,
 )
 
 
@@ -27,6 +30,19 @@ class TraineeJourneyModelTests(TestCase):
             group=StageGroup.WITH_REVIEW,
         )
         self.user = User.objects.create_user(username="trainee1", password="test")
+        self.optional_stage = TraineeStage.objects.create(
+            name="Кнопка по желанию",
+            slug="optional-review-quality",
+            order=8,
+            group=StageGroup.OPTIONAL_REVIEW,
+        )
+
+        self.no_review_stage = TraineeStage.objects.create(
+            name="Без проверок",
+            slug="no-review-quality",
+            order=9,
+            group=StageGroup.NO_REVIEW,
+        )
 
     def test_risk_is_low_within_norm(self):
         journey = TraineeJourney.objects.create(
@@ -216,6 +232,161 @@ class TraineeJourneyModelTests(TestCase):
 
         self.assertEqual(journey.current_stage, self.stage)
         self.assertEqual(journey.stage_history.count(), 1)
+
+    def test_leaving_with_review_fixes_latest_quality(self):
+        transition_date = (
+            date.today() - timedelta(days=1)
+        )
+
+        journey = TraineeJourney.objects.create(
+            user=self.user,
+            entry_type=EntryType.NEW_HIRE,
+            probation_start_date=(
+                date.today() - timedelta(days=30)
+            ),
+            current_stage=self.stage,
+            stage_started_at=(
+                date.today() - timedelta(days=10)
+            ),
+        )
+
+        WeeklyMetric.objects.create(
+            journey=journey,
+            week_number=1,
+            speed_hours=Decimal("4.5"),
+            quality_percent=76,
+        )
+        WeeklyMetric.objects.create(
+            journey=journey,
+            week_number=2,
+            speed_hours=Decimal("5.5"),
+            quality_percent=84,
+        )
+
+        journey.move_to_stage(
+            self.optional_stage,
+            transition_date=transition_date,
+        )
+
+        journey.refresh_from_db()
+
+        self.assertEqual(
+            journey.fixed_quality_percent,
+            84,
+        )
+        self.assertEqual(
+            journey.quality_fixed_at,
+            transition_date,
+        )
+
+    def test_fixed_quality_is_preserved_after_next_stage(self):
+        transition_date = (
+            date.today() - timedelta(days=2)
+        )
+
+        journey = TraineeJourney.objects.create(
+            user=self.user,
+            entry_type=EntryType.NEW_HIRE,
+            probation_start_date=(
+                date.today() - timedelta(days=30)
+            ),
+            current_stage=self.stage,
+            stage_started_at=(
+                date.today() - timedelta(days=10)
+            ),
+        )
+
+        WeeklyMetric.objects.create(
+            journey=journey,
+            week_number=1,
+            speed_hours=Decimal("6.0"),
+            quality_percent=83,
+        )
+
+        journey.move_to_stage(
+            self.optional_stage,
+            transition_date=transition_date,
+        )
+        journey.move_to_stage(
+            self.no_review_stage,
+            transition_date=date.today(),
+        )
+
+        journey.refresh_from_db()
+
+        self.assertEqual(
+            journey.fixed_quality_percent,
+            83,
+        )
+        self.assertEqual(
+            journey.quality_fixed_at,
+            transition_date,
+        )
+
+    def test_returning_to_with_review_clears_fixed_quality(self):
+        journey = TraineeJourney.objects.create(
+            user=self.user,
+            entry_type=EntryType.NEW_HIRE,
+            probation_start_date=(
+                date.today() - timedelta(days=30)
+            ),
+            current_stage=self.optional_stage,
+            stage_started_at=(
+                date.today() - timedelta(days=3)
+            ),
+            fixed_quality_percent=82,
+            quality_fixed_at=(
+                date.today() - timedelta(days=3)
+            ),
+        )
+
+        journey.move_to_stage(
+            self.stage,
+            transition_date=date.today(),
+        )
+
+        journey.refresh_from_db()
+
+        self.assertIsNone(
+            journey.fixed_quality_percent,
+        )
+        self.assertIsNone(
+            journey.quality_fixed_at,
+        )
+
+    def test_leaving_with_review_without_quality_keeps_fix_empty(self):
+        journey = TraineeJourney.objects.create(
+            user=self.user,
+            entry_type=EntryType.NEW_HIRE,
+            probation_start_date=(
+                date.today() - timedelta(days=20)
+            ),
+            current_stage=self.stage,
+            stage_started_at=(
+                date.today() - timedelta(days=7)
+            ),
+        )
+
+        WeeklyMetric.objects.create(
+            journey=journey,
+            week_number=1,
+            speed_hours=Decimal("5.0"),
+            quality_percent=None,
+        )
+
+        journey.move_to_stage(
+            self.optional_stage,
+            transition_date=date.today(),
+        )
+
+        journey.refresh_from_db()
+
+        self.assertIsNone(
+            journey.fixed_quality_percent,
+        )
+        self.assertIsNone(
+            journey.quality_fixed_at,
+        )
 
 
 class ProbationDurationTests(TestCase):

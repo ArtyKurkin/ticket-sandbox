@@ -5,8 +5,14 @@
 {% block content %}
 <div class="hero flex-between">
   <div>
-    <h1>Дневник <span class="accent">стажёра</span></h1>
-    <p>Текущее состояние всех активных стажёров.</p>
+    <h1>
+      Дневник
+      <span class="accent">стажёра</span>
+    </h1>
+
+    <p>
+      Текущее состояние всех активных стажёров.
+    </p>
   </div>
 
   <div class="diary-hero-actions">
@@ -31,13 +37,30 @@
 <div class="diary-summary-grid mb-24">
   {% for card in summary_cards %}
     <div class="card diary-summary-card">
-      <div class="diary-summary-count">{{ card.count }}</div>
-      <div class="diary-summary-label">{{ card.label }}</div>
+      <div class="diary-summary-count">
+        {{ card.count }}
+      </div>
+
+      <div class="diary-summary-label">
+        {{ card.label }}
+      </div>
     </div>
   {% endfor %}
-  <div class="card diary-summary-card diary-summary-card-danger">
-    <div class="diary-summary-count">{{ needs_attention_count }}</div>
-    <div class="diary-summary-label">Требуют внимания</div>
+
+  <div
+    class="
+      card
+      diary-summary-card
+      diary-summary-card-danger
+    "
+  >
+    <div class="diary-summary-count">
+      {{ needs_attention_count }}
+    </div>
+
+    <div class="diary-summary-label">
+      Требуют внимания
+    </div>
   </div>
 </div>
 
@@ -48,6 +71,7 @@
 
       <div>
         <h2>Пульс недели</h2>
+
         <p>
           Изменение скорости и качества
           относительно предыдущей недели.
@@ -107,9 +131,11 @@
                   {% if item.speed_state == "up" %}
                     <i data-lucide="trending-up"></i>
                     +{{ item.speed_delta|floatformat:1 }}
+
                   {% elif item.speed_state == "down" %}
                     <i data-lucide="trending-down"></i>
                     {{ item.speed_delta|floatformat:1 }}
+
                   {% else %}
                     <i data-lucide="minus"></i>
                     0,0
@@ -123,30 +149,56 @@
                 Качество
               </span>
 
-              <div class="weekly-pulse-metric-value">
-                <strong>
-                  {{ item.latest.quality_percent }}%
-                </strong>
+              {% if item.quality_delta is not None %}
+                <div class="weekly-pulse-metric-value">
+                  <strong>
+                    {{ item.latest.quality_percent }}%
+                  </strong>
 
-                <span
-                  class="
-                    weekly-pulse-delta
-                    is-{{ item.quality_state }}
-                  "
-                >
-                  {% if item.quality_state == "up" %}
-                    <i data-lucide="trending-up"></i>
-                    +{{ item.quality_delta }}
-                  {% elif item.quality_state == "down" %}
-                    <i data-lucide="trending-down"></i>
-                    {{ item.quality_delta }}
-                  {% else %}
-                    <i data-lucide="minus"></i>
-                    0
-                  {% endif %}
-                  п.п.
-                </span>
-              </div>
+                  <span
+                    class="
+                      weekly-pulse-delta
+                      is-{{ item.quality_state }}
+                    "
+                  >
+                    {% if item.quality_state == "up" %}
+                      <i data-lucide="trending-up"></i>
+                      +{{ item.quality_delta }}
+
+                    {% elif item.quality_state == "down" %}
+                      <i data-lucide="trending-down"></i>
+                      {{ item.quality_delta }}
+
+                    {% else %}
+                      <i data-lucide="minus"></i>
+                      0
+                    {% endif %}
+
+                    п.п.
+                  </span>
+                </div>
+
+              {% elif item.journey.fixed_quality_percent is not None %}
+                <div class="weekly-pulse-metric-value">
+                  <strong>
+                    {{ item.journey.fixed_quality_percent }}%
+                  </strong>
+
+                  <span class="weekly-pulse-delta is-fixed">
+                    <i data-lucide="lock"></i>
+                    зафикс.
+                  </span>
+                </div>
+
+              {% else %}
+                <div class="weekly-pulse-metric-value">
+                  <strong>—</strong>
+
+                  <span class="weekly-pulse-delta is-fixed">
+                    нет данных
+                  </span>
+                </div>
+              {% endif %}
             </div>
           </div>
 
@@ -157,15 +209,20 @@
         </a>
       {% endfor %}
     </div>
+
   {% else %}
     <div class="weekly-pulse-empty">
       <i data-lucide="activity"></i>
 
       <div>
-        <strong>Пока недостаточно данных</strong>
+        <strong>
+          Пока недостаточно данных
+        </strong>
+
         <p>
-          Для сравнения нужны хотя бы две
-          заполненные недели у стажёра.
+          Для сравнения нужны хотя бы две недели
+          с заполненной скоростью у стажёра,
+          который уже вышел в реальные тикеты.
         </p>
       </div>
 
@@ -185,59 +242,118 @@
     <h2>Текущее состояние стажёров</h2>
   </div>
 
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Фамилия</th>
-        <th>Тип входа</th>
-        <th>Этап</th>
-        <th>Дней всего</th>
-        <th>Осталось до конца ИС</th>
-        <th>Прогресс</th>
-        <th>Риск</th>
-        <th>Ожидаемый переход</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in rows %}
+  <div class="table-scroll">
+    <table class="table">
+      <thead>
         <tr>
-          <td>
-            <a
-              href="{% url 'traineediary:trainee_detail' row.journey.id %}"
-              class="trainee-table-link"
-            >
-              {{ row.journey.user.get_full_name|default:row.journey.user.username }}
-            </a>
-          </td>
-            <span class="status" style="background: {{ row.journey.current_stage.color }}22; color: {{ row.journey.current_stage.color }};">
-              {{ row.journey.current_stage.name }}
-            </span>
-          </td>
-          <td>{{ row.days_total }}</td>
-          <td>{{ row.days_left }}</td>
-          <td>
-            <div class="progress-bar">
-              <div class="progress-bar-fill" style="width: {{ row.progress_percent }}%;"></div>
-            </div>
-            {{ row.progress_percent }}%
-          </td>
-          <td>
-            {% if row.risk == "high" %}
-              <span class="status status-danger">Высокий</span>
-            {% elif row.risk == "medium" %}
-              <span class="status status-primary">Средний</span>
-            {% elif row.risk == "low" %}
-              <span class="status status-success">Низкий</span>
-            {% else %}
-              <span class="status status-muted">—</span>
-            {% endif %}
-          </td>
-          <td>{{ row.expected_transition|date:"d.m.Y" }}</td>
+          <th>Стажёр</th>
+          <th>Тип входа</th>
+          <th>Этап</th>
+          <th>Дней всего</th>
+          <th>Осталось до конца ИС</th>
+          <th>Прогресс</th>
+          <th>Риск</th>
+          <th>Ожидаемый переход</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="8" class="table-muted">Пока нет активных стажёров.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              <a
+                href="{% url 'traineediary:trainee_detail' row.journey.id %}"
+                class="trainee-table-link"
+              >
+                {{ row.journey.user.get_full_name|default:row.journey.user.username }}
+              </a>
+            </td>
+
+            <td>
+              {{ row.journey.get_entry_type_display }}
+            </td>
+
+            <td>
+              <span
+                class="status"
+                style="
+                  background:
+                    {{ row.journey.current_stage.color }}22;
+                  color:
+                    {{ row.journey.current_stage.color }};
+                "
+              >
+                {{ row.journey.current_stage.name }}
+              </span>
+            </td>
+
+            <td>
+              {{ row.days_total }}
+            </td>
+
+            <td>
+              {{ row.days_left }}
+            </td>
+
+            <td>
+              <div class="progress-bar">
+                <div
+                  class="progress-bar-fill"
+                  style="
+                    width: {{ row.progress_percent }}%;
+                  "
+                ></div>
+              </div>
+
+              <span>
+                {{ row.progress_percent }}%
+              </span>
+            </td>
+
+            <td>
+              {% if row.risk == "high" %}
+                <span class="status status-danger">
+                  Высокий
+                </span>
+
+              {% elif row.risk == "medium" %}
+                <span class="status status-primary">
+                  Средний
+                </span>
+
+              {% elif row.risk == "low" %}
+                <span class="status status-success">
+                  Низкий
+                </span>
+
+              {% else %}
+                <span class="status status-muted">
+                  —
+                </span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if row.expected_transition %}
+                {{ row.expected_transition|date:"d.m.Y" }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+
+        {% empty %}
+          <tr>
+            <td
+              colspan="8"
+              class="table-muted"
+            >
+              Пока нет активных стажёров.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

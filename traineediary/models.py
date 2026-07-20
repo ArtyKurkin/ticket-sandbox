@@ -86,6 +86,22 @@ class TraineeJourney(models.Model):
         verbose_name="Риск (ручной override)",
     )
 
+    fixed_quality_percent = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(100),
+        ],
+        verbose_name="Зафиксированное качество",
+    )
+
+    quality_fixed_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Дата фиксации качества",
+    )
+
     class Meta:
         verbose_name = "Карточка стажёра"
         verbose_name_plural = "Карточки стажёров"
@@ -191,6 +207,68 @@ class TraineeJourney(models.Model):
             return "Готов"
         return self.current_stage.name
 
+    @property
+    def quality_is_required(self):
+        """
+        Качество оценивается только на этапе
+        работы с обязательной проверкой ответов.
+        """
+        return (
+            self.current_stage.group
+            == StageGroup.WITH_REVIEW
+        )
+
+    @property
+    def quality_is_fixed(self):
+        return self.fixed_quality_percent is not None
+
+    def _apply_quality_stage_transition(
+        self,
+        previous_stage,
+        new_stage,
+        transition_date,
+    ):
+        """
+        Фиксирует качество при выходе из WITH_REVIEW.
+
+        При возврате на WITH_REVIEW фиксация сбрасывается,
+        потому что оценка качества снова продолжается.
+        """
+        leaving_with_review = (
+            previous_stage.group == StageGroup.WITH_REVIEW
+            and new_stage.group != StageGroup.WITH_REVIEW
+        )
+
+        returning_to_with_review = (
+            previous_stage.group != StageGroup.WITH_REVIEW
+            and new_stage.group == StageGroup.WITH_REVIEW
+        )
+
+        if returning_to_with_review:
+            self.fixed_quality_percent = None
+            self.quality_fixed_at = None
+            return
+
+        if not leaving_with_review:
+            return
+
+        latest_quality_metric = (
+            self.weekly_metrics
+            .filter(quality_percent__isnull=False)
+            .order_by("-week_number")
+            .first()
+        )
+
+        if latest_quality_metric is None:
+            self.fixed_quality_percent = None
+            self.quality_fixed_at = None
+            return
+
+        self.fixed_quality_percent = (
+            latest_quality_metric.quality_percent
+        )
+        self.quality_fixed_at = transition_date
+
     # --- смена этапа ---
 
     def move_to_stage(
@@ -209,6 +287,13 @@ class TraineeJourney(models.Model):
         """
         previous_stage = self.current_stage
         previous_stage_started_at = self.stage_started_at
+
+        previous_fixed_quality_percent = (
+            self.fixed_quality_percent
+        )
+        previous_quality_fixed_at = (
+            self.quality_fixed_at
+        )
 
         # Drag-and-drop может отправить запрос в текущую колонку.
         # Не сбрасываем дату и не создаём дубликат истории.
@@ -242,6 +327,12 @@ class TraineeJourney(models.Model):
                 self.current_stage = new_stage
                 self.stage_started_at = transition_date
 
+                self._apply_quality_stage_transition(
+                    previous_stage=previous_stage,
+                    new_stage=new_stage,
+                    transition_date=transition_date,
+                )
+
                 # Проверяем применимость этапа к типу входа.
                 # Внутреннему переходу недоступны Teachbase и ticket-sandbox.
                 self.full_clean()
@@ -255,6 +346,8 @@ class TraineeJourney(models.Model):
                     update_fields=[
                         "current_stage",
                         "stage_started_at",
+                        "fixed_quality_percent",
+                        "quality_fixed_at",
                     ],
                 )
 
@@ -270,6 +363,12 @@ class TraineeJourney(models.Model):
             # Транзакция откатывает БД, но не значения внутри self.
             self.current_stage = previous_stage
             self.stage_started_at = previous_stage_started_at
+            self.fixed_quality_percent = (
+                previous_fixed_quality_percent
+            )
+            self.quality_fixed_at = (
+                previous_quality_fixed_at
+            )
             raise
 
         return previous_stage

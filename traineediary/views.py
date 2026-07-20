@@ -27,6 +27,12 @@ from .forms import NewTraineeForm, WeeklyMetricForm
 WEEKLY_SPEED_TARGET = Decimal("6.0")
 WEEKLY_QUALITY_TARGET = 80
 
+TICKET_METRIC_GROUPS = {
+    StageGroup.WITH_REVIEW,
+    StageGroup.OPTIONAL_REVIEW,
+    StageGroup.NO_REVIEW,
+}
+
 
 def _metric_trend_state(delta):
     if delta > 0:
@@ -40,7 +46,11 @@ def _metric_trend_state(delta):
 
 def _build_weekly_pulse(journeys):
     """
-    Сравнивает две последние полностью заполненные недели.
+    Сравнивает две последние недели, в которых заполнена скорость.
+
+    Качество сравнивается только тогда, когда оно заполнено
+    в обеих неделях. После фиксации качества общая динамика
+    рассчитывается только по скорости.
 
     Стажёры с просадкой выводятся первыми, затем стажёры
     с положительной динамикой и после них — без изменений.
@@ -48,42 +58,59 @@ def _build_weekly_pulse(journeys):
     pulse_rows = []
 
     for journey in journeys:
-        complete_metrics = [
-            metric
-            for metric in journey.weekly_metrics.all()
-            if (
-                metric.speed_hours is not None
-                and metric.quality_percent is not None
-            )
-        ]
-
-        if len(complete_metrics) < 2:
+        if (
+            journey.current_stage.group
+            not in TICKET_METRIC_GROUPS
+        ):
             continue
 
-        previous_metric = complete_metrics[-2]
-        latest_metric = complete_metrics[-1]
+        speed_metrics = sorted(
+            (
+                metric
+                for metric in journey.weekly_metrics.all()
+                if metric.speed_hours is not None
+            ),
+            key=lambda metric: metric.week_number,
+        )
+
+        if len(speed_metrics) < 2:
+            continue
+
+        previous_metric = speed_metrics[-2]
+        latest_metric = speed_metrics[-1]
 
         speed_delta = (
             latest_metric.speed_hours
             - previous_metric.speed_hours
-        ).quantize(Decimal("0.1"))
-
-        quality_delta = (
-            latest_metric.quality_percent
-            - previous_metric.quality_percent
+        ).quantize(
+            Decimal("0.1"),
         )
 
         speed_state = _metric_trend_state(
             speed_delta,
         )
-        quality_state = _metric_trend_state(
-            quality_delta,
-        )
+
+        quality_delta = None
+        quality_state = "fixed"
+
+        if (
+            previous_metric.quality_percent is not None
+            and latest_metric.quality_percent is not None
+        ):
+            quality_delta = (
+                latest_metric.quality_percent
+                - previous_metric.quality_percent
+            )
+
+            quality_state = _metric_trend_state(
+                quality_delta,
+            )
 
         has_decline = (
             speed_state == "down"
             or quality_state == "down"
         )
+
         has_growth = (
             speed_state == "up"
             or quality_state == "up"
@@ -668,10 +695,87 @@ def _weekly_metric_value_state(value, target):
     return "warning"
 
 
+def _get_stage_for_date(
+    journey,
+    history_entries,
+    target_date,
+):
+    """
+    Возвращает этап, на котором стажёр находился
+    в указанную дату.
+    """
+    matching_entries = [
+        entry
+        for entry in history_entries
+        if (
+            entry.started_at <= target_date
+            and (
+                entry.ended_at is None
+                or target_date < entry.ended_at
+            )
+        )
+    ]
+
+    if matching_entries:
+        latest_entry = max(
+            matching_entries,
+            key=lambda entry: (
+                entry.started_at,
+                entry.id,
+            ),
+        )
+        return latest_entry.stage
+
+    # Fallback для старых записей или тестовых данных,
+    # где StageHistory ещё не создан.
+    if (
+        journey.current_stage.group
+        in TICKET_METRIC_GROUPS
+        and journey.stage_started_at <= target_date
+    ):
+        return journey.current_stage
+
+    return None
+
+
+def _get_ticket_metrics_start_date(
+    journey,
+    history_entries,
+):
+    """
+    Дата первого выхода в реальные тикеты.
+    """
+    ticket_stage_dates = [
+        entry.started_at
+        for entry in history_entries
+        if (
+            entry.stage.group
+            in TICKET_METRIC_GROUPS
+        )
+    ]
+
+    if ticket_stage_dates:
+        return min(ticket_stage_dates)
+
+    if (
+        journey.current_stage.group
+        in TICKET_METRIC_GROUPS
+    ):
+        return journey.stage_started_at
+
+    return None
+
+
 @login_required
 def weekly_metrics(request):
     if not request.user.is_staff:
         raise PermissionDenied
+
+    history_queryset = (
+        StageHistory.objects
+        .select_related("stage")
+        .order_by("started_at", "id")
+    )
 
     journeys = list(
         TraineeJourney.objects
@@ -679,10 +783,18 @@ def weekly_metrics(request):
             "user",
             "current_stage",
         )
-        .exclude(
-            current_stage__group=StageGroup.DONE,
+        .filter(
+            current_stage__group__in=(
+                TICKET_METRIC_GROUPS
+            ),
         )
-        .prefetch_related("weekly_metrics")
+        .prefetch_related(
+            "weekly_metrics",
+            Prefetch(
+                "stage_history",
+                queryset=history_queryset,
+            ),
+        )
         .order_by(
             "user__last_name",
             "user__first_name",
@@ -697,6 +809,20 @@ def weekly_metrics(request):
         metrics = list(
             journey.weekly_metrics.all(),
         )
+
+        history_entries = list(
+            journey.stage_history.all(),
+        )
+
+        ticket_start_date = (
+            _get_ticket_metrics_start_date(
+                journey=journey,
+                history_entries=history_entries,
+            )
+        )
+
+        if ticket_start_date is None:
+            continue
 
         metrics_by_week = {
             metric.week_number: metric
@@ -718,6 +844,8 @@ def weekly_metrics(request):
             "journey": journey,
             "metrics_by_week": metrics_by_week,
             "next_week_number": next_week_number,
+            "ticket_start_date": ticket_start_date,
+            "history_entries": history_entries,
         })
 
     week_numbers = list(
@@ -728,8 +856,18 @@ def weekly_metrics(request):
 
     for prepared_row in prepared_rows:
         journey = prepared_row["journey"]
-        metrics_by_week = prepared_row["metrics_by_week"]
-        next_week_number = prepared_row["next_week_number"]
+        metrics_by_week = (
+            prepared_row["metrics_by_week"]
+        )
+        next_week_number = (
+            prepared_row["next_week_number"]
+        )
+        ticket_start_date = (
+            prepared_row["ticket_start_date"]
+        )
+        history_entries = (
+            prepared_row["history_entries"]
+        )
 
         cells = []
 
@@ -748,17 +886,6 @@ def weekly_metrics(request):
                 or is_next_week
             )
 
-            form = None
-
-            if is_editable:
-                form = WeeklyMetricForm(
-                    instance=metric,
-                    auto_id=(
-                        f"id_metric_{journey.pk}_"
-                        f"{week_number}_%s"
-                    ),
-                )
-
             if (
                 metric is not None
                 and metric.week_start_date is not None
@@ -768,10 +895,45 @@ def weekly_metrics(request):
                 )
             else:
                 week_start_date = (
-                    journey.probation_start_date
+                    ticket_start_date
                     + timedelta(
                         weeks=week_number - 1,
                     )
+                )
+
+            stage_for_week = _get_stage_for_date(
+                journey=journey,
+                history_entries=history_entries,
+                target_date=week_start_date,
+            )
+
+            quality_belongs_to_week = (
+                stage_for_week is not None
+                and stage_for_week.group
+                == StageGroup.WITH_REVIEW
+            )
+
+            # После выхода из этапа с проверками
+            # старое качество больше не редактируем.
+            quality_editable = (
+                quality_belongs_to_week
+                and journey.current_stage.group
+                == StageGroup.WITH_REVIEW
+                and not journey.quality_is_fixed
+            )
+
+            form = None
+
+            if is_editable:
+                form = WeeklyMetricForm(
+                    instance=metric,
+                    quality_required=(
+                        quality_editable
+                    ),
+                    auto_id=(
+                        f"id_metric_{journey.pk}_"
+                        f"{week_number}_%s"
+                    ),
                 )
 
             cells.append({
@@ -781,6 +943,11 @@ def weekly_metrics(request):
                 "is_editable": is_editable,
                 "is_next_week": is_next_week,
                 "week_start_date": week_start_date,
+                "stage_for_week": stage_for_week,
+                "quality_belongs_to_week": (
+                    quality_belongs_to_week
+                ),
+                "quality_editable": quality_editable,
                 "speed_state": (
                     _weekly_metric_value_state(
                         metric.speed_hours,
@@ -794,7 +961,11 @@ def weekly_metrics(request):
                         metric.quality_percent,
                         WEEKLY_QUALITY_TARGET,
                     )
-                    if metric
+                    if (
+                        metric
+                        and metric.quality_percent
+                        is not None
+                    )
                     else "empty"
                 ),
             })
@@ -802,6 +973,9 @@ def weekly_metrics(request):
         rows.append({
             "journey": journey,
             "cells": cells,
+            "ticket_start_date": (
+                ticket_start_date
+            ),
         })
 
     return render(
@@ -811,7 +985,9 @@ def weekly_metrics(request):
             "rows": rows,
             "week_numbers": week_numbers,
             "speed_target": WEEKLY_SPEED_TARGET,
-            "quality_target": WEEKLY_QUALITY_TARGET,
+            "quality_target": (
+                WEEKLY_QUALITY_TARGET
+            ),
         },
     )
 
@@ -830,6 +1006,21 @@ def save_weekly_metric(
         TraineeJourney,
         id=journey_id,
     )
+
+    if (
+    journey.current_stage.group
+        not in TICKET_METRIC_GROUPS
+    ):
+        messages.error(
+            request,
+            (
+                "Недельные метрики доступны только "
+                "после выхода в реальные тикеты."
+            ),
+        )
+        return redirect(
+            "traineediary:weekly_metrics",
+        )
 
     if week_number < 1:
         messages.error(
@@ -876,9 +1067,66 @@ def save_weekly_metric(
             "traineediary:weekly_metrics",
         )
 
+    history_entries = list(
+        journey.stage_history
+        .select_related("stage")
+        .order_by("started_at", "id")
+    )
+
+    ticket_start_date = (
+        _get_ticket_metrics_start_date(
+            journey=journey,
+            history_entries=history_entries,
+        )
+    )
+
+    if ticket_start_date is None:
+        messages.error(
+            request,
+            "Не удалось определить дату выхода в тикеты.",
+        )
+        return redirect(
+            "traineediary:weekly_metrics",
+        )
+
+    week_start_date = (
+        existing_metric.week_start_date
+        if (
+            existing_metric is not None
+            and existing_metric.week_start_date
+            is not None
+        )
+        else (
+            ticket_start_date
+            + timedelta(
+                weeks=week_number - 1,
+            )
+        )
+    )
+
+    stage_for_week = _get_stage_for_date(
+        journey=journey,
+        history_entries=history_entries,
+        target_date=week_start_date,
+    )
+
+    quality_belongs_to_week = (
+        stage_for_week is not None
+        and stage_for_week.group
+        == StageGroup.WITH_REVIEW
+    )
+
+    quality_editable = (
+        quality_belongs_to_week
+        and journey.current_stage.group
+        == StageGroup.WITH_REVIEW
+        and not journey.quality_is_fixed
+    )
+
     form = WeeklyMetricForm(
         request.POST,
         instance=existing_metric,
+        quality_required=quality_editable,
     )
 
     if not form.is_valid():
@@ -902,13 +1150,9 @@ def save_weekly_metric(
     metric.week_number = week_number
 
     if metric.week_start_date is None:
-        metric.week_start_date = (
-            journey.probation_start_date
-            + timedelta(
-                weeks=week_number - 1,
-            )
-        )
+        metric.week_start_date = week_start_date
 
+    metric.full_clean()
     metric.save()
 
     messages.success(

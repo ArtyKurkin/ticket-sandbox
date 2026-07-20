@@ -76,6 +76,29 @@ class NewTraineeForm(forms.Form):
 
 
 class WeeklyMetricForm(forms.ModelForm):
+    def __init__(
+        self,
+        *args,
+        quality_required=True,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+
+        self.quality_required = quality_required
+
+        self.fields["speed_hours"].required = True
+
+        if quality_required:
+            self.fields["quality_percent"].required = True
+        else:
+            # Полностью исключаем поле из формы.
+            # Даже если его передадут вручную в POST,
+            # старое значение качества не изменится.
+            self.fields.pop(
+                "quality_percent",
+                None,
+            )
+
     class Meta:
         model = WeeklyMetric
         fields = (
@@ -111,12 +134,21 @@ class WeeklyMetricForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
 
-        speed = cleaned_data.get("speed_hours")
-        quality = cleaned_data.get("quality_percent")
+        if cleaned_data.get("speed_hours") is None:
+            self.add_error(
+                "speed_hours",
+                "Заполни скорость.",
+            )
 
-        if speed is None or quality is None:
-            raise forms.ValidationError(
-                "Заполни скорость и качество.",
+        if (
+            self.quality_required
+            and cleaned_data.get(
+                "quality_percent",
+            ) is None
+        ):
+            self.add_error(
+                "quality_percent",
+                "Заполни качество.",
             )
 
         return cleaned_data
