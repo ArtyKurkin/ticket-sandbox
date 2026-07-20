@@ -3417,3 +3417,88 @@ body.terminal-is-expanded {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* === Traineediary: L1 transition readiness === */
+
+.diary-summary-card-success {
+  border-color: rgba(40, 209, 124, 0.26);
+  background: rgba(40, 209, 124, 0.045);
+}
+
+.diary-summary-card-success
+  .diary-summary-count {
+  color: #28d17c;
+}
+
+.diary-row-transition-ready td {
+  background: rgba(40, 209, 124, 0.025);
+}
+
+.diary-transition-ready-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  margin-top: 7px;
+  color: #28d17c;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.diary-transition-ready-label svg {
+  width: 13px;
+  height: 13px;
+}
+
+.trainee-l1-transition-ready {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  margin-bottom: 16px;
+  padding: 15px;
+  border: 1px solid rgba(40, 209, 124, 0.3);
+  border-radius: 13px;
+  background: rgba(40, 209, 124, 0.06);
+}
+
+.trainee-l1-transition-ready > svg {
+  flex: 0 0 auto;
+  width: 23px;
+  height: 23px;
+  color: #28d17c;
+}
+
+.trainee-l1-transition-ready-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.trainee-l1-transition-ready-content strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.trainee-l1-transition-ready-content p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.trainee-l1-transition-ready .button {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+@media (max-width: 720px) {
+  .trainee-l1-transition-ready {
+    flex-direction: column;
+  }
+
+  .trainee-l1-transition-ready .button {
+    width: 100%;
+  }
+}

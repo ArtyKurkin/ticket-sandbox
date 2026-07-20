@@ -612,3 +612,94 @@ class TraineeDetailViewTests(TestCase):
             response,
             "Готов",
         )
+        self.assertFalse(
+            response.context[
+                "l1_transition_state"
+            ]["should_transition"],
+        )
+
+        self.assertNotContains(
+            response,
+            "Сотрудник готов к переходу",
+        )
+
+    def test_detail_recommends_transition_after_l1_completion(self):
+        pre_ticket_stage = TraineeStage.objects.create(
+            name="Перед выходом в тикеты",
+            slug="before-tickets-l1-ready",
+            order=self.stage.order - 1,
+            group=StageGroup.SANDBOX_CANDIDATE,
+            applies_to_new_hire=True,
+            applies_to_internal_transfer=False,
+        )
+
+        self.journey.current_stage = pre_ticket_stage
+        self.journey.stage_started_at = date.today()
+
+        self.journey.save(
+            update_fields=[
+                "current_stage",
+                "stage_started_at",
+            ],
+        )
+
+        first_task, second_task = (
+            self.create_l1_tasks()
+        )
+
+        for task in (
+            first_task,
+            second_task,
+        ):
+            TaskAttempt.objects.create(
+                user=self.journey.user,
+                task=task,
+                attempt_number=1,
+                is_current=True,
+                status=TaskAttempt.Status.PASSED,
+            )
+
+        self.client.login(
+            username="mentor-detail",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        transition_state = response.context[
+            "l1_transition_state"
+        ]
+
+        self.assertTrue(
+            transition_state[
+                "should_transition"
+            ],
+        )
+        self.assertEqual(
+            transition_state[
+                "next_stage"
+            ],
+            self.stage,
+        )
+
+        self.assertContains(
+            response,
+            "Сотрудник готов к переходу",
+        )
+        self.assertContains(
+            response,
+            self.stage.name,
+        )
+        self.assertContains(
+            response,
+            reverse(
+                "traineediary:trainees_kanban",
+            ),
+        )

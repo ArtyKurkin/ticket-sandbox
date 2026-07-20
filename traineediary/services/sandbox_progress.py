@@ -23,18 +23,51 @@ class SandboxQueueProgress:
     is_ready: bool
 
 
-def build_sandbox_queue_progress(
-    user,
+def _empty_progress(
+    queue_slug,
+    *,
+    queue_exists=False,
+    queue_name="",
+):
+    return SandboxQueueProgress(
+        queue_exists=queue_exists,
+        queue_slug=queue_slug,
+        queue_name=queue_name,
+        total_count=0,
+        passed_count=0,
+        remaining_count=0,
+        on_review_count=0,
+        progress_percent=0,
+        is_ready=False,
+    )
+
+
+def build_sandbox_queue_progress_map(
+    users,
     queue_slug=L1_QUEUE_SLUG,
 ):
     """
-    Возвращает зачётный прогресс пользователя
-    по активным заданиям указанной очереди.
+    Возвращает прогресс по очереди сразу для нескольких
+    пользователей.
 
-    Учитываются только попытки attempt_number=1.
-    Дополнительные тренировочные попытки
-    не влияют на готовность.
+    Результат имеет формат:
+
+        {
+            user_id: SandboxQueueProgress(...),
+        }
+
+    Учитываются только зачётные попытки
+    с attempt_number=1.
     """
+    users = [
+        user
+        for user in users
+        if user.pk is not None
+    ]
+
+    if not users:
+        return {}
+
     queue = (
         Queue.objects
         .filter(
@@ -45,17 +78,12 @@ def build_sandbox_queue_progress(
     )
 
     if queue is None:
-        return SandboxQueueProgress(
-            queue_exists=False,
-            queue_slug=queue_slug,
-            queue_name="",
-            total_count=0,
-            passed_count=0,
-            remaining_count=0,
-            on_review_count=0,
-            progress_percent=0,
-            is_ready=False,
-        )
+        return {
+            user.pk: _empty_progress(
+                queue_slug,
+            )
+            for user in users
+        }
 
     tasks = list(
         Task.objects
@@ -66,81 +94,124 @@ def build_sandbox_queue_progress(
         .order_by("order", "id")
     )
 
+    if not tasks:
+        return {
+            user.pk: _empty_progress(
+                queue_slug,
+                queue_exists=True,
+                queue_name=queue.name,
+            )
+            for user in users
+        }
+
+    user_ids = [
+        user.pk
+        for user in users
+    ]
     task_ids = [
-        task.id
+        task.pk
         for task in tasks
     ]
 
     credit_attempts = (
         TaskAttempt.objects
         .filter(
-            user=user,
+            user_id__in=user_ids,
             task_id__in=task_ids,
             attempt_number=1,
         )
-        .order_by("task_id", "-id")
+        .order_by(
+            "user_id",
+            "task_id",
+            "-id",
+        )
     )
 
-    attempt_by_task_id = {}
+    attempt_by_user_and_task = {}
 
     for attempt in credit_attempts:
-        attempt_by_task_id.setdefault(
-            attempt.task_id,
+        attempt_by_user_and_task.setdefault(
+            (
+                attempt.user_id,
+                attempt.task_id,
+            ),
             attempt,
         )
 
-    passed_count = 0
-    on_review_count = 0
+    total_count = len(tasks)
+    progress_by_user_id = {}
 
-    for task in tasks:
-        attempt = attempt_by_task_id.get(
-            task.id,
+    for user in users:
+        passed_count = 0
+        on_review_count = 0
+
+        for task in tasks:
+            attempt = (
+                attempt_by_user_and_task.get(
+                    (
+                        user.pk,
+                        task.pk,
+                    ),
+                )
+            )
+
+            if attempt is None:
+                continue
+
+            if (
+                attempt.status
+                == TaskAttempt.Status.PASSED
+            ):
+                passed_count += 1
+
+            elif (
+                attempt.status
+                == TaskAttempt.Status.ON_REVIEW
+            ):
+                on_review_count += 1
+
+        remaining_count = max(
+            total_count - passed_count,
+            0,
         )
 
-        if attempt is None:
-            continue
-
-        if (
-            attempt.status
-            == TaskAttempt.Status.PASSED
-        ):
-            passed_count += 1
-
-        elif (
-            attempt.status
-            == TaskAttempt.Status.ON_REVIEW
-        ):
-            on_review_count += 1
-
-    total_count = len(tasks)
-    remaining_count = max(
-        total_count - passed_count,
-        0,
-    )
-
-    progress_percent = (
-        round(
+        progress_percent = round(
             passed_count
             / total_count
             * 100,
         )
-        if total_count
-        else 0
+
+        progress_by_user_id[user.pk] = (
+            SandboxQueueProgress(
+                queue_exists=True,
+                queue_slug=queue.slug,
+                queue_name=queue.name,
+                total_count=total_count,
+                passed_count=passed_count,
+                remaining_count=remaining_count,
+                on_review_count=on_review_count,
+                progress_percent=progress_percent,
+                is_ready=(
+                    passed_count == total_count
+                ),
+            )
+        )
+
+    return progress_by_user_id
+
+
+def build_sandbox_queue_progress(
+    user,
+    queue_slug=L1_QUEUE_SLUG,
+):
+    progress_by_user_id = (
+        build_sandbox_queue_progress_map(
+            users=[user],
+            queue_slug=queue_slug,
+        )
     )
 
-    is_ready = (
-        total_count > 0
-        and passed_count == total_count
-    )
-
-    return SandboxQueueProgress(
-        queue_exists=True,
-        queue_slug=queue.slug,
-        queue_name=queue.name,
-        total_count=total_count,
-        passed_count=passed_count,
-        remaining_count=remaining_count,
-        on_review_count=on_review_count,
-        progress_percent=progress_percent,
-        is_ready=is_ready,
+    return progress_by_user_id.get(
+        user.pk,
+        _empty_progress(queue_slug),
     )

@@ -8,6 +8,7 @@ from sandbox.models import (
 )
 from traineediary.services.sandbox_progress import (
     build_sandbox_queue_progress,
+    build_sandbox_queue_progress_map,
 )
 
 
@@ -235,4 +236,66 @@ class SandboxQueueProgressTests(TestCase):
         )
         self.assertTrue(
             progress.is_ready,
+        )
+
+    def test_builds_progress_for_multiple_users(self):
+        second_user = User.objects.create_user(
+            username="second-l1-user",
+            password="test",
+        )
+
+        TaskAttempt.objects.create(
+            user=self.user,
+            task=self.first_task,
+            attempt_number=1,
+            is_current=True,
+            status=TaskAttempt.Status.PASSED,
+        )
+
+        TaskAttempt.objects.create(
+            user=second_user,
+            task=self.first_task,
+            attempt_number=1,
+            is_current=True,
+            status=TaskAttempt.Status.PASSED,
+        )
+        TaskAttempt.objects.create(
+            user=second_user,
+            task=self.second_task,
+            attempt_number=1,
+            is_current=True,
+            status=TaskAttempt.Status.PASSED,
+        )
+
+        progress_map = (
+            build_sandbox_queue_progress_map(
+                users=[
+                    self.user,
+                    second_user,
+                ],
+            )
+        )
+
+        self.assertEqual(
+            progress_map[
+                self.user.id
+            ].passed_count,
+            1,
+        )
+        self.assertFalse(
+            progress_map[
+                self.user.id
+            ].is_ready,
+        )
+
+        self.assertEqual(
+            progress_map[
+                second_user.id
+            ].passed_count,
+            2,
+        )
+        self.assertTrue(
+            progress_map[
+                second_user.id
+            ].is_ready,
         )

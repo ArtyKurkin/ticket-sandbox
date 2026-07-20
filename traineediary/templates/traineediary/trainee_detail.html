@@ -208,6 +208,37 @@
     {% endif %}
   </div>
 
+  {% if l1_transition_state.should_transition %}
+    <div class="trainee-l1-transition-ready">
+      <i data-lucide="badge-check"></i>
+
+      <div class="trainee-l1-transition-ready-content">
+        <strong>
+          Сотрудник готов к переходу
+        </strong>
+
+        <p>
+          Все зачётные задания очереди L1 пройдены.
+
+          {% if l1_transition_state.next_stage %}
+            Можно переводить на этап
+            «{{ l1_transition_state.next_stage.name }}».
+          {% else %}
+            Можно переводить на следующий этап маршрута.
+          {% endif %}
+        </p>
+      </div>
+
+      <a
+        href="{% url 'traineediary:trainees_kanban' %}"
+        class="button button-small"
+      >
+        <i data-lucide="columns-3"></i>
+        Открыть канбан
+      </a>
+    </div>
+{% endif %}
+
   {% if not sandbox_l1_progress.queue_exists %}
     <div class="trainee-sandbox-progress-empty is-error">
       <i data-lucide="triangle-alert"></i>
@@ -298,8 +329,7 @@
           </strong>
 
           <p>
-            Сотрудник готов к переходу
-            на следующий этап обучения.
+            Зачётная часть очереди L1 завершена.
           </p>
         </div>
       </div>

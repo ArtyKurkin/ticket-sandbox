@@ -48,6 +48,22 @@
   {% endfor %}
 
   <div
+  class="
+    card
+    diary-summary-card
+    diary-summary-card-success
+  "
+>
+  <div class="diary-summary-count">
+    {{ ready_to_transition_count }}
+  </div>
+
+  <div class="diary-summary-label">
+    Готовы к переходу
+  </div>
+</div>
+
+  <div
     class="
       card
       diary-summary-card
@@ -259,7 +275,11 @@
 
       <tbody>
         {% for row in rows %}
-          <tr>
+          <tr
+            {% if row.l1_transition_state.should_transition %}
+              class="diary-row-transition-ready"
+            {% endif %}
+          >
             <td>
               <a
                 href="{% url 'traineediary:trainee_detail' row.journey.id %}"
@@ -285,6 +305,12 @@
               >
                 {{ row.journey.current_stage.name }}
               </span>
+              {% if row.l1_transition_state.should_transition %}
+                <span class="diary-transition-ready-label">
+                  <i data-lucide="badge-check"></i>
+                  L1 пройден · пора переводить
+                </span>
+              {% endif %}
             </td>
 
             <td>

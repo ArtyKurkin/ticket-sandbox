@@ -24,6 +24,7 @@ from .models import (
 from .forms import NewTraineeForm, WeeklyMetricForm
 from .services.sandbox_progress import (
     build_sandbox_queue_progress,
+    build_sandbox_queue_progress_map,
 )
 
 
@@ -156,6 +157,66 @@ def _build_weekly_pulse(journeys):
     return pulse_rows
 
 
+def _get_next_applicable_stage(journey):
+    """
+    Возвращает следующий активный этап маршрута
+    с учётом типа входа сотрудника.
+    """
+    applicable_field = (
+        "applies_to_internal_transfer"
+        if (
+            journey.entry_type
+            == EntryType.INTERNAL_TRANSFER
+        )
+        else "applies_to_new_hire"
+    )
+
+    return (
+        TraineeStage.objects
+        .filter(
+            is_active=True,
+            order__gt=journey.current_stage.order,
+            **{
+                applicable_field: True,
+            },
+        )
+        .order_by(
+            "order",
+            "id",
+        )
+        .first()
+    )
+
+
+def _build_l1_transition_state(
+    journey,
+    sandbox_progress,
+):
+    """
+    Рекомендует переход только тогда, когда:
+
+    - все зачётные задания L1 пройдены;
+    - сотрудник всё ещё находится на этапе
+      перед выходом в реальные тикеты.
+    """
+    should_transition = (
+        sandbox_progress.is_ready
+        and (
+            journey.current_stage.group
+            == StageGroup.SANDBOX_CANDIDATE
+        )
+    )
+
+    return {
+        "should_transition": should_transition,
+        "next_stage": (
+            _get_next_applicable_stage(journey)
+            if should_transition
+            else None
+        ),
+    }
+
+
 @login_required
 def dashboard(request):
     if not request.user.is_staff:
@@ -189,6 +250,17 @@ def dashboard(request):
         )
     )
 
+    sandbox_progress_by_user_id = (
+        build_sandbox_queue_progress_map(
+            users=[
+                journey.user
+                for journey in journeys
+            ],
+        )
+    )
+
+    ready_to_transition_count = 0
+
     group_counts = {}
     needs_attention_count = 0
     rows = []
@@ -201,6 +273,22 @@ def dashboard(request):
         )
 
         risk = journey.risk_level
+
+        sandbox_l1_progress = (
+            sandbox_progress_by_user_id[
+                journey.user_id
+            ]
+        )
+
+        l1_transition_state = (
+            _build_l1_transition_state(
+                journey=journey,
+                sandbox_progress=sandbox_l1_progress,
+            )
+        )
+
+        if l1_transition_state["should_transition"]:
+            ready_to_transition_count += 1
 
         if risk == "high":
             needs_attention_count += 1
@@ -216,6 +304,8 @@ def dashboard(request):
             "expected_transition": (
                 journey.expected_stage_transition_date
             ),
+            "sandbox_l1_progress": sandbox_l1_progress,
+            "l1_transition_state": l1_transition_state,
         })
 
     summary_cards = [
@@ -231,6 +321,9 @@ def dashboard(request):
         "rows": rows,
         "summary_cards": summary_cards,
         "needs_attention_count": needs_attention_count,
+        "ready_to_transition_count": (
+            ready_to_transition_count
+        ),
         "weekly_pulse": _build_weekly_pulse(
             journeys,
         ),
@@ -573,6 +666,13 @@ def trainee_detail(request, journey_id):
         )
     )
 
+    l1_transition_state = (
+        _build_l1_transition_state(
+            journey=journey,
+            sandbox_progress=sandbox_l1_progress,
+        )
+    )
+
     today = timezone.localdate()
     history_rows = []
 
@@ -686,6 +786,7 @@ def trainee_detail(request, journey_id):
         "weekly_speed_target": WEEKLY_SPEED_TARGET,
         "weekly_quality_target": WEEKLY_QUALITY_TARGET,
         "sandbox_l1_progress": sandbox_l1_progress,
+        "l1_transition_state": l1_transition_state,
     }
 
     return render(
