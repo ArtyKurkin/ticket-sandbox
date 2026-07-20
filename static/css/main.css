@@ -2919,3 +2919,256 @@ body.terminal-is-expanded {
     height: 160px;
   }
 }
+
+
+/* === Traineediary: weekly pulse === */
+
+.weekly-pulse-card {
+  min-width: 0;
+}
+
+.weekly-pulse-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.weekly-pulse-title-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.weekly-pulse-title-main > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.weekly-pulse-title h2 {
+  margin: 0;
+}
+
+.weekly-pulse-title p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.weekly-pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    2,
+    minmax(0, 1fr)
+  );
+  gap: 12px;
+}
+
+.weekly-pulse-item {
+  position: relative;
+  display: grid;
+  grid-template-columns:
+    minmax(170px, 0.9fr)
+    minmax(240px, 1.1fr)
+    20px;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.022);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.weekly-pulse-item:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.weekly-pulse-item.is-danger {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.weekly-pulse-item.is-success {
+  border-color: rgba(40, 209, 124, 0.24);
+  background: rgba(40, 209, 124, 0.035);
+}
+
+.weekly-pulse-person {
+  min-width: 0;
+}
+
+.weekly-pulse-person strong,
+.weekly-pulse-person span,
+.weekly-pulse-person small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weekly-pulse-person strong {
+  font-size: 14px;
+}
+
+.weekly-pulse-person span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.weekly-pulse-person small {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.weekly-pulse-metrics {
+  display: grid;
+  grid-template-columns: repeat(
+    2,
+    minmax(0, 1fr)
+  );
+  gap: 10px;
+}
+
+.weekly-pulse-metric {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(5, 10, 31, 0.25);
+}
+
+.weekly-pulse-metric-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.weekly-pulse-metric-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+}
+
+.weekly-pulse-metric-value strong {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.weekly-pulse-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.weekly-pulse-delta svg {
+  width: 13px;
+  height: 13px;
+}
+
+.weekly-pulse-delta.is-up {
+  color: #28d17c;;
+}
+
+.weekly-pulse-delta.is-down {
+  color: #ef4444;
+}
+
+.weekly-pulse-delta.is-stable {
+  color: var(--muted);
+}
+
+.weekly-pulse-open-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+}
+
+.weekly-pulse-empty {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.weekly-pulse-empty > svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.weekly-pulse-empty > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.weekly-pulse-empty strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.weekly-pulse-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.weekly-pulse-empty .button {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+@media (max-width: 1120px) {
+  .weekly-pulse-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .weekly-pulse-item {
+    grid-template-columns: 1fr;
+  }
+
+  .weekly-pulse-open-icon {
+    display: none;
+  }
+
+  .weekly-pulse-empty {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .weekly-pulse-empty .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .weekly-pulse-metrics {
+    grid-template-columns: 1fr;
+  }
+}

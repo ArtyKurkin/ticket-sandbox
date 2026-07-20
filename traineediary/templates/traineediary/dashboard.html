@@ -41,6 +41,144 @@
   </div>
 </div>
 
+<div class="card weekly-pulse-card mb-24">
+  <div class="card-title-bar weekly-pulse-title">
+    <div class="weekly-pulse-title-main">
+      <i data-lucide="activity"></i>
+
+      <div>
+        <h2>Пульс недели</h2>
+        <p>
+          Изменение скорости и качества
+          относительно предыдущей недели.
+        </p>
+      </div>
+    </div>
+
+    <span class="status status-muted">
+      {{ weekly_pulse|length }}
+    </span>
+  </div>
+
+  {% if weekly_pulse %}
+    <div class="weekly-pulse-grid">
+      {% for item in weekly_pulse %}
+        <a
+          href="{% url 'traineediary:trainee_detail' item.journey.id %}"
+          class="
+            weekly-pulse-item
+            is-{{ item.overall_state }}
+          "
+        >
+          <div class="weekly-pulse-person">
+            <strong>
+              {{ item.journey.user.get_full_name|default:item.journey.user.username }}
+            </strong>
+
+            <span>
+              {{ item.journey.current_stage.name }}
+            </span>
+
+            <small>
+              Неделя {{ item.previous.week_number }}
+              →
+              неделя {{ item.latest.week_number }}
+            </small>
+          </div>
+
+          <div class="weekly-pulse-metrics">
+            <div class="weekly-pulse-metric">
+              <span class="weekly-pulse-metric-label">
+                Скорость
+              </span>
+
+              <div class="weekly-pulse-metric-value">
+                <strong>
+                  {{ item.latest.speed_hours|floatformat:1 }}
+                  т/ч
+                </strong>
+
+                <span
+                  class="
+                    weekly-pulse-delta
+                    is-{{ item.speed_state }}
+                  "
+                >
+                  {% if item.speed_state == "up" %}
+                    <i data-lucide="trending-up"></i>
+                    +{{ item.speed_delta|floatformat:1 }}
+                  {% elif item.speed_state == "down" %}
+                    <i data-lucide="trending-down"></i>
+                    {{ item.speed_delta|floatformat:1 }}
+                  {% else %}
+                    <i data-lucide="minus"></i>
+                    0,0
+                  {% endif %}
+                </span>
+              </div>
+            </div>
+
+            <div class="weekly-pulse-metric">
+              <span class="weekly-pulse-metric-label">
+                Качество
+              </span>
+
+              <div class="weekly-pulse-metric-value">
+                <strong>
+                  {{ item.latest.quality_percent }}%
+                </strong>
+
+                <span
+                  class="
+                    weekly-pulse-delta
+                    is-{{ item.quality_state }}
+                  "
+                >
+                  {% if item.quality_state == "up" %}
+                    <i data-lucide="trending-up"></i>
+                    +{{ item.quality_delta }}
+                  {% elif item.quality_state == "down" %}
+                    <i data-lucide="trending-down"></i>
+                    {{ item.quality_delta }}
+                  {% else %}
+                    <i data-lucide="minus"></i>
+                    0
+                  {% endif %}
+                  п.п.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <i
+            data-lucide="chevron-right"
+            class="weekly-pulse-open-icon"
+          ></i>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="weekly-pulse-empty">
+      <i data-lucide="activity"></i>
+
+      <div>
+        <strong>Пока недостаточно данных</strong>
+        <p>
+          Для сравнения нужны хотя бы две
+          заполненные недели у стажёра.
+        </p>
+      </div>
+
+      <a
+        href="{% url 'traineediary:weekly_metrics' %}"
+        class="button secondary button-small"
+      >
+        Заполнить метрики
+      </a>
+    </div>
+  {% endif %}
+</div>
+
 <div class="card">
   <div class="card-title-bar">
     <i data-lucide="users"></i>

@@ -28,16 +28,135 @@ WEEKLY_SPEED_TARGET = Decimal("6.0")
 WEEKLY_QUALITY_TARGET = 80
 
 
+def _metric_trend_state(delta):
+    if delta > 0:
+        return "up"
+
+    if delta < 0:
+        return "down"
+
+    return "stable"
+
+
+def _build_weekly_pulse(journeys):
+    """
+    Сравнивает две последние полностью заполненные недели.
+
+    Стажёры с просадкой выводятся первыми, затем стажёры
+    с положительной динамикой и после них — без изменений.
+    """
+    pulse_rows = []
+
+    for journey in journeys:
+        complete_metrics = [
+            metric
+            for metric in journey.weekly_metrics.all()
+            if (
+                metric.speed_hours is not None
+                and metric.quality_percent is not None
+            )
+        ]
+
+        if len(complete_metrics) < 2:
+            continue
+
+        previous_metric = complete_metrics[-2]
+        latest_metric = complete_metrics[-1]
+
+        speed_delta = (
+            latest_metric.speed_hours
+            - previous_metric.speed_hours
+        ).quantize(Decimal("0.1"))
+
+        quality_delta = (
+            latest_metric.quality_percent
+            - previous_metric.quality_percent
+        )
+
+        speed_state = _metric_trend_state(
+            speed_delta,
+        )
+        quality_state = _metric_trend_state(
+            quality_delta,
+        )
+
+        has_decline = (
+            speed_state == "down"
+            or quality_state == "down"
+        )
+        has_growth = (
+            speed_state == "up"
+            or quality_state == "up"
+        )
+
+        if has_decline:
+            overall_state = "danger"
+        elif has_growth:
+            overall_state = "success"
+        else:
+            overall_state = "stable"
+
+        pulse_rows.append({
+            "journey": journey,
+            "previous": previous_metric,
+            "latest": latest_metric,
+            "speed_delta": speed_delta,
+            "quality_delta": quality_delta,
+            "speed_state": speed_state,
+            "quality_state": quality_state,
+            "overall_state": overall_state,
+        })
+
+    state_order = {
+        "danger": 0,
+        "success": 1,
+        "stable": 2,
+    }
+
+    pulse_rows.sort(
+        key=lambda row: (
+            state_order[row["overall_state"]],
+            (
+                row["journey"].user.last_name
+                or row["journey"].user.username
+            ).lower(),
+        ),
+    )
+
+    return pulse_rows
+
+
 @login_required
 def dashboard(request):
     if not request.user.is_staff:
         raise PermissionDenied
 
-    journeys = (
+    weekly_metrics_queryset = (
+        WeeklyMetric.objects
+        .order_by("week_number")
+    )
+
+    journeys = list(
         TraineeJourney.objects
-        .select_related("user", "current_stage")
-        .exclude(current_stage__group=StageGroup.DONE)
-        .order_by("current_stage__order", "user__last_name")
+        .select_related(
+            "user",
+            "current_stage",
+        )
+        .exclude(
+            current_stage__group=StageGroup.DONE,
+        )
+        .prefetch_related(
+            Prefetch(
+                "weekly_metrics",
+                queryset=weekly_metrics_queryset,
+            ),
+        )
+        .order_by(
+            "current_stage__order",
+            "user__last_name",
+            "user__first_name",
+            "user__username",
+        )
     )
 
     group_counts = {}
@@ -46,9 +165,13 @@ def dashboard(request):
 
     for journey in journeys:
         group = journey.current_stage.group
-        group_counts[group] = group_counts.get(group, 0) + 1
+
+        group_counts[group] = (
+            group_counts.get(group, 0) + 1
+        )
 
         risk = journey.risk_level
+
         if risk == "high":
             needs_attention_count += 1
 
@@ -57,12 +180,19 @@ def dashboard(request):
             "risk": risk,
             "progress_percent": journey.progress_percent,
             "days_total": journey.days_total,
-            "days_left": journey.days_left_until_probation_end,
-            "expected_transition": journey.expected_stage_transition_date,
+            "days_left": (
+                journey.days_left_until_probation_end
+            ),
+            "expected_transition": (
+                journey.expected_stage_transition_date
+            ),
         })
 
     summary_cards = [
-        {"label": label, "count": group_counts.get(value, 0)}
+        {
+            "label": label,
+            "count": group_counts.get(value, 0),
+        }
         for value, label in StageGroup.choices
         if value != StageGroup.DONE
     ]
@@ -71,8 +201,16 @@ def dashboard(request):
         "rows": rows,
         "summary_cards": summary_cards,
         "needs_attention_count": needs_attention_count,
+        "weekly_pulse": _build_weekly_pulse(
+            journeys,
+        ),
     }
-    return render(request, "traineediary/dashboard.html", context)
+
+    return render(
+        request,
+        "traineediary/dashboard.html",
+        context,
+    )
 
 
 def _build_kanban_columns():
