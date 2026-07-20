@@ -22,6 +22,9 @@ from .models import (
     WeeklyMetric,
 )
 from .forms import NewTraineeForm, WeeklyMetricForm
+from .services.sandbox_progress import (
+    build_sandbox_queue_progress,
+)
 
 
 WEEKLY_SPEED_TARGET = Decimal("6.0")
@@ -564,6 +567,12 @@ def trainee_detail(request, journey_id):
         id=journey_id,
     )
 
+    sandbox_l1_progress = (
+        build_sandbox_queue_progress(
+            user=journey.user,
+        )
+    )
+
     today = timezone.localdate()
     history_rows = []
 
@@ -676,6 +685,7 @@ def trainee_detail(request, journey_id):
         "quality_chart": quality_chart,
         "weekly_speed_target": WEEKLY_SPEED_TARGET,
         "weekly_quality_target": WEEKLY_QUALITY_TARGET,
+        "sandbox_l1_progress": sandbox_l1_progress,
     }
 
     return render(

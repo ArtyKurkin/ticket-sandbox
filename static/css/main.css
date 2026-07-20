@@ -3242,3 +3242,178 @@ body.terminal-is-expanded {
 .weekly-pulse-delta.is-fixed {
   color: var(--muted);
 }
+
+/* === Traineediary: Ticket Sandbox L1 progress === */
+
+.trainee-sandbox-progress-card {
+  margin-bottom: 20px;
+}
+
+.trainee-sandbox-progress-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.trainee-sandbox-progress-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trainee-sandbox-progress-heading > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.trainee-sandbox-progress-heading h2 {
+  margin: 0;
+}
+
+.trainee-sandbox-progress-heading p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.trainee-sandbox-progress-summary {
+  display: grid;
+  grid-template-columns: repeat(
+    4,
+    minmax(0, 1fr)
+  );
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.trainee-sandbox-progress-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.trainee-sandbox-progress-stat span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.trainee-sandbox-progress-stat strong {
+  font-size: 15px;
+}
+
+.trainee-sandbox-progress-bar {
+  height: 9px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.trainee-sandbox-progress-bar-fill {
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: var(--blue-light);
+  transition: width 0.2s ease;
+}
+
+.trainee-sandbox-progress-bar-fill.is-ready {
+  background: #28d17c;
+}
+
+.trainee-sandbox-progress-result,
+.trainee-sandbox-progress-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.trainee-sandbox-progress-result > svg,
+.trainee-sandbox-progress-empty > svg {
+  flex: 0 0 auto;
+  width: 21px;
+  height: 21px;
+  color: var(--muted);
+}
+
+.trainee-sandbox-progress-result strong,
+.trainee-sandbox-progress-empty strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.trainee-sandbox-progress-result p,
+.trainee-sandbox-progress-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.trainee-sandbox-progress-result.is-ready {
+  border-color: rgba(40, 209, 124, 0.28);
+  background: rgba(40, 209, 124, 0.055);
+}
+
+.trainee-sandbox-progress-result.is-ready > svg {
+  color: #28d17c;
+}
+
+.trainee-sandbox-progress-result.is-review {
+  border-color: rgba(79, 100, 255, 0.3);
+  background: rgba(79, 100, 255, 0.055);
+}
+
+.trainee-sandbox-progress-result.is-review > svg {
+  color: var(--blue-light);
+}
+
+.trainee-sandbox-progress-empty.is-error {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.045);
+}
+
+.trainee-sandbox-progress-empty.is-error > svg {
+  color: #ef4444;
+}
+
+.trainee-sandbox-progress-empty code {
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.07);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+}
+
+@media (max-width: 860px) {
+  .trainee-sandbox-progress-summary {
+    grid-template-columns: repeat(
+      2,
+      minmax(0, 1fr)
+    );
+  }
+}
+
+@media (max-width: 560px) {
+  .trainee-sandbox-progress-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .trainee-sandbox-progress-summary {
+    grid-template-columns: 1fr;
+  }
+}

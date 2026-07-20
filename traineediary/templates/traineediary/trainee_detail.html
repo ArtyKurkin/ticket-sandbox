@@ -166,6 +166,179 @@
   </div>
 </div>
 
+<div class="card trainee-sandbox-progress-card">
+  <div class="card-title-bar trainee-sandbox-progress-title">
+    <div class="trainee-sandbox-progress-heading">
+      <i data-lucide="terminal-square"></i>
+
+      <div>
+        <h2>Ticket Sandbox · L1</h2>
+
+        <p>
+          Прогресс зачётных заданий сотрудника
+          в очереди L1.
+        </p>
+      </div>
+    </div>
+
+    {% if not sandbox_l1_progress.queue_exists %}
+      <span class="status status-danger">
+        Очередь не найдена
+      </span>
+
+    {% elif sandbox_l1_progress.total_count == 0 %}
+      <span class="status status-muted">
+        Нет заданий
+      </span>
+
+    {% elif sandbox_l1_progress.is_ready %}
+      <span class="status status-success">
+        Готов
+      </span>
+
+    {% elif sandbox_l1_progress.on_review_count %}
+      <span class="status status-primary">
+        Есть на проверке
+      </span>
+
+    {% else %}
+      <span class="status status-muted">
+        В работе
+      </span>
+    {% endif %}
+  </div>
+
+  {% if not sandbox_l1_progress.queue_exists %}
+    <div class="trainee-sandbox-progress-empty is-error">
+      <i data-lucide="triangle-alert"></i>
+
+      <div>
+        <strong>
+          Очередь L1 не найдена
+        </strong>
+
+        <p>
+          Проверь, что в Ticket Sandbox существует
+          активная очередь со slug <code>l1</code>.
+        </p>
+      </div>
+    </div>
+
+  {% elif sandbox_l1_progress.total_count == 0 %}
+    <div class="trainee-sandbox-progress-empty">
+      <i data-lucide="clipboard-list"></i>
+
+      <div>
+        <strong>
+          В очереди пока нет активных заданий
+        </strong>
+
+        <p>
+          Прогресс появится после добавления
+          активных заданий L1.
+        </p>
+      </div>
+    </div>
+
+  {% else %}
+    <div class="trainee-sandbox-progress-summary">
+      <div class="trainee-sandbox-progress-stat">
+        <span>Пройдено</span>
+
+        <strong>{{ sandbox_l1_progress.passed_count }} из {{ sandbox_l1_progress.total_count }}</strong>
+      </div>
+
+      <div class="trainee-sandbox-progress-stat">
+        <span>Ждут проверки</span>
+
+        <strong>
+          {{ sandbox_l1_progress.on_review_count }}
+        </strong>
+      </div>
+
+      <div class="trainee-sandbox-progress-stat">
+        <span>Осталось</span>
+
+        <strong>
+          {{ sandbox_l1_progress.remaining_count }}
+        </strong>
+      </div>
+
+      <div class="trainee-sandbox-progress-stat">
+        <span>Прогресс</span>
+
+        <strong>
+          {{ sandbox_l1_progress.progress_percent }}%
+        </strong>
+      </div>
+    </div>
+
+    <div class="trainee-sandbox-progress-bar">
+      <div
+        class="
+          trainee-sandbox-progress-bar-fill
+          {% if sandbox_l1_progress.is_ready %}
+            is-ready
+          {% endif %}
+        "
+        style="
+          width:
+            {{ sandbox_l1_progress.progress_percent }}%;
+        "
+      ></div>
+    </div>
+
+    {% if sandbox_l1_progress.is_ready %}
+      <div class="trainee-sandbox-progress-result is-ready">
+        <i data-lucide="circle-check-big"></i>
+
+        <div>
+          <strong>
+            Все задания L1 пройдены
+          </strong>
+
+          <p>
+            Сотрудник готов к переходу
+            на следующий этап обучения.
+          </p>
+        </div>
+      </div>
+
+    {% elif sandbox_l1_progress.on_review_count %}
+      <div class="trainee-sandbox-progress-result is-review">
+        <i data-lucide="clock-3"></i>
+
+        <div>
+          <strong>
+            Есть задания на проверке
+          </strong>
+
+          <p>
+            После проверки прогресс обновится
+            автоматически.
+          </p>
+        </div>
+      </div>
+
+    {% else %}
+      <div class="trainee-sandbox-progress-result">
+        <i data-lucide="hammer"></i>
+
+        <div>
+          <strong>
+            Задания ещё выполняются
+          </strong>
+
+          <p>
+            Для завершения этапа осталось:
+            {{ sandbox_l1_progress.remaining_count }}.
+          </p>
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
+
 <div class="card trainee-metrics-card">
   <div class="card-title-bar trainee-metrics-title">
     <div class="trainee-metrics-title-main">

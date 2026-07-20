@@ -12,6 +12,11 @@ from traineediary.models import (
     TraineeStage,
     WeeklyMetric,
 )
+from sandbox.models import (
+    Queue,
+    Task,
+    TaskAttempt,
+)
 
 
 class TraineeDetailViewTests(TestCase):
@@ -472,4 +477,138 @@ class TraineeDetailViewTests(TestCase):
         self.assertContains(
             response,
             reverse("traineediary:weekly_metrics"),
+        )
+
+    def create_l1_tasks(self):
+        queue, _ = Queue.objects.update_or_create(
+            slug="l1",
+            defaults={
+                "name": "ОТП Cloud L1",
+                "description": "",
+                "order": 2,
+                "is_active": True,
+            },
+        )
+
+        Task.objects.filter(
+            queue=queue,
+        ).delete()
+
+        first_task = Task.objects.create(
+            queue=queue,
+            title="Первое L1-задание",
+            slug="detail-l1-first",
+            order=1,
+            description="Тестовое задание.",
+            is_active=True,
+        )
+
+        second_task = Task.objects.create(
+            queue=queue,
+            title="Второе L1-задание",
+            slug="detail-l1-second",
+            order=2,
+            description="Тестовое задание.",
+            is_active=True,
+        )
+
+        return first_task, second_task
+
+    def test_detail_shows_l1_sandbox_progress(self):
+        first_task, second_task = (
+            self.create_l1_tasks()
+        )
+
+        TaskAttempt.objects.create(
+            user=self.journey.user,
+            task=first_task,
+            attempt_number=1,
+            is_current=True,
+            status=TaskAttempt.Status.PASSED,
+        )
+
+        TaskAttempt.objects.create(
+            user=self.journey.user,
+            task=second_task,
+            attempt_number=1,
+            is_current=True,
+            status=TaskAttempt.Status.ON_REVIEW,
+        )
+
+        self.client.login(
+            username="mentor-detail",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        progress = response.context[
+            "sandbox_l1_progress"
+        ]
+
+        self.assertEqual(progress.total_count, 2)
+        self.assertEqual(progress.passed_count, 1)
+        self.assertEqual(progress.on_review_count, 1)
+        self.assertEqual(progress.progress_percent, 50)
+        self.assertFalse(progress.is_ready)
+
+        self.assertContains(
+            response,
+            "Ticket Sandbox · L1",
+        )
+        self.assertContains(response, "1 из")
+        self.assertContains(response, "Есть на проверке")
+
+    def test_detail_shows_l1_ready_state(self):
+        first_task, second_task = (
+            self.create_l1_tasks()
+        )
+
+        for task in (
+            first_task,
+            second_task,
+        ):
+            TaskAttempt.objects.create(
+                user=self.journey.user,
+                task=task,
+                attempt_number=1,
+                is_current=True,
+                status=TaskAttempt.Status.PASSED,
+            )
+
+        self.client.login(
+            username="mentor-detail",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        progress = response.context[
+            "sandbox_l1_progress"
+        ]
+
+        self.assertTrue(progress.is_ready)
+        self.assertEqual(progress.progress_percent, 100)
+
+        self.assertContains(
+            response,
+            "Все задания L1 пройдены",
+        )
+        self.assertContains(
+            response,
+            "Готов",
         )
