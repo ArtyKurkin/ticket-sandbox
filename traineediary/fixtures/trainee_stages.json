@@ -1,0 +1,172 @@
+[
+{
+  "model": "traineediary.traineestage",
+  "pk": 1,
+  "fields": {
+    "name": "Первый день",
+    "slug": "first-day",
+    "order": 1,
+    "min_days": 1,
+    "max_days": 1,
+    "progress_weight_percent": 3,
+    "color": "#9CA3AF",
+    "group": "teachbase",
+    "is_active": true,
+    "applies_to_new_hire": true,
+    "applies_to_internal_transfer": false
+  }
+},
+{
+  "model": "traineediary.traineestage",
+  "pk": 2,
+  "fields": {
+    "name": "VDS",
+    "slug": "vds",
+    "order": 2,
+    "min_days": 5,
+    "max_days": 7,
+    "progress_weight_percent": 15,
+    "color": "#3B82F6",
+    "group": "teachbase",
+    "is_active": true,
+    "applies_to_new_hire": true,
+    "applies_to_internal_transfer": false
+  }
+},
+{
+  "model": "traineediary.traineestage",
+  "pk": 3,
+  "fields": {
+    "name": "Управляемые сервисы",
+    "slug": "managed-services",
+    "order": 3,
+    "min_days": 2,
+    "max_days": 3,
+    "progress_weight_percent": 8,
+    "color": "#8B5CF6",
+    "group": "teachbase",
+    "is_active": true,
+    "applies_to_new_hire": true,
+    "applies_to_internal_transfer": false
+  }
+},
+{
+  "model": "traineediary.traineestage",
+  "pk": 4,
+  "fields": {
+    "name": "Клиентский сервис",
+    "slug": "client-service",
+    "order": 4,
+    "min_days": 1,
+    "max_days": 2,
+    "progress_weight_percent": 5,
+    "color": "#06B6D4",
+    "group": "teachbase",
+    "is_active": true,
+    "applies_to_new_hire": true,
+    "applies_to_internal_transfer": false
+  }
+},
+{
+  "model": "traineediary.traineestage",
+  "pk": 5,
+  "fields": {
+    "name": "Перед выходом в тикеты",
+    "slug": "before-tickets",
+    "order": 6,
+    "min_days": 1,
+    "max_days": 1,
+    "progress_weight_percent": 4,
+    "color": "#F59E0B",
+    "group": "teachbase",
+    "is_active": true,
+    "applies_to_new_hire": true,
+    "applies_to_internal_transfer": false
+  }
+},
+{
+  "model": "traineediary.traineestage",
+  "pk": 6,
+  "fields": {
+    "name": "Задания в ticket-sandbox",
+    "slug": "sandbox-candidate",
+    "order": 5,
+    "min_days": 1,
+    "max_days": 2,
+    "progress_weight_percent": 5,
+    "color": "#14B8A6",
+    "group": "sandbox_candidate",
+    "is_active": true,
+    "applies_to_new_hire": true,
+    "applies_to_internal_transfer": false
+  }
+},
+{
+  "model": "traineediary.traineestage",
+  "pk": 7,
+  "fields": {
+    "name": "В тикетах с проверками",
+    "slug": "with-review",
+    "order": 7,
+    "min_days": 15,
+    "max_days": 20,
+    "progress_weight_percent": 35,
+    "color": "#FACC15",
+    "group": "with_review",
+    "is_active": true,
+    "applies_to_new_hire": true,
+    "applies_to_internal_transfer": true
+  }
+},
+{
+  "model": "traineediary.traineestage",
+  "pk": 8,
+  "fields": {
+    "name": "Кнопка по желанию",
+    "slug": "optional-review",
+    "order": 8,
+    "min_days": 5,
+    "max_days": 10,
+    "progress_weight_percent": 10,
+    "color": "#84CC16",
+    "group": "optional_review",
+    "is_active": true,
+    "applies_to_new_hire": true,
+    "applies_to_internal_transfer": true
+  }
+},
+{
+  "model": "traineediary.traineestage",
+  "pk": 9,
+  "fields": {
+    "name": "Без проверок",
+    "slug": "no-review",
+    "order": 9,
+    "min_days": 10,
+    "max_days": 10,
+    "progress_weight_percent": 15,
+    "color": "#22C55E",
+    "group": "no_review",
+    "is_active": true,
+    "applies_to_new_hire": true,
+    "applies_to_internal_transfer": true
+  }
+},
+{
+  "model": "traineediary.traineestage",
+  "pk": 10,
+  "fields": {
+    "name": "Выход с ИС",
+    "slug": "done",
+    "order": 10,
+    "min_days": 0,
+    "max_days": 0,
+    "progress_weight_percent": 0,
+    "color": "#15803D",
+    "group": "done",
+    "is_active": true,
+    "applies_to_new_hire": true,
+    "applies_to_internal_transfer": true
+  }
+}
+]
