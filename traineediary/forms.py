@@ -1,6 +1,7 @@
 import secrets
 
 from django import forms
+from django.db import transaction
 from django.contrib.auth.models import User
 from django.utils import timezone
 
@@ -10,6 +11,7 @@ from .models import (
     TraineeStage,
     WeeklyMetric,
 )
+from sandbox.models import TraineeProfile
 
 
 class NewTraineeForm(forms.Form):
@@ -50,6 +52,7 @@ class NewTraineeForm(forms.Form):
             )
         return cleaned_data
 
+    @transaction.atomic
     def save(self):
         generated_password = secrets.token_urlsafe(9)
 
@@ -58,6 +61,13 @@ class NewTraineeForm(forms.Form):
             first_name=self.cleaned_data["first_name"],
             last_name=self.cleaned_data["last_name"],
             password=generated_password,
+        )
+
+        TraineeProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                "level": TraineeProfile.Level.L1,
+            },
         )
 
         stage = self.cleaned_data["current_stage"]

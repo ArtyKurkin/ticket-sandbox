@@ -11,6 +11,7 @@ from traineediary.models import (
     TraineeJourney,
     TraineeStage,
 )
+from sandbox.models import TraineeProfile
 
 
 class TraineeKanbanAndCreationTests(TestCase):
@@ -49,6 +50,56 @@ class TraineeKanbanAndCreationTests(TestCase):
         self.assertTrue(User.objects.filter(username="ivan.petrov").exists())
         self.assertTrue(
             TraineeJourney.objects.filter(user__username="ivan.petrov").exists(),
+        )
+        user = User.objects.get(
+            username="ivan.petrov",
+        )
+
+        self.assertEqual(
+            user.trainee_profile.level,
+            TraineeProfile.Level.L1,
+        )
+
+    def test_internal_transfer_is_created_with_l1_level(self):
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        response = self.client.post(
+            reverse("traineediary:create_trainee"),
+            {
+                "first_name": "Мария",
+                "last_name": "Смирнова",
+                "username": "maria.smirnova",
+                "entry_type": EntryType.INTERNAL_TRANSFER,
+                "probation_start_date": (
+                    date.today().isoformat()
+                ),
+                "current_stage": self.with_review.id,
+                "comment": "",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        user = User.objects.get(
+            username="maria.smirnova",
+        )
+
+        self.assertEqual(
+            user.trainee_profile.level,
+            TraineeProfile.Level.L1,
+        )
+
+        self.assertTrue(
+            TraineeJourney.objects.filter(
+                user=user,
+                entry_type=EntryType.INTERNAL_TRANSFER,
+            ).exists(),
         )
 
     def test_create_trainee_rejects_inapplicable_stage_for_internal_transfer(self):
