@@ -7,8 +7,9 @@
           style="border-color: {{ column.stage.color }};"
         >
           <span>{{ column.stage.name }}</span>
+
           <span class="kanban-column-count">
-            {{ column.journeys|length }}
+            {{ column.cards|length }}
           </span>
         </div>
 
@@ -17,49 +18,163 @@
           data-stage-id="{{ column.stage.id }}"
           data-stage-name="{{ column.stage.name }}"
         >
-          {% for journey in column.journeys %}
-            <div
-              class="kanban-card"
-              data-journey-id="{{ journey.id }}"
-              data-move-url="{% url 'traineediary:move_trainee_stage' journey.id %}"
-              data-trainee-name="{{ journey.user.get_full_name|default:journey.user.username }}"
-              data-current-stage-id="{{ journey.current_stage_id }}"
-              data-current-stage-name="{{ journey.current_stage.name }}"
-              data-current-stage-started-at="{{ journey.stage_started_at|date:'Y-m-d' }}"
-            >
-              <a
-                href="{% url 'traineediary:trainee_detail' journey.id %}"
-                class="kanban-card-name kanban-card-detail-link"
+          {% for card in column.cards %}
+            {% with journey=card.journey progress=card.sandbox_l1_progress transition=card.l1_transition_state %}
+              <div
+                class="
+                  kanban-card
+                  {% if transition.should_transition %}
+                    is-transition-ready
+                  {% endif %}
+                "
+                data-journey-id="{{ journey.id }}"
+                data-move-url="{% url 'traineediary:move_trainee_stage' journey.id %}"
+                data-trainee-name="{{ journey.user.get_full_name|default:journey.user.username }}"
+                data-current-stage-id="{{ journey.current_stage_id }}"
+                data-current-stage-name="{{ journey.current_stage.name }}"
+                data-current-stage-started-at="{{ journey.stage_started_at|date:'Y-m-d' }}"
               >
-                {{ journey.user.get_full_name|default:journey.user.username }}
-              </a>
+                <a
+                  href="{% url 'traineediary:trainee_detail' journey.id %}"
+                  class="
+                    kanban-card-name
+                    kanban-card-detail-link
+                  "
+                >
+                  {{ journey.user.get_full_name|default:journey.user.username }}
+                </a>
 
-              <div class="kanban-card-meta">
-                {{ journey.get_entry_type_display }}
+                <div class="kanban-card-meta">
+                  {{ journey.get_entry_type_display }}
+                </div>
+
+                {% if journey.risk_level == "high" %}
+                  <span class="status status-danger status-full">
+                    Высокий риск
+                  </span>
+
+                {% elif journey.risk_level == "medium" %}
+                  <span class="status status-primary status-full">
+                    Средний риск
+                  </span>
+                {% endif %}
+
+                {% if card.show_sandbox_progress %}
+                  <div class="kanban-card-sandbox">
+                    <div class="kanban-card-sandbox-header">
+                      <span>Ticket Sandbox · L1</span>
+
+                      {% if progress.queue_exists and progress.total_count %}
+                        <strong>
+                          {{ progress.passed_count }}
+                          из
+                          {{ progress.total_count }}
+                        </strong>
+                      {% else %}
+                        <strong>—</strong>
+                      {% endif %}
+                    </div>
+
+                    {% if progress.queue_exists and progress.total_count %}
+                      <div class="kanban-card-sandbox-bar">
+                        <div
+                          class="
+                            kanban-card-sandbox-bar-fill
+                            {% if progress.is_ready %}
+                              is-ready
+                            {% endif %}
+                          "
+                          style="
+                            width:
+                              {{ progress.progress_percent }}%;
+                          "
+                        ></div>
+                      </div>
+
+                      <div class="kanban-card-sandbox-footer">
+                        <span>
+                          {{ progress.progress_percent }}%
+                        </span>
+
+                        {% if progress.on_review_count %}
+                          <span class="is-review">
+                            {{ progress.on_review_count }}
+                            ждёт проверки
+                          </span>
+
+                        {% elif progress.is_ready %}
+                          <span class="is-ready">
+                            L1 пройден
+                          </span>
+
+                        {% else %}
+                          <span>
+                            Осталось:
+                            {{ progress.remaining_count }}
+                          </span>
+                        {% endif %}
+                      </div>
+
+                    {% elif not progress.queue_exists %}
+                      <div class="kanban-card-sandbox-unavailable">
+                        Очередь L1 не найдена
+                      </div>
+
+                    {% else %}
+                      <div class="kanban-card-sandbox-unavailable">
+                        В очереди нет заданий
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endif %}
+
+                {% if transition.should_transition %}
+                  <div class="kanban-card-ready">
+                    <div class="kanban-card-ready-label">
+                      <i data-lucide="badge-check"></i>
+
+                      <span>
+                        Готов к переходу
+                      </span>
+                    </div>
+
+                    {% if transition.next_stage %}
+                      <button
+                        type="button"
+                        class="
+                          button
+                          button-small
+                          kanban-card-transition-button
+                        "
+                        data-kanban-stage-move-button
+                        data-stage-id="{{ transition.next_stage.id }}"
+                        data-stage-name="{{ transition.next_stage.name }}"
+                      >
+                        <i data-lucide="arrow-right"></i>
+                        Перевести
+                      </button>
+                    {% endif %}
+                  </div>
+                {% endif %}
+
+                <div class="kanban-card-footer">
+                  <span class="kanban-card-days">
+                    {{ journey.days_on_stage }}
+                    дн. на этапе
+                  </span>
+
+                  <span class="kanban-card-days">
+                    до
+                    {{ journey.expected_stage_transition_date|date:"d.m" }}
+                  </span>
+                </div>
               </div>
+            {% endwith %}
 
-              {% if journey.risk_level == "high" %}
-                <span class="status status-danger status-full">
-                  Высокий риск
-                </span>
-              {% elif journey.risk_level == "medium" %}
-                <span class="status status-primary status-full">
-                  Средний риск
-                </span>
-              {% endif %}
-
-              <div class="kanban-card-footer">
-                <span class="kanban-card-days">
-                  {{ journey.days_on_stage }} дн. на этапе
-                </span>
-
-                <span class="kanban-card-days">
-                  до {{ journey.expected_stage_transition_date|date:"d.m" }}
-                </span>
-              </div>
-            </div>
           {% empty %}
-            <div class="kanban-column-empty">Пусто</div>
+            <div class="kanban-column-empty">
+              Пусто
+            </div>
           {% endfor %}
         </div>
       </div>
@@ -77,10 +192,12 @@
       <span class="kanban-done-header-title">
         <i data-lucide="trophy"></i>
 
-        <span>{{ done_column.stage.name }}</span>
+        <span>
+          {{ done_column.stage.name }}
+        </span>
 
         <span class="kanban-done-count">
-          {{ done_column.journeys|length }}
+          {{ done_column.cards|length }}
         </span>
       </span>
 
@@ -91,26 +208,33 @@
     </summary>
 
     <div class="kanban-done-content">
-      {% if done_column.journeys %}
+      {% if done_column.cards %}
         <div class="kanban-done-grid">
-          {% for journey in done_column.journeys %}
-            <div class="kanban-done-card">
-              <a
-                href="{% url 'traineediary:trainee_detail' journey.id %}"
-                class="kanban-done-card-name kanban-card-detail-link"
-              >
-                {{ journey.user.get_full_name|default:journey.user.username }}
-              </a>
+          {% for card in done_column.cards %}
+            {% with journey=card.journey %}
+              <div class="kanban-done-card">
+                <a
+                  href="{% url 'traineediary:trainee_detail' journey.id %}"
+                  class="
+                    kanban-done-card-name
+                    kanban-card-detail-link
+                  "
+                >
+                  {{ journey.user.get_full_name|default:journey.user.username }}
+                </a>
 
-              <div class="kanban-done-card-meta">
-                {{ journey.get_entry_type_display }}
+                <div class="kanban-done-card-meta">
+                  {{ journey.get_entry_type_display }}
+                </div>
               </div>
-            </div>
+            {% endwith %}
           {% endfor %}
         </div>
+
       {% else %}
         <p class="kanban-done-empty">
-          Перетащи сюда карточку после завершения испытательного срока.
+          Перетащи сюда карточку после завершения
+          испытательного срока.
         </p>
       {% endif %}
     </div>

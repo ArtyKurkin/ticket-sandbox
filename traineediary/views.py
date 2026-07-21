@@ -337,22 +337,81 @@ def dashboard(request):
 
 
 def _build_kanban_columns():
-    stages = TraineeStage.objects.filter(is_active=True).order_by("order")
-    journeys = (
-        TraineeJourney.objects
-        .select_related("user", "current_stage")
-        .order_by("user__last_name")
+    stages = list(
+        TraineeStage.objects
+        .filter(is_active=True)
+        .order_by("order", "id")
     )
 
-    journeys_by_stage = {}
+    journeys = list(
+        TraineeJourney.objects
+        .select_related(
+            "user",
+            "current_stage",
+        )
+        .order_by(
+            "user__last_name",
+            "user__first_name",
+            "user__username",
+        )
+    )
+
+    sandbox_progress_by_user_id = (
+        build_sandbox_queue_progress_map(
+            users=[
+                journey.user
+                for journey in journeys
+            ],
+        )
+    )
+
+    cards_by_stage = {}
+
     for journey in journeys:
-        journeys_by_stage.setdefault(journey.current_stage_id, []).append(journey)
+        sandbox_l1_progress = (
+            sandbox_progress_by_user_id[
+                journey.user_id
+            ]
+        )
+
+        l1_transition_state = (
+            _build_l1_transition_state(
+                journey=journey,
+                sandbox_progress=sandbox_l1_progress,
+            )
+        )
+
+        card = {
+            "journey": journey,
+            "sandbox_l1_progress": (
+                sandbox_l1_progress
+            ),
+            "l1_transition_state": (
+                l1_transition_state
+            ),
+            "show_sandbox_progress": (
+                journey.current_stage.group
+                == StageGroup.SANDBOX_CANDIDATE
+            ),
+        }
+
+        cards_by_stage.setdefault(
+            journey.current_stage_id,
+            [],
+        ).append(card)
 
     working_columns = []
     done_column = None
 
     for stage in stages:
-        column = {"stage": stage, "journeys": journeys_by_stage.get(stage.id, [])}
+        column = {
+            "stage": stage,
+            "cards": cards_by_stage.get(
+                stage.id,
+                [],
+            ),
+        }
+
         if stage.group == StageGroup.DONE:
             done_column = column
         else:

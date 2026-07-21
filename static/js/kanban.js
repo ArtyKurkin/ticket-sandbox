@@ -14,11 +14,17 @@ const DRAG_START_THRESHOLD_PX = 6;
 let pendingStageMove = null;
 
 function initKanban() {
-  const container = document.getElementById("kanban-board-container");
-  if (!container) return;
+  const container = document.getElementById(
+    "kanban-board-container",
+  );
+
+  if (!container) {
+    return;
+  }
 
   initStageMoveDialog(container);
   attachDragHandlers(container);
+  attachStageMoveButtons(container);
 }
 
 function initStageMoveDialog(container) {
@@ -103,6 +109,47 @@ function attachDragHandlers(container) {
       startPointerDrag(event, card, container, scrollBox);
     });
   });
+}
+
+function attachStageMoveButtons(container) {
+  container
+    .querySelectorAll(
+      "[data-kanban-stage-move-button]",
+    )
+    .forEach(function (button) {
+      if (
+        button.dataset.stageMoveBound
+        === "true"
+      ) {
+        return;
+      }
+
+      button.dataset.stageMoveBound = "true";
+
+      button.addEventListener(
+        "click",
+        function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const card = button.closest(
+            ".kanban-card",
+          );
+
+          if (!card) {
+            showMoveError(
+              "Не удалось определить карточку стажёра.",
+            );
+            return;
+          }
+
+          openStageMoveDialog(
+            card,
+            button,
+          );
+        },
+      );
+    });
 }
 
 function startPointerDrag(startEvent, card, container, scrollBox) {
@@ -596,6 +643,7 @@ function refreshKanbanBoard(container) {
 
       // После замены HTML старые обработчики исчезли.
       attachDragHandlers(container);
+      attachStageMoveButtons(container);
 
       if (typeof lucide !== "undefined") {
         lucide.createIcons();

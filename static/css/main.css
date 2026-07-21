@@ -3547,3 +3547,130 @@ body.terminal-is-expanded {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* === Traineediary: L1 progress in kanban === */
+
+.kanban-card.is-transition-ready {
+  border-color: rgba(40, 209, 124, 0.42);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(40, 209, 124, 0.075),
+      rgba(40, 209, 124, 0.015)
+    ),
+    var(--card);
+  box-shadow:
+    0 0 0 1px rgba(40, 209, 124, 0.08);
+}
+
+.kanban-card-sandbox {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(5, 10, 31, 0.28);
+}
+
+.kanban-card-sandbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+
+.kanban-card-sandbox-header span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kanban-card-sandbox-header strong {
+  flex: 0 0 auto;
+  font-size: 11px;
+}
+
+.kanban-card-sandbox-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.kanban-card-sandbox-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--blue-light);
+}
+
+.kanban-card-sandbox-bar-fill.is-ready {
+  background: #28d17c;
+}
+
+.kanban-card-sandbox-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.kanban-card-sandbox-footer .is-review {
+  color: var(--blue-light);
+}
+
+.kanban-card-sandbox-footer .is-ready {
+  color: #28d17c;
+  font-weight: 700;
+}
+
+.kanban-card-sandbox-unavailable {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.kanban-card-ready {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(40, 209, 124, 0.18);
+}
+
+.kanban-card-ready-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: #28d17c;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.kanban-card-ready-label svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+.kanban-card-transition-button {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 30px;
+  padding: 6px 9px;
+  font-size: 10px;
+}
+
+.kanban-card-transition-button svg {
+  width: 13px;
+  height: 13px;
+}
