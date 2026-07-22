@@ -276,9 +276,15 @@
       <tbody>
         {% for row in rows %}
           <tr
-            {% if row.l1_transition_state.should_transition %}
-              class="diary-row-transition-ready"
-            {% endif %}
+            class="
+              {% if row.attention_summary.requires_attention %}
+                diary-row-attention
+              {% endif %}
+
+              {% if row.l1_transition_state.should_transition %}
+                diary-row-transition-ready
+              {% endif %}
+            "
           >
             <td>
               <a
@@ -336,20 +342,48 @@
               </span>
             </td>
 
-            <td>
-              {% if row.risk == "high" %}
-                <span class="status status-danger">
-                  Высокий
+            <td class="diary-attention-cell">
+              {% if row.attention_summary.requires_attention %}
+                <span
+                  class="
+                    status
+                    {% if row.attention_summary.highest_severity == 'danger' %}
+                      status-danger
+                    {% else %}
+                      status-primary
+                    {% endif %}
+                  "
+                >
+                  Требует внимания
                 </span>
+
+                <div class="diary-attention-reasons">
+                  {% for reason in row.attention_summary.reasons %}
+                    <div
+                      class="
+                        diary-attention-reason
+                        is-{{ reason.severity }}
+                      "
+                    >
+                      <strong>
+                        {{ reason.label }}
+                      </strong>
+
+                      <span>
+                        {{ reason.description }}
+                      </span>
+                    </div>
+                  {% endfor %}
+                </div>
 
               {% elif row.risk == "medium" %}
                 <span class="status status-primary">
-                  Средний
+                  Средний риск
                 </span>
 
               {% elif row.risk == "low" %}
                 <span class="status status-success">
-                  Низкий
+                  Низкий риск
                 </span>
 
               {% else %}

@@ -30,6 +30,9 @@ from .services.sandbox_progress import (
     build_sandbox_queue_progress,
     build_sandbox_queue_progress_map,
 )
+from .services.attention import (
+    build_attention_summary,
+)
 
 
 WEEKLY_SPEED_TARGET = Decimal("6.0")
@@ -278,6 +281,12 @@ def dashboard(request):
 
         risk = journey.risk_level
 
+        attention_summary = (
+            build_attention_summary(
+                journey,
+            )
+        )
+
         sandbox_l1_progress = (
             sandbox_progress_by_user_id[
                 journey.user_id
@@ -294,12 +303,13 @@ def dashboard(request):
         if l1_transition_state["should_transition"]:
             ready_to_transition_count += 1
 
-        if risk == "high":
+        if attention_summary.requires_attention:
             needs_attention_count += 1
 
         rows.append({
             "journey": journey,
             "risk": risk,
+            "attention_summary": attention_summary,
             "progress_percent": journey.progress_percent,
             "days_total": journey.days_total,
             "days_left": (

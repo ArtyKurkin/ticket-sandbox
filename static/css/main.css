@@ -4096,3 +4096,66 @@ body.terminal-is-expanded {
     padding-top: 16px;
   }
 }
+
+
+/* === Traineediary: attention reasons === */
+
+.diary-row-attention td {
+  background: rgba(239, 68, 68, 0.018);
+}
+
+.diary-row-attention td:first-child {
+  box-shadow:
+    inset 3px 0 0 rgba(239, 68, 68, 0.72);
+}
+
+.diary-row-attention.diary-row-transition-ready td {
+  background: rgba(234, 179, 8, 0.025);
+}
+
+.diary-row-attention.diary-row-transition-ready
+  td:first-child {
+  box-shadow:
+    inset 3px 0 0 rgba(234, 179, 8, 0.8);
+}
+
+.diary-attention-cell {
+  min-width: 220px;
+}
+
+.diary-attention-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.diary-attention-reason {
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+}
+
+.diary-attention-reason.is-danger {
+  border-left-color: rgba(239, 68, 68, 0.75);
+}
+
+.diary-attention-reason.is-warning {
+  border-left-color: rgba(234, 179, 8, 0.75);
+}
+
+.diary-attention-reason strong,
+.diary-attention-reason span {
+  display: block;
+}
+
+.diary-attention-reason strong {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.diary-attention-reason span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
