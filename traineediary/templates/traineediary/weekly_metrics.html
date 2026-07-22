@@ -195,6 +195,28 @@
                         {% endif %}
                       </div>
 
+                      <div class="weekly-metric-feedback">
+                        <div class="weekly-metric-feedback-field">
+                          <label
+                            for="{{ cell.form.mentor_comment.id_for_label }}"
+                          >
+                            Итоги недели
+                          </label>
+
+                          {{ cell.form.mentor_comment }}
+                        </div>
+
+                        <div class="weekly-metric-feedback-field">
+                          <label
+                            for="{{ cell.form.next_week_goal.id_for_label }}"
+                          >
+                            Цель на следующую неделю
+                          </label>
+
+                          {{ cell.form.next_week_goal }}
+                        </div>
+                      </div>
+
                       <button
                         type="submit"
                         class="

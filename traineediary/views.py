@@ -800,6 +800,17 @@ def trainee_detail(request, journey_id):
         journey.weekly_metrics.all(),
     )
 
+    weekly_feedback_rows = [
+        metric
+        for metric in reversed(
+            weekly_metrics_entries,
+        )
+        if (
+            metric.mentor_comment
+            or metric.next_week_goal
+        )
+    ]
+
     speed_values = [
         metric.speed_hours
         for metric in weekly_metrics_entries
@@ -897,6 +908,9 @@ def trainee_detail(request, journey_id):
         "progress_percent": journey.progress_percent,
         "risk": journey.risk_level,
         "weekly_metrics_summary": weekly_metrics_summary,
+        "weekly_feedback_rows": (
+            weekly_feedback_rows
+        ),
         "speed_chart": speed_chart,
         "quality_chart": quality_chart,
         "weekly_speed_target": WEEKLY_SPEED_TARGET,

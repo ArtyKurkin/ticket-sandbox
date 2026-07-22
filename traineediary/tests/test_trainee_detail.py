@@ -703,3 +703,47 @@ class TraineeDetailViewTests(TestCase):
                 "traineediary:trainees_kanban",
             ),
         )
+
+    def test_detail_shows_weekly_feedback(self):
+        WeeklyMetric.objects.create(
+            journey=self.journey,
+            week_number=1,
+            week_start_date=(
+                self.journey.stage_started_at
+            ),
+            speed_hours=Decimal("5.8"),
+            quality_percent=84,
+            mentor_comment=(
+                "Хорошая динамика по качеству."
+            ),
+            next_week_goal=(
+                "Сделать упор на скорость."
+            ),
+        )
+
+        self.client.login(
+            username="mentor-detail",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertContains(
+            response,
+            "Хорошая динамика по качеству.",
+        )
+
+        self.assertContains(
+            response,
+            "Сделать упор на скорость.",
+        )

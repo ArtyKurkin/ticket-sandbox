@@ -361,10 +361,16 @@ class WeeklyMetricForm(forms.ModelForm):
         fields = (
             "speed_hours",
             "quality_percent",
+            "mentor_comment",
+            "next_week_goal",
         )
         labels = {
             "speed_hours": "Скорость",
             "quality_percent": "Качество",
+            "mentor_comment": "Итоги недели",
+            "next_week_goal": (
+                "Цель на следующую неделю"
+            ),
         }
         widgets = {
             "speed_hours": forms.NumberInput(
@@ -384,6 +390,30 @@ class WeeklyMetricForm(forms.ModelForm):
                     "step": "1",
                     "inputmode": "numeric",
                     "placeholder": "80",
+                },
+            ),
+            "mentor_comment": forms.Textarea(
+                attrs={
+                    "class": (
+                        "weekly-metric-feedback-input"
+                    ),
+                    "rows": 3,
+                    "placeholder": (
+                        "Что получилось, где были сложности"
+                    ),
+                },
+            ),
+
+            "next_week_goal": forms.Textarea(
+                attrs={
+                    "class": (
+                        "weekly-metric-feedback-input"
+                    ),
+                    "rows": 3,
+                    "placeholder": (
+                        "На чём сделать упор "
+                        "на следующей неделе"
+                    ),
                 },
             ),
         }

@@ -423,6 +423,15 @@ class WeeklyMetric(models.Model):
             MaxValueValidator(100),
         ],
     )
+    mentor_comment = models.TextField(
+        blank=True,
+        verbose_name="Итоги недели",
+    )
+
+    next_week_goal = models.TextField(
+        blank=True,
+        verbose_name="Цель на следующую неделю",
+    )
 
     class Meta:
         unique_together = ("journey", "week_number")

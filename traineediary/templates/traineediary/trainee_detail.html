@@ -610,11 +610,143 @@
   {% endif %}
 </div>
 
-<div class="card trainee-gantt-card">
-  <div class="card-title-bar">
-    <i data-lucide="chart-no-axes-gantt"></i>
-    <h2>Этапы обучения</h2>
+<div class="card trainee-weekly-feedback-card">
+  <div class="card-title-bar trainee-weekly-feedback-title">
+    <div class="trainee-weekly-feedback-title-main">
+      <i data-lucide="message-square-text"></i>
+
+      <h2>Обратная связь по неделям</h2>
+    </div>
+
+    <a
+      href="{% url 'traineediary:weekly_metrics' %}"
+      class="button secondary button-small"
+    >
+      <i data-lucide="pencil"></i>
+      Редактировать
+    </a>
   </div>
+
+  {% if weekly_feedback_rows %}
+    <div class="trainee-weekly-feedback-list">
+      {% for metric in weekly_feedback_rows %}
+        <div class="trainee-weekly-feedback-item">
+          <div class="trainee-weekly-feedback-header">
+            <div>
+              <strong>
+                Неделя {{ metric.week_number }}
+              </strong>
+
+              <span>
+                с {{ metric.week_start_date|date:"d.m.Y" }}
+              </span>
+            </div>
+
+            <div class="trainee-weekly-feedback-metrics">
+              {% if metric.speed_hours is not None %}
+                <span>
+                  Скорость:
+                  <strong>
+                    {{ metric.speed_hours|floatformat:1 }}
+                    т/ч
+                  </strong>
+                </span>
+              {% endif %}
+
+              {% if metric.quality_percent is not None %}
+                <span>
+                  Качество:
+                  <strong>
+                    {{ metric.quality_percent }}%
+                  </strong>
+                </span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="trainee-weekly-feedback-content">
+            {% if metric.mentor_comment %}
+              <div class="trainee-weekly-feedback-block">
+                <span>Итоги недели</span>
+
+                <p>
+                  {{ metric.mentor_comment|linebreaksbr }}
+                </p>
+              </div>
+            {% endif %}
+
+            {% if metric.next_week_goal %}
+              <div
+                class="
+                  trainee-weekly-feedback-block
+                  is-goal
+                "
+              >
+                <span>
+                  Цель на следующую неделю
+                </span>
+
+                <p>
+                  {{ metric.next_week_goal|linebreaksbr }}
+                </p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="trainee-metrics-empty">
+      <i data-lucide="message-square-dashed"></i>
+
+      <div>
+        <strong>
+          Обратная связь ещё не добавлена
+        </strong>
+
+        <p>
+          Заполни итоги недели и цель
+          на следующую неделю в метриках.
+        </p>
+      </div>
+
+      <a
+        href="{% url 'traineediary:weekly_metrics' %}"
+        class="button button-small"
+      >
+        Добавить
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+<div class="card trainee-gantt-card">
+  <details class="trainee-collapsible-section">
+    <summary
+      class="
+        card-title-bar
+        trainee-collapsible-summary
+      "
+    >
+      <div class="trainee-collapsible-title">
+        <i data-lucide="chart-no-axes-gantt"></i>
+        <h2>Этапы обучения</h2>
+      </div>
+
+      <div class="trainee-collapsible-meta">
+        <span class="status status-muted">
+          {{ gantt_rows|length }}
+        </span>
+
+        <i
+          data-lucide="chevron-down"
+          class="trainee-collapsible-chevron"
+        ></i>
+      </div>
+    </summary>
+
+    <div class="trainee-collapsible-content">
 
   <div class="trainee-gantt-legend">
     <span class="trainee-gantt-legend-item">
@@ -760,14 +892,37 @@
         Для этого типа входа не настроены этапы.
       </p>
     {% endfor %}
-  </div>
+      </div>
+    </div>
+  </details>
 </div>
 
 <div class="card trainee-history-card">
-  <div class="card-title-bar">
-    <i data-lucide="history"></i>
-    <h2>История этапов</h2>
-  </div>
+  <details class="trainee-collapsible-section">
+    <summary
+      class="
+        card-title-bar
+        trainee-collapsible-summary
+      "
+    >
+      <div class="trainee-collapsible-title">
+        <i data-lucide="history"></i>
+        <h2>История этапов</h2>
+      </div>
+
+      <div class="trainee-collapsible-meta">
+        <span class="status status-muted">
+          {{ history_rows|length }}
+        </span>
+
+        <i
+          data-lucide="chevron-down"
+          class="trainee-collapsible-chevron"
+        ></i>
+      </div>
+    </summary>
+
+    <div class="trainee-collapsible-content">
 
   <div class="trainee-stage-timeline">
     {% for row in history_rows %}
@@ -825,6 +980,8 @@
         История этапов пока отсутствует.
       </p>
     {% endfor %}
-  </div>
+      </div>
+    </div>
+  </details>
 </div>
 {% endblock %}

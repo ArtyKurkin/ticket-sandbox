@@ -496,3 +496,59 @@ class WeeklyMetricsViewTests(TestCase):
             response,
             "Иван Петров",
         )
+
+    def test_save_stores_weekly_feedback(self):
+        self.client.login(
+            username="weekly-mentor",
+            password="test",
+        )
+
+        response = self.client.post(
+            reverse(
+                "traineediary:save_weekly_metric",
+                args=[
+                    self.journey.id,
+                    1,
+                ],
+            ),
+            {
+                "speed_hours": "5.8",
+                "quality_percent": "84",
+                "mentor_comment": (
+                    "Хорошо проводит диагностику, "
+                    "но иногда затягивает ответы."
+                ),
+                "next_week_goal": (
+                    "Ускорить работу с повторяющимися "
+                    "обращениями."
+                ),
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse(
+                "traineediary:weekly_metrics",
+            ),
+        )
+
+        metric = WeeklyMetric.objects.get(
+            journey=self.journey,
+            week_number=1,
+        )
+
+        self.assertEqual(
+            metric.mentor_comment,
+            (
+                "Хорошо проводит диагностику, "
+                "но иногда затягивает ответы."
+            ),
+        )
+
+        self.assertEqual(
+            metric.next_week_goal,
+            (
+                "Ускорить работу с повторяющимися "
+                "обращениями."
+            ),
+        )
