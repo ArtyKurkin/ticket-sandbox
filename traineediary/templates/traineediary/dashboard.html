@@ -253,10 +253,191 @@
 </div>
 
 <div class="card">
-  <div class="card-title-bar">
-    <i data-lucide="users"></i>
-    <h2>Текущее состояние стажёров</h2>
+  <div class="card-title-bar diary-table-title">
+    <div class="diary-table-title-main">
+      <i data-lucide="users"></i>
+
+      <h2>Текущее состояние стажёров</h2>
+    </div>
+
+    <span class="status status-muted">
+      {{ filtered_count }}
+    </span>
   </div>
+
+  <form
+    method="get"
+    class="diary-filters"
+  >
+    <div class="diary-filter-search">
+      <i data-lucide="search"></i>
+
+      <input
+        type="search"
+        name="q"
+        value="{{ filters.q }}"
+        placeholder="Имя, фамилия или логин"
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="diary-filter-field">
+      <label for="diary-entry-type-filter">
+        Тип входа
+      </label>
+
+      <select
+        id="diary-entry-type-filter"
+        name="entry_type"
+      >
+        <option value="">
+          Все типы
+        </option>
+
+       entry_type"
+      >
+        <option value="">
+          Все типы
+        </option>
+
+        {% for value, label in entry_type_choices %}
+          <option
+            value="{{ value }}"
+            {% if filters.entry_type == value %}
+              selected
+            {% endif %}
+          >
+            {{ label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="diary-filter-field">
+      <label for="diary-stage-filter">
+        Этап
+      </label>
+
+      <select
+        id="diary-stage-filter"
+        name="stage"
+      >
+        <option value="">
+          Все этапы
+        </option>
+
+        {% for stage in stage_choices %}
+          <option
+            value="{{ stage.id }}"
+            {% if filters.stage == stage.id|stringformat:"s" %}
+              selected
+            {% endif %}
+          >
+            {{ stage.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="diary-filter-field">
+      <label for="diary-attention-filter">
+        Внимание
+      </label>
+
+      <select
+        id="diary-attention-filter"
+        name="attention"
+      >
+        <option
+          value=""
+          {% if not filters.attention %}
+            selected
+          {% endif %}
+        >
+          Все
+        </option>
+
+        <option
+          value="1"
+          {% if filters.attention == "1" %}
+            selected
+          {% endif %}
+        >
+          Требуют внимания
+        </option>
+
+        <option
+          value="0"
+          {% if filters.attention == "0" %}
+            selected
+          {% endif %}
+        >
+          Без внимания
+        </option>
+      </select>
+    </div>
+
+    <div class="diary-filter-field">
+      <label for="diary-status-filter">
+        Состояние
+      </label>
+
+      <select
+        id="diary-status-filter"
+        name="status"
+      >
+        <option
+          value="active"
+          {% if filters.status == "active" %}
+            selected
+          {% endif %}
+        >
+          Активные
+        </option>
+
+        <option
+          value="completed"
+          {% if filters.status == "completed" %}
+            selected
+          {% endif %}
+        >
+          Завершённые
+        </option>
+
+        <option
+          value="all"
+          {% if filters.status == "all" %}
+            selected
+          {% endif %}
+        >
+          Все
+        </option>
+      </select>
+    </div>
+
+    <div class="diary-filter-actions">
+      <button
+        type="submit"
+        class="
+          button
+          button-small
+          diary-filter-submit
+        "
+      >
+        <i data-lucide="list-filter"></i>
+        Применить
+      </button>
+
+      <a
+        href="{% url 'traineediary:dashboard' %}"
+        class="diary-filter-reset"
+        title="Сбросить фильтры"
+        aria-label="Сбросить фильтры"
+      >
+        <i data-lucide="rotate-ccw"></i>
+      </a>
+    </div>
+  </form>
 
   <div class="table-scroll">
     <table class="table">
@@ -408,7 +589,7 @@
               colspan="8"
               class="table-muted"
             >
-              Пока нет активных стажёров.
+              По выбранным фильтрам стажёры не найдены.
             </td>
           </tr>
         {% endfor %}

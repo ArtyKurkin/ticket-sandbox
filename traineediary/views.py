@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
-from django.db.models import Max, Prefetch
+from django.db.models import Max, Prefetch, Q
 
 from .models import (
     EntryType,
@@ -229,19 +229,71 @@ def dashboard(request):
     if not request.user.is_staff:
         raise PermissionDenied
 
+    query = request.GET.get(
+        "q",
+        "",
+    ).strip()
+
+    entry_type_filter = request.GET.get(
+        "entry_type",
+        "",
+    )
+
+    stage_filter = request.GET.get(
+        "stage",
+        "",
+    )
+
+    attention_filter = request.GET.get(
+        "attention",
+        "",
+    )
+
+    status_filter = request.GET.get(
+        "status",
+        "active",
+    )
+
+    valid_entry_types = {
+        value
+        for value, _label in EntryType.choices
+    }
+
+    if entry_type_filter not in valid_entry_types:
+        entry_type_filter = ""
+
+    if attention_filter not in {
+        "",
+        "1",
+        "0",
+    }:
+        attention_filter = ""
+
+    if status_filter not in {
+        "active",
+        "completed",
+        "all",
+    }:
+        status_filter = "active"
+
+    stage_id = None
+
+    if stage_filter:
+        try:
+            stage_id = int(stage_filter)
+        except (TypeError, ValueError):
+            stage_filter = ""
+
     weekly_metrics_queryset = (
         WeeklyMetric.objects
         .order_by("week_number")
     )
 
-    journeys = list(
+    journeys_queryset = (
         TraineeJourney.objects
         .select_related(
             "user",
             "current_stage",
-        )
-        .exclude(
-            current_stage__group=StageGroup.DONE,
         )
         .prefetch_related(
             Prefetch(
@@ -249,7 +301,53 @@ def dashboard(request):
                 queryset=weekly_metrics_queryset,
             ),
         )
-        .order_by(
+    )
+
+    if status_filter == "active":
+        journeys_queryset = (
+            journeys_queryset.exclude(
+                current_stage__group=StageGroup.DONE,
+            )
+        )
+
+    elif status_filter == "completed":
+        journeys_queryset = (
+            journeys_queryset.filter(
+                current_stage__group=StageGroup.DONE,
+            )
+        )
+
+    if query:
+        journeys_queryset = (
+            journeys_queryset.filter(
+                Q(
+                    user__first_name__icontains=query,
+                )
+                | Q(
+                    user__last_name__icontains=query,
+                )
+                | Q(
+                    user__username__icontains=query,
+                )
+            )
+        )
+
+    if entry_type_filter:
+        journeys_queryset = (
+            journeys_queryset.filter(
+                entry_type=entry_type_filter,
+            )
+        )
+
+    if stage_id is not None:
+        journeys_queryset = (
+            journeys_queryset.filter(
+                current_stage_id=stage_id,
+            )
+        )
+
+    journeys = list(
+        journeys_queryset.order_by(
             "current_stage__order",
             "user__last_name",
             "user__first_name",
@@ -267,24 +365,43 @@ def dashboard(request):
     )
 
     ready_to_transition_count = 0
+    needs_attention_count = 0
 
     group_counts = {}
-    needs_attention_count = 0
     rows = []
+    filtered_journeys = []
 
     for journey in journeys:
-        group = journey.current_stage.group
-
-        group_counts[group] = (
-            group_counts.get(group, 0) + 1
-        )
-
         risk = journey.risk_level
 
         attention_summary = (
             build_attention_summary(
                 journey,
             )
+        )
+
+        if (
+            attention_filter == "1"
+            and not (
+                attention_summary
+                .requires_attention
+            )
+        ):
+            continue
+
+        if (
+            attention_filter == "0"
+            and (
+                attention_summary
+                .requires_attention
+            )
+        ):
+            continue
+
+        group = journey.current_stage.group
+
+        group_counts[group] = (
+            group_counts.get(group, 0) + 1
         )
 
         sandbox_l1_progress = (
@@ -296,51 +413,127 @@ def dashboard(request):
         l1_transition_state = (
             _build_l1_transition_state(
                 journey=journey,
-                sandbox_progress=sandbox_l1_progress,
+                sandbox_progress=(
+                    sandbox_l1_progress
+                ),
             )
         )
 
-        if l1_transition_state["should_transition"]:
+        if (
+            l1_transition_state[
+                "should_transition"
+            ]
+        ):
             ready_to_transition_count += 1
 
-        if attention_summary.requires_attention:
+        if (
+            attention_summary
+            .requires_attention
+        ):
             needs_attention_count += 1
+
+        filtered_journeys.append(
+            journey,
+        )
 
         rows.append({
             "journey": journey,
             "risk": risk,
-            "attention_summary": attention_summary,
-            "progress_percent": journey.progress_percent,
-            "days_total": journey.days_total,
+            "attention_summary": (
+                attention_summary
+            ),
+            "progress_percent": (
+                journey.progress_percent
+            ),
+            "days_total": (
+                journey.days_total
+            ),
             "days_left": (
-                journey.days_left_until_probation_end
+                journey
+                .days_left_until_probation_end
             ),
             "expected_transition": (
-                journey.expected_stage_transition_date
+                None
+                if group == StageGroup.DONE
+                else (
+                    journey
+                    .expected_stage_transition_date
+                )
             ),
-            "sandbox_l1_progress": sandbox_l1_progress,
-            "l1_transition_state": l1_transition_state,
+            "sandbox_l1_progress": (
+                sandbox_l1_progress
+            ),
+            "l1_transition_state": (
+                l1_transition_state
+            ),
         })
+
+    if status_filter == "completed":
+        summary_groups = [
+            choice
+            for choice in StageGroup.choices
+            if choice[0] == StageGroup.DONE
+        ]
+
+    elif status_filter == "all":
+        summary_groups = list(
+            StageGroup.choices,
+        )
+
+    else:
+        summary_groups = [
+            choice
+            for choice in StageGroup.choices
+            if choice[0] != StageGroup.DONE
+        ]
 
     summary_cards = [
         {
             "label": label,
-            "count": group_counts.get(value, 0),
+            "count": group_counts.get(
+                value,
+                0,
+            ),
         }
-        for value, label in StageGroup.choices
-        if value != StageGroup.DONE
+        for value, label in summary_groups
     ]
 
     context = {
         "rows": rows,
+        "filtered_count": len(rows),
         "summary_cards": summary_cards,
-        "needs_attention_count": needs_attention_count,
+        "needs_attention_count": (
+            needs_attention_count
+        ),
         "ready_to_transition_count": (
             ready_to_transition_count
         ),
-        "weekly_pulse": _build_weekly_pulse(
-            journeys,
+        "weekly_pulse": (
+            _build_weekly_pulse(
+                filtered_journeys,
+            )
         ),
+        "entry_type_choices": [
+            (value, label)
+            for value, label in EntryType.choices
+            if value
+        ],
+        "stage_choices": (
+            TraineeStage.objects
+            .filter(is_active=True)
+            .order_by("order")
+        ),
+        "filters": {
+            "q": query,
+            "entry_type": (
+                entry_type_filter
+            ),
+            "stage": stage_filter,
+            "attention": (
+                attention_filter
+            ),
+            "status": status_filter,
+        },
     }
 
     return render(
