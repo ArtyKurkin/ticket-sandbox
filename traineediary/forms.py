@@ -85,6 +85,253 @@ class NewTraineeForm(forms.Form):
         return journey, generated_password
 
 
+class EditTraineeForm(forms.Form):
+    first_name = forms.CharField(
+        label="Имя",
+        max_length=150,
+    )
+
+    last_name = forms.CharField(
+        label="Фамилия",
+        max_length=150,
+    )
+
+    entry_type = forms.ChoiceField(
+        label="Тип входа",
+        choices=EntryType.choices,
+        widget=forms.RadioSelect,
+    )
+
+    probation_start_date = forms.DateField(
+        label="Дата старта ИС",
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+            },
+        ),
+    )
+
+    comment = forms.CharField(
+        label="Комментарий наставника",
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+            },
+        ),
+    )
+
+    is_active = forms.BooleanField(
+        label="Аккаунт активен",
+        required=False,
+    )
+
+    def __init__(
+        self,
+        *args,
+        journey,
+        **kwargs,
+    ):
+        self.journey = journey
+
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        if not self.is_bound:
+            self.initial.update({
+                "first_name": (
+                    journey.user.first_name
+                ),
+                "last_name": (
+                    journey.user.last_name
+                ),
+                "entry_type": (
+                    journey.entry_type
+                ),
+                "probation_start_date": (
+                    journey.probation_start_date
+                ),
+                "comment": journey.comment,
+                "is_active": (
+                    journey.user.is_active
+                ),
+            })
+
+    def _can_shift_initial_stage_start(self):
+        """
+        Если сотрудник ещё ни разу не переходил
+        между этапами, изменение даты начала ИС
+        также меняет дату начала первого этапа.
+        """
+        if (
+            self.journey.stage_started_at
+            != self.journey.probation_start_date
+        ):
+            return False
+
+        history_entries = (
+            self.journey.stage_history
+            .filter(
+                stage=self.journey.current_stage,
+                ended_at__isnull=True,
+            )
+        )
+
+        return (
+            self.journey.stage_history.count() == 1
+            and history_entries.exists()
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        entry_type = cleaned_data.get(
+            "entry_type",
+        )
+
+        probation_start_date = (
+            cleaned_data.get(
+                "probation_start_date",
+            )
+        )
+
+        if (
+            entry_type
+            and not (
+                self.journey.current_stage
+                .applies_to_entry_type(
+                    entry_type,
+                )
+            )
+        ):
+            self.add_error(
+                "entry_type",
+                (
+                    "Текущий этап не применим "
+                    "к выбранному типу входа."
+                ),
+            )
+
+        if (
+            probation_start_date
+            and probation_start_date
+            > timezone.localdate()
+        ):
+            self.add_error(
+                "probation_start_date",
+                (
+                    "Дата начала испытательного срока "
+                    "не может быть в будущем."
+                ),
+            )
+
+        if (
+            probation_start_date
+            and not (
+                self._can_shift_initial_stage_start()
+            )
+            and probation_start_date
+            > self.journey.stage_started_at
+        ):
+            self.add_error(
+                "probation_start_date",
+                (
+                    "Дата начала испытательного срока "
+                    "не может быть позже начала "
+                    "текущего этапа."
+                ),
+            )
+
+        return cleaned_data
+
+    @transaction.atomic
+    def save(self):
+        journey = self.journey
+        user = journey.user
+
+        old_probation_start_date = (
+            journey.probation_start_date
+        )
+
+        new_probation_start_date = (
+            self.cleaned_data[
+                "probation_start_date"
+            ]
+        )
+
+        shift_initial_stage = (
+            self._can_shift_initial_stage_start()
+            and (
+                old_probation_start_date
+                != new_probation_start_date
+            )
+        )
+
+        user.first_name = self.cleaned_data[
+            "first_name"
+        ]
+        user.last_name = self.cleaned_data[
+            "last_name"
+        ]
+        user.is_active = self.cleaned_data[
+            "is_active"
+        ]
+
+        user.save(
+            update_fields=[
+                "first_name",
+                "last_name",
+                "is_active",
+            ],
+        )
+
+        journey.entry_type = self.cleaned_data[
+            "entry_type"
+        ]
+        journey.probation_start_date = (
+            new_probation_start_date
+        )
+        journey.comment = self.cleaned_data.get(
+            "comment",
+            "",
+        )
+
+        update_fields = [
+            "entry_type",
+            "probation_start_date",
+            "comment",
+        ]
+
+        if shift_initial_stage:
+            journey.stage_started_at = (
+                new_probation_start_date
+            )
+
+            update_fields.append(
+                "stage_started_at",
+            )
+
+        journey.full_clean()
+
+        journey.save(
+            update_fields=update_fields,
+        )
+
+        if shift_initial_stage:
+            journey.stage_history.filter(
+                stage=journey.current_stage,
+                ended_at__isnull=True,
+            ).update(
+                started_at=(
+                    new_probation_start_date
+                ),
+            )
+
+        return journey
+
+
 class WeeklyMetricForm(forms.ModelForm):
     def __init__(
         self,

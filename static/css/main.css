@@ -3674,3 +3674,162 @@ body.terminal-is-expanded {
   width: 13px;
   height: 13px;
 }
+
+
+/* === Traineediary: edit trainee === */
+
+.trainee-detail-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.trainee-detail-actions .button {
+  width: auto;
+}
+
+.trainee-edit-hero {
+  margin-bottom: 22px;
+}
+
+.trainee-edit-card {
+  width: min(760px, 100%);
+  margin: 0 auto;
+}
+
+.trainee-edit-readonly-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    2,
+    minmax(0, 1fr)
+  );
+  gap: 12px;
+}
+
+.trainee-edit-hint {
+  margin: 12px 0 22px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.trainee-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.trainee-edit-form-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    2,
+    minmax(0, 1fr)
+  );
+  gap: 14px;
+}
+
+.trainee-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.trainee-edit-field label,
+.trainee-edit-label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.trainee-edit-radio ul {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trainee-edit-radio label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.trainee-edit-field-hint {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.trainee-edit-error {
+  color: #ef4444;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.trainee-edit-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+}
+
+.trainee-edit-checkbox input {
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+.trainee-edit-checkbox span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trainee-edit-checkbox small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.trainee-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.trainee-edit-actions .button {
+  width: auto;
+  min-width: 130px;
+}
+
+@media (max-width: 620px) {
+  .trainee-detail-actions {
+    width: 100%;
+  }
+
+  .trainee-detail-actions .button {
+    width: 100%;
+  }
+
+  .trainee-edit-readonly-grid,
+  .trainee-edit-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trainee-edit-actions {
+    flex-direction: column-reverse;
+  }
+
+  .trainee-edit-actions .button {
+    width: 100%;
+  }
+}

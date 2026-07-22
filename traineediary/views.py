@@ -21,7 +21,11 @@ from .models import (
     TraineeStage,
     WeeklyMetric,
 )
-from .forms import NewTraineeForm, WeeklyMetricForm
+from .forms import (
+    EditTraineeForm,
+    NewTraineeForm,
+    WeeklyMetricForm,
+)
 from .services.sandbox_progress import (
     build_sandbox_queue_progress,
     build_sandbox_queue_progress_map,
@@ -466,6 +470,59 @@ def create_trainee(request):
         form = NewTraineeForm()
 
     return render(request, "traineediary/create_trainee.html", {"form": form})
+
+
+@login_required
+def edit_trainee(
+    request,
+    journey_id,
+):
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    journey = get_object_or_404(
+        TraineeJourney.objects
+        .select_related(
+            "user",
+            "current_stage",
+        ),
+        id=journey_id,
+    )
+
+    if request.method == "POST":
+        form = EditTraineeForm(
+            request.POST,
+            journey=journey,
+        )
+
+        if form.is_valid():
+            journey = form.save()
+
+            messages.success(
+                request,
+                (
+                    f"Карточка сотрудника "
+                    f"«{journey}» обновлена."
+                ),
+            )
+
+            return redirect(
+                "traineediary:trainee_detail",
+                journey_id=journey.id,
+            )
+    else:
+        form = EditTraineeForm(
+            journey=journey,
+        )
+
+    return render(
+        request,
+        "traineediary/edit_trainee.html",
+        {
+            "journey": journey,
+            "form": form,
+        },
+    )
 
 
 def _build_gantt_rows(journey, history_entries, today):

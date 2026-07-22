@@ -14,13 +14,23 @@
     Все стажёры
   </a>
 
-  <a
-    href="{% url 'sandbox:dashboard' %}?q={{ journey.user.username|urlencode }}"
-    class="button secondary trainee-sandbox-link"
-  >
-    <i data-lucide="terminal"></i>
-    Открыть в Ticket Sandbox
-  </a>
+  <div class="trainee-detail-actions">
+    <a
+      href="{% url 'traineediary:edit_trainee' journey.id %}"
+      class="button secondary"
+    >
+      <i data-lucide="pencil"></i>
+      Редактировать
+    </a>
+
+    <a
+      href="/?q={{ journey.user.username|urlencode }}"
+      class="button secondary trainee-sandbox-link"
+    >
+      <i data-lucide="terminal"></i>
+      Открыть в Ticket Sandbox
+    </a>
+  </div>
 </div>
 
 <div class="hero trainee-detail-hero">

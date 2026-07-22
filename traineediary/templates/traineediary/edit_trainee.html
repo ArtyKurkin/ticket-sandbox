@@ -1,0 +1,196 @@
+{% extends "traineediary/_base.html" %}
+
+{% block title %}
+  Редактирование ·
+  {{ journey.user.get_full_name|default:journey.user.username }}
+{% endblock %}
+
+{% block content %}
+<div class="trainee-detail-toolbar">
+  <a
+    href="{% url 'traineediary:trainee_detail' journey.id %}"
+    class="trainee-back-link"
+  >
+    <i data-lucide="arrow-left"></i>
+    Вернуться к карточке
+  </a>
+</div>
+
+<div class="hero trainee-edit-hero">
+  <div>
+    <h1>
+      Редактировать
+      <span class="accent">стажёра</span>
+    </h1>
+
+    <p>
+      Основные данные сотрудника и параметры
+      испытательного срока.
+    </p>
+  </div>
+</div>
+
+<div class="card trainee-edit-card">
+  <div class="card-title-bar">
+    <i data-lucide="user-round-pen"></i>
+    <h2>Данные сотрудника</h2>
+  </div>
+
+  <div class="trainee-edit-readonly-grid">
+    <div class="trainee-info-item">
+      <span class="trainee-info-label">
+        Логин
+      </span>
+
+      <strong>
+        {{ journey.user.username }}
+      </strong>
+    </div>
+
+    <div class="trainee-info-item">
+      <span class="trainee-info-label">
+        Текущий этап
+      </span>
+
+      <strong
+        style="
+          color:
+            {{ journey.current_stage.color }};
+        "
+      >
+        {{ journey.current_stage.name }}
+      </strong>
+    </div>
+  </div>
+
+  <p class="trainee-edit-hint">
+    Логин используется для входа в Ticket Sandbox.
+    Текущий этап меняется через канбан.
+  </p>
+
+  <form
+    method="post"
+    class="trainee-edit-form"
+  >
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="status status-danger status-full">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="trainee-edit-form-grid">
+      <div class="trainee-edit-field">
+        <label for="{{ form.first_name.id_for_label }}">
+          {{ form.first_name.label }}
+        </label>
+
+        {{ form.first_name }}
+
+        {% for error in form.first_name.errors %}
+          <span class="trainee-edit-error">
+            {{ error }}
+          </span>
+        {% endfor %}
+      </div>
+
+      <div class="trainee-edit-field">
+        <label for="{{ form.last_name.id_for_label }}">
+          {{ form.last_name.label }}
+        </label>
+
+        {{ form.last_name }}
+
+        {% for error in form.last_name.errors %}
+          <span class="trainee-edit-error">
+            {{ error }}
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="trainee-edit-field">
+      <span class="trainee-edit-label">
+        {{ form.entry_type.label }}
+      </span>
+
+      <div class="trainee-edit-radio">
+        {{ form.entry_type }}
+      </div>
+
+      {% for error in form.entry_type.errors %}
+        <span class="trainee-edit-error">
+          {{ error }}
+        </span>
+      {% endfor %}
+    </div>
+
+    <div class="trainee-edit-field">
+      <label
+        for="{{ form.probation_start_date.id_for_label }}"
+      >
+        {{ form.probation_start_date.label }}
+      </label>
+
+      {{ form.probation_start_date }}
+
+      <span class="trainee-edit-field-hint">
+        Если сотрудник ещё не переходил между
+        этапами, дата начала первого этапа
+        изменится вместе с датой начала ИС.
+      </span>
+
+      {% for error in form.probation_start_date.errors %}
+        <span class="trainee-edit-error">
+          {{ error }}
+        </span>
+      {% endfor %}
+    </div>
+
+    <div class="trainee-edit-field">
+      <label for="{{ form.comment.id_for_label }}">
+        {{ form.comment.label }}
+      </label>
+
+      {{ form.comment }}
+
+      {% for error in form.comment.errors %}
+        <span class="trainee-edit-error">
+          {{ error }}
+        </span>
+      {% endfor %}
+    </div>
+
+    <label class="trainee-edit-checkbox">
+      {{ form.is_active }}
+
+      <span>
+        <strong>Аккаунт активен</strong>
+
+        <small>
+          Если отключить аккаунт, сотрудник
+          не сможет войти в Ticket Sandbox.
+        </small>
+      </span>
+    </label>
+
+    <div class="trainee-edit-actions">
+      <a
+        href="{% url 'traineediary:trainee_detail' journey.id %}"
+        class="button secondary"
+      >
+        Отмена
+      </a>
+
+      <button
+        type="submit"
+        class="button"
+      >
+        <i data-lucide="save"></i>
+        Сохранить
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
