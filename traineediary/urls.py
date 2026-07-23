@@ -25,6 +25,14 @@ urlpatterns = [
         name="pre_adaptation_users",
     ),
     path(
+        (
+            "trainees/pre-adaptation/"
+            "<int:user_id>/start/"
+        ),
+        views.start_adaptation,
+        name="start_adaptation",
+    ),
+    path(
         "trainees/<int:journey_id>/",
         views.trainee_detail,
         name="trainee_detail",

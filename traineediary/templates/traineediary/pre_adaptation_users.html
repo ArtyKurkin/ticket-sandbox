@@ -6,6 +6,7 @@
 <div class="hero flex-between">
   <div>
     <h1>До начала адаптации</h1>
+
     <p>
       Сотрудники уже могут проходить обучение
       и выполнять задания Ticket Sandbox,
@@ -53,49 +54,28 @@
       >
         <thead>
           <tr>
-            <th
-              style="
-                padding: 14px 16px;
-                text-align: left;
-              "
-            >
+            <th style="padding: 14px 16px; text-align: left;">
               Сотрудник
             </th>
 
-            <th
-              style="
-                padding: 14px 16px;
-                text-align: left;
-              "
-            >
+            <th style="padding: 14px 16px; text-align: left;">
               Логин
             </th>
 
-            <th
-              style="
-                padding: 14px 16px;
-                text-align: left;
-              "
-            >
+            <th style="padding: 14px 16px; text-align: left;">
               Аккаунт создан
             </th>
 
-            <th
-              style="
-                padding: 14px 16px;
-                text-align: left;
-              "
-            >
+            <th style="padding: 14px 16px; text-align: left;">
               Статус
             </th>
 
-            <th
-              style="
-                padding: 14px 16px;
-                text-align: right;
-              "
-            >
+            <th style="padding: 14px 16px; text-align: left;">
               Ticket Sandbox
+            </th>
+
+            <th style="padding: 14px 16px; text-align: right;">
+              Действия
             </th>
           </tr>
         </thead>
@@ -164,7 +144,6 @@
               <td
                 style="
                   padding: 16px;
-                  text-align: right;
                   border-top:
                     1px solid
                     rgba(255, 255, 255, 0.08);
@@ -173,6 +152,28 @@
                 <span class="status">
                   Очередь L1 доступна
                 </span>
+              </td>
+
+              <td
+                style="
+                  padding: 16px;
+                  text-align: right;
+                  border-top:
+                    1px solid
+                    rgba(255, 255, 255, 0.08);
+                "
+              >
+                <a
+                  href="{% url 'traineediary:start_adaptation' trainee_user.id %}"
+                  class="button"
+                  style="
+                    width: auto;
+                    white-space: nowrap;
+                  "
+                >
+                  <i data-lucide="play"></i>
+                  Начать адаптацию
+                </a>
               </td>
             </tr>
           {% endfor %}

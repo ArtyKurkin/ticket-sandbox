@@ -249,6 +249,171 @@ class NewTraineeForm(forms.Form):
         )
 
 
+class StartAdaptationForm(forms.Form):
+    probation_start_date = forms.DateField(
+        label="Дата старта ИС",
+        initial=timezone.localdate,
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+            },
+        ),
+    )
+
+    current_stage = forms.ModelChoiceField(
+        label="Текущий этап",
+        queryset=TraineeStage.objects.none(),
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            },
+        ),
+    )
+
+    comment = forms.CharField(
+        label="Комментарий",
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+            },
+        ),
+    )
+
+    def __init__(
+        self,
+        *args,
+        user,
+        **kwargs,
+    ):
+        self.user = user
+
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        available_stages = (
+            TraineeStage.objects
+            .filter(
+                is_active=True,
+                applies_to_internal_transfer=True,
+            )
+            .order_by("order")
+        )
+
+        self.fields[
+            "current_stage"
+        ].queryset = available_stages
+
+        if not self.is_bound:
+            first_stage = available_stages.first()
+
+            if first_stage is not None:
+                self.initial[
+                    "current_stage"
+                ] = first_stage
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        probation_start_date = cleaned_data.get(
+            "probation_start_date",
+        )
+        current_stage = cleaned_data.get(
+            "current_stage",
+        )
+
+        if TraineeJourney.objects.filter(
+            user=self.user,
+        ).exists():
+            raise forms.ValidationError(
+                "Адаптация для этого сотрудника уже начата.",
+            )
+
+        if (
+            probation_start_date
+            and probation_start_date
+            > timezone.localdate()
+        ):
+            self.add_error(
+                "probation_start_date",
+                (
+                    "Дата начала испытательного срока "
+                    "не может быть в будущем."
+                ),
+            )
+
+        if (
+            current_stage
+            and not current_stage.applies_to_entry_type(
+                EntryType.INTERNAL_TRANSFER,
+            )
+        ):
+            self.add_error(
+                "current_stage",
+                (
+                    "Этот этап не применим "
+                    "к внутреннему переходу."
+                ),
+            )
+
+        return cleaned_data
+
+    @transaction.atomic
+    def save(
+        self,
+        *,
+        changed_by=None,
+    ):
+        journey = TraineeJourney.objects.create(
+            user=self.user,
+            entry_type=EntryType.INTERNAL_TRANSFER,
+            probation_start_date=(
+                self.cleaned_data[
+                    "probation_start_date"
+                ]
+            ),
+            current_stage=(
+                self.cleaned_data[
+                    "current_stage"
+                ]
+            ),
+            stage_started_at=(
+                self.cleaned_data[
+                    "probation_start_date"
+                ]
+            ),
+            comment=self.cleaned_data.get(
+                "comment",
+                "",
+            ),
+        )
+
+        initial_history = (
+            journey.stage_history
+            .filter(
+                stage=journey.current_stage,
+                ended_at__isnull=True,
+            )
+            .first()
+        )
+
+        if (
+            initial_history is not None
+            and changed_by is not None
+        ):
+            initial_history.changed_by = changed_by
+
+            initial_history.save(
+                update_fields=[
+                    "changed_by",
+                ],
+            )
+
+        return journey
+
+
 class EditTraineeForm(forms.Form):
     first_name = forms.CharField(
         label="Имя",

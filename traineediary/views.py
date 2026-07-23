@@ -25,6 +25,7 @@ from sandbox.models import TraineeProfile
 from .forms import (
     EditTraineeForm,
     NewTraineeForm,
+    StartAdaptationForm,
     WeeklyMetricForm,
 )
 from .services.sandbox_progress import (
@@ -659,6 +660,61 @@ def _pre_adaptation_users_queryset():
             "first_name",
             "username",
         )
+    )
+
+
+@login_required
+def start_adaptation(
+    request,
+    user_id,
+):
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    trainee_user = get_object_or_404(
+        _pre_adaptation_users_queryset(),
+        pk=user_id,
+    )
+
+    if request.method == "POST":
+        form = StartAdaptationForm(
+            request.POST,
+            user=trainee_user,
+        )
+
+        if form.is_valid():
+            journey = form.save(
+                changed_by=request.user,
+            )
+
+            messages.success(
+                request,
+                (
+                    f"Адаптация для "
+                    f"{trainee_user.get_full_name() or trainee_user.username} "
+                    f"начата."
+                ),
+            )
+
+            return redirect(
+                "traineediary:trainee_detail",
+                journey_id=journey.id,
+            )
+    else:
+        form = StartAdaptationForm(
+            user=trainee_user,
+        )
+
+    return render(
+        request,
+        (
+            "traineediary/"
+            "start_adaptation.html"
+        ),
+        {
+            "form": form,
+            "trainee_user": trainee_user,
+        },
     )
 
 

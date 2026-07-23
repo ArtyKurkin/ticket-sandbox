@@ -585,3 +585,165 @@ class TraineeKanbanAndCreationTests(TestCase):
                 "traineediary:pre_adaptation_users",
             ),
         )
+
+    def test_start_adaptation_form_contains_only_internal_transfer_stages(
+        self,
+    ):
+        user = User.objects.create_user(
+            username="waiting-stage-options",
+            first_name="Иван",
+            last_name="Ожидающий",
+            password="test",
+        )
+
+        TraineeProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                "level": TraineeProfile.Level.L1,
+            },
+        )
+
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:start_adaptation",
+                args=[user.id],
+            ),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        stage_queryset = (
+            response.context[
+                "form"
+            ].fields[
+                "current_stage"
+            ].queryset
+        )
+
+        self.assertNotIn(
+            self.first_day,
+            stage_queryset,
+        )
+        self.assertIn(
+            self.with_review,
+            stage_queryset,
+        )
+
+        self.assertContains(
+            response,
+            "Иван Ожидающий",
+        )
+
+    def test_start_adaptation_creates_journey_and_history(
+        self,
+    ):
+        user = User.objects.create_user(
+            username="start.adaptation",
+            first_name="Мария",
+            last_name="Смирнова",
+            password="test",
+        )
+
+        TraineeProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                "level": TraineeProfile.Level.L1,
+            },
+        )
+
+        start_date = date.today()
+
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        response = self.client.post(
+            reverse(
+                "traineediary:start_adaptation",
+                args=[user.id],
+            ),
+            {
+                "probation_start_date": (
+                    start_date.isoformat()
+                ),
+                "current_stage": self.with_review.id,
+                "comment": (
+                    "Переход из другого отдела"
+                ),
+            },
+        )
+
+        journey = TraineeJourney.objects.get(
+            user=user,
+        )
+
+        self.assertRedirects(
+            response,
+            reverse(
+                "traineediary:trainee_detail",
+                args=[journey.id],
+            ),
+        )
+
+        self.assertEqual(
+            journey.entry_type,
+            EntryType.INTERNAL_TRANSFER,
+        )
+        self.assertEqual(
+            journey.probation_start_date,
+            start_date,
+        )
+        self.assertEqual(
+            journey.current_stage,
+            self.with_review,
+        )
+        self.assertEqual(
+            journey.stage_started_at,
+            start_date,
+        )
+        self.assertEqual(
+            journey.comment,
+            "Переход из другого отдела",
+        )
+
+        self.assertEqual(
+            journey.stage_history.count(),
+            1,
+        )
+
+        initial_history = (
+            journey.stage_history.get()
+        )
+
+        self.assertEqual(
+            initial_history.stage,
+            self.with_review,
+        )
+        self.assertEqual(
+            initial_history.started_at,
+            start_date,
+        )
+        self.assertEqual(
+            initial_history.changed_by,
+            self.staff_user,
+        )
+
+        pre_adaptation_response = self.client.get(
+            reverse(
+                "traineediary:pre_adaptation_users",
+            ),
+        )
+
+        self.assertNotContains(
+            pre_adaptation_response,
+            "start.adaptation",
+        )

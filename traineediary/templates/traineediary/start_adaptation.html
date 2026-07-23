@@ -1,0 +1,122 @@
+{% extends "traineediary/_base.html" %}
+
+{% block title %}Начать адаптацию{% endblock %}
+
+{% block content %}
+<div class="hero flex-between">
+  <div>
+    <h1>Начать адаптацию</h1>
+
+    <p>
+      После сохранения сотрудник появится
+      в канбане и начнёт участвовать
+      в подсчёте дней, метрик и рисков.
+    </p>
+  </div>
+
+  <a
+    href="{% url 'traineediary:pre_adaptation_users' %}"
+    class="button secondary"
+    style="width: auto;"
+  >
+    <i data-lucide="arrow-left"></i>
+    Назад
+  </a>
+</div>
+
+<div class="card" style="max-width: 560px;">
+  <div style="margin-bottom: 24px;">
+    <p class="field-label">
+      Сотрудник
+    </p>
+
+    <p style="margin: 0;">
+      <strong>
+        {% if trainee_user.get_full_name %}
+          {{ trainee_user.get_full_name }}
+        {% else %}
+          {{ trainee_user.username }}
+        {% endif %}
+      </strong>
+    </p>
+
+    <p style="margin: 6px 0 0;">
+      Логин: {{ trainee_user.username }}
+    </p>
+  </div>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="status status-danger status-full">
+        {{ form.non_field_errors|striptags }}
+      </div>
+    {% endif %}
+
+    <p class="field-label">
+      {{ form.probation_start_date.label }}
+    </p>
+
+    {{ form.probation_start_date }}
+
+    {% if form.probation_start_date.errors %}
+      <div class="status status-danger status-full mt-8">
+        {{ form.probation_start_date.errors|striptags }}
+      </div>
+    {% endif %}
+
+    <p class="field-label">
+      {{ form.current_stage.label }}
+    </p>
+
+    <div class="select-wrap">
+      {{ form.current_stage }}
+    </div>
+
+    {% if form.current_stage.errors %}
+      <div class="status status-danger status-full mt-8">
+        {{ form.current_stage.errors|striptags }}
+      </div>
+    {% endif %}
+
+    <p class="field-label">
+      {{ form.comment.label }}
+    </p>
+
+    {{ form.comment }}
+
+    {% if form.comment.errors %}
+      <div class="status status-danger status-full mt-8">
+        {{ form.comment.errors|striptags }}
+      </div>
+    {% endif %}
+
+    <div
+      class="form-actions mt-16"
+      style="
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      "
+    >
+      <a
+        href="{% url 'traineediary:pre_adaptation_users' %}"
+        class="button secondary"
+        style="width: auto;"
+      >
+        Отмена
+      </a>
+
+      <button
+        type="submit"
+        class="button"
+        style="width: auto;"
+      >
+        <i data-lucide="play"></i>
+        Начать адаптацию
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
