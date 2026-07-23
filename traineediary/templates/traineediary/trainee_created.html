@@ -1,16 +1,73 @@
 {% extends "traineediary/_base.html" %}
 
-{% block title %}Стажёр создан{% endblock %}
+{% block title %}Сотрудник создан{% endblock %}
 
 {% block content %}
 <div class="hero">
-  <h1>Стажёр создан</h1>
+  <h1>Сотрудник создан</h1>
 </div>
 
-<div class="card" style="max-width: 480px;">
-  <p>Данные для входа — сохрани их сейчас, повторно они не покажутся:</p>
-  <p><strong>Логин:</strong> {{ journey.user.username }}</p>
-  <p><strong>Пароль:</strong> <code>{{ password }}</code></p>
-  <a href="{% url 'traineediary:trainees_kanban' %}" class="button mt-16">К списку стажёров</a>
+<div class="card" style="max-width: 520px;">
+  <p>
+    Данные для входа — сохрани их сейчас,
+    повторно пароль не покажется.
+  </p>
+
+  <p>
+    <strong>Имя:</strong>
+    {% if user.get_full_name %}
+      {{ user.get_full_name }}
+    {% else %}
+      —
+    {% endif %}
+  </p>
+
+  <p>
+    <strong>Логин:</strong>
+    {{ user.username }}
+  </p>
+
+  <p>
+    <strong>Временный пароль:</strong>
+    <code>{{ password }}</code>
+  </p>
+
+  <p>
+    <strong>Тип аккаунта:</strong>
+    {{ account_type_label }}
+  </p>
+
+  {% if is_adaptation %}
+    <div
+      class="form-actions mt-16"
+      style="display: grid; gap: 12px;"
+    >
+      <a
+        href="{% url 'traineediary:trainee_detail' journey.id %}"
+        class="button"
+      >
+        Открыть карточку стажёра
+      </a>
+    </div>
+  {% else %}
+    <div
+      class="form-actions mt-16"
+      style="display: grid; gap: 12px;"
+    >
+      <a
+        href="{% url 'traineediary:trainees_kanban' %}"
+        class="button"
+      >
+        К списку стажёров
+      </a>
+
+      <a
+        href="{% url 'sandbox:dashboard' %}"
+        class="button"
+      >
+        Открыть Ticket Sandbox
+      </a>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

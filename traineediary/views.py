@@ -661,18 +661,59 @@ def create_trainee(request):
         raise PermissionDenied
 
     if request.method == "POST":
-        form = NewTraineeForm(request.POST)
+        form = NewTraineeForm(
+            request.POST,
+        )
+
         if form.is_valid():
-            journey, generated_password = form.save()
+            (
+                user,
+                journey,
+                generated_password,
+            ) = form.save(
+                changed_by=request.user,
+            )
+
+            is_adaptation = journey is not None
+
             return render(
                 request,
-                "traineediary/trainee_created.html",
-                {"journey": journey, "password": generated_password},
+                (
+                    "traineediary/"
+                    "trainee_created.html"
+                ),
+                {
+                    "user": user,
+                    "journey": journey,
+                    "password": (
+                        generated_password
+                    ),
+                    "is_adaptation": (
+                        is_adaptation
+                    ),
+                    "account_type_label": (
+                        "Новая адаптация"
+                        if is_adaptation
+                        else (
+                            "Сотрудник "
+                            "из другого отдела"
+                        )
+                    ),
+                },
             )
     else:
         form = NewTraineeForm()
 
-    return render(request, "traineediary/create_trainee.html", {"form": form})
+    return render(
+        request,
+        "traineediary/create_trainee.html",
+        {
+            "form": form,
+            "internal_transfer_value": (
+                EntryType.INTERNAL_TRANSFER
+            ),
+        },
+    )
 
 
 @login_required

@@ -15,51 +15,158 @@ from sandbox.models import TraineeProfile
 
 
 class NewTraineeForm(forms.Form):
-    first_name = forms.CharField(label="Имя", max_length=150)
-    last_name = forms.CharField(label="Фамилия", max_length=150)
-    username = forms.CharField(label="Логин (для входа в систему)", max_length=150)
-    entry_type = forms.ChoiceField(
-        label="Тип входа", choices=EntryType.choices, widget=forms.RadioSelect,
+    first_name = forms.CharField(
+        label="Имя",
+        max_length=150,
     )
+
+    last_name = forms.CharField(
+        label="Фамилия",
+        max_length=150,
+    )
+
+    username = forms.CharField(
+        label="Логин (для входа в систему)",
+        max_length=150,
+    )
+
+    entry_type = forms.ChoiceField(
+        label="Тип входа",
+        choices=(
+            (
+                EntryType.NEW_HIRE,
+                "Новая адаптация",
+            ),
+            (
+                EntryType.INTERNAL_TRANSFER,
+                (
+                    "Внутренний переход / "
+                    "сотрудник из другого отдела"
+                ),
+            ),
+        ),
+        widget=forms.RadioSelect,
+    )
+
     probation_start_date = forms.DateField(
         label="Дата старта ИС",
+        required=False,
         initial=timezone.now().date,
-        widget=forms.DateInput(attrs={"type": "date"}),
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+            },
+        ),
     )
+
     current_stage = forms.ModelChoiceField(
         label="Текущий этап",
-        queryset=TraineeStage.objects.filter(is_active=True).order_by("order"),
-        widget=forms.Select(attrs={"class": "form-select"}),
+        required=False,
+        queryset=(
+            TraineeStage.objects
+            .filter(is_active=True)
+            .order_by("order")
+        ),
+        widget=forms.Select(
+            attrs={
+                "class": "form-select",
+            },
+        ),
     )
+
     comment = forms.CharField(
-        label="Комментарий", required=False, widget=forms.Textarea(attrs={"rows": 3}),
+        label="Комментарий",
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+            },
+        ),
     )
 
     def clean_username(self):
-        username = self.cleaned_data["username"].strip()
-        if User.objects.filter(username=username).exists():
-            raise forms.ValidationError("Такой логин уже занят.")
+        username = self.cleaned_data[
+            "username"
+        ].strip()
+
+        if User.objects.filter(
+            username=username,
+        ).exists():
+            raise forms.ValidationError(
+                "Такой логин уже занят.",
+            )
+
         return username
 
     def clean(self):
         cleaned_data = super().clean()
-        entry_type = cleaned_data.get("entry_type")
-        stage = cleaned_data.get("current_stage")
-        if entry_type and stage and not stage.applies_to_entry_type(entry_type):
-            self.add_error(
-                "current_stage",
-                "Этот этап не применим к выбранному типу входа.",
-            )
+
+        entry_type = cleaned_data.get(
+            "entry_type",
+        )
+        probation_start_date = cleaned_data.get(
+            "probation_start_date",
+        )
+        stage = cleaned_data.get(
+            "current_stage",
+        )
+
+        if entry_type == EntryType.NEW_HIRE:
+            if probation_start_date is None:
+                self.add_error(
+                    "probation_start_date",
+                    "Укажи дату старта ИС.",
+                )
+
+            if stage is None:
+                self.add_error(
+                    "current_stage",
+                    "Выбери текущий этап.",
+                )
+
+            if (
+                stage is not None
+                and not stage.applies_to_entry_type(
+                    entry_type,
+                )
+            ):
+                self.add_error(
+                    "current_stage",
+                    (
+                        "Этот этап не применим "
+                        "к выбранному типу входа."
+                    ),
+                )
+
+        if entry_type == EntryType.INTERNAL_TRANSFER:
+            # Эти данные не относятся к аккаунту
+            # сотрудника из другого отдела.
+            cleaned_data["probation_start_date"] = None
+            cleaned_data["current_stage"] = None
+            cleaned_data["comment"] = ""
+
         return cleaned_data
 
     @transaction.atomic
-    def save(self):
-        generated_password = secrets.token_urlsafe(9)
+    def save(
+        self,
+        *,
+        changed_by=None,
+    ):
+        generated_password = secrets.token_urlsafe(
+            9,
+        )
 
         user = User.objects.create_user(
-            username=self.cleaned_data["username"],
-            first_name=self.cleaned_data["first_name"],
-            last_name=self.cleaned_data["last_name"],
+            username=self.cleaned_data[
+                "username"
+            ],
+            first_name=self.cleaned_data[
+                "first_name"
+            ],
+            last_name=self.cleaned_data[
+                "last_name"
+            ],
             password=generated_password,
         )
 
@@ -70,19 +177,76 @@ class NewTraineeForm(forms.Form):
             },
         )
 
-        stage = self.cleaned_data["current_stage"]
-        probation_start_date = self.cleaned_data["probation_start_date"]
+        entry_type = self.cleaned_data[
+            "entry_type"
+        ]
+
+        if entry_type == EntryType.INTERNAL_TRANSFER:
+            return (
+                user,
+                None,
+                generated_password,
+            )
+
+        stage = self.cleaned_data[
+            "current_stage"
+        ]
+        probation_start_date = self.cleaned_data[
+            "probation_start_date"
+        ]
 
         journey = TraineeJourney.objects.create(
             user=user,
-            entry_type=self.cleaned_data["entry_type"],
-            probation_start_date=probation_start_date,
+            entry_type=entry_type,
+            probation_start_date=(
+                probation_start_date
+            ),
             current_stage=stage,
-            stage_started_at=probation_start_date,
-            comment=self.cleaned_data.get("comment", ""),
+            stage_started_at=(
+                probation_start_date
+            ),
+            comment=self.cleaned_data.get(
+                "comment",
+                "",
+            ),
         )
 
-        return journey, generated_password
+        # В проекте история может уже создаваться
+        # при сохранении TraineeJourney.
+        # Поэтому не создаём дубликат.
+        initial_history = (
+            journey.stage_history
+            .filter(
+                stage=stage,
+                ended_at__isnull=True,
+            )
+            .first()
+        )
+
+        if initial_history is None:
+            journey.stage_history.create(
+                stage=stage,
+                started_at=(
+                    probation_start_date
+                ),
+                changed_by=changed_by,
+            )
+        elif (
+            changed_by is not None
+            and initial_history.changed_by_id is None
+        ):
+            initial_history.changed_by = changed_by
+            initial_history.save(
+                update_fields=[
+                    "changed_by",
+                ],
+            )
+
+        return (
+            user,
+            journey,
+            generated_password,
+        )
 
 
 class EditTraineeForm(forms.Form):

@@ -11,54 +11,148 @@
   <form method="post" novalidate>
     {% csrf_token %}
 
-    <p class="field-label">{{ form.first_name.label }}</p>
+    <p class="field-label">
+      {{ form.first_name.label }}
+    </p>
     {{ form.first_name }}
     {% if form.first_name.errors %}
-      <div class="status status-danger status-full mt-8">{{ form.first_name.errors|striptags }}</div>
+      <div class="status status-danger status-full mt-8">
+        {{ form.first_name.errors|striptags }}
+      </div>
     {% endif %}
 
-    <p class="field-label">{{ form.last_name.label }}</p>
+    <p class="field-label">
+      {{ form.last_name.label }}
+    </p>
     {{ form.last_name }}
     {% if form.last_name.errors %}
-      <div class="status status-danger status-full mt-8">{{ form.last_name.errors|striptags }}</div>
+      <div class="status status-danger status-full mt-8">
+        {{ form.last_name.errors|striptags }}
+      </div>
     {% endif %}
 
-    <p class="field-label">{{ form.username.label }}</p>
+    <p class="field-label">
+      {{ form.username.label }}
+    </p>
     {{ form.username }}
     {% if form.username.errors %}
-      <div class="status status-danger status-full mt-8">{{ form.username.errors|striptags }}</div>
+      <div class="status status-danger status-full mt-8">
+        {{ form.username.errors|striptags }}
+      </div>
     {% endif %}
 
-    <p class="field-label">{{ form.entry_type.label }}</p>
+    <p class="field-label">
+      {{ form.entry_type.label }}
+    </p>
+
     <div class="radio-group">
       {% for radio in form.entry_type %}
-        <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+        <label>
+          {{ radio.tag }}
+          {{ radio.choice_label }}
+        </label>
       {% endfor %}
     </div>
+
     {% if form.entry_type.errors %}
-      <div class="status status-danger status-full mt-8">{{ form.entry_type.errors|striptags }}</div>
+      <div class="status status-danger status-full mt-8">
+        {{ form.entry_type.errors|striptags }}
+      </div>
     {% endif %}
 
-    <p class="field-label">{{ form.probation_start_date.label }}</p>
-    {{ form.probation_start_date }}
-    {% if form.probation_start_date.errors %}
-      <div class="status status-danger status-full mt-8">{{ form.probation_start_date.errors|striptags }}</div>
-    {% endif %}
+    <div
+      id="adaptation-fields"
+      data-internal-transfer-value="{{ internal_transfer_value }}"
+    >
+      <p class="field-label">
+        {{ form.probation_start_date.label }}
+      </p>
+      {{ form.probation_start_date }}
+      {% if form.probation_start_date.errors %}
+        <div class="status status-danger status-full mt-8">
+          {{ form.probation_start_date.errors|striptags }}
+        </div>
+      {% endif %}
 
-    <p class="field-label">{{ form.current_stage.label }}</p>
-    <div class="select-wrap">
-      {{ form.current_stage }}
+      <p class="field-label">
+        {{ form.current_stage.label }}
+      </p>
+
+      <div class="select-wrap">
+        {{ form.current_stage }}
+      </div>
+
+      {% if form.current_stage.errors %}
+        <div class="status status-danger status-full mt-8">
+          {{ form.current_stage.errors|striptags }}
+        </div>
+      {% endif %}
+
+      <p class="field-label">
+        {{ form.comment.label }}
+      </p>
+      {{ form.comment }}
+      {% if form.comment.errors %}
+        <div class="status status-danger status-full mt-8">
+          {{ form.comment.errors|striptags }}
+        </div>
+      {% endif %}
     </div>
-    {% if form.current_stage.errors %}
-      <div class="status status-danger status-full mt-8">{{ form.current_stage.errors|striptags }}</div>
-    {% endif %}
-
-    <p class="field-label">{{ form.comment.label }}</p>
-    {{ form.comment }}
 
     <div class="form-actions">
-      <button type="submit" class="button">Создать</button>
+      <button type="submit" class="button">
+        Создать
+      </button>
     </div>
   </form>
 </div>
+
+<script>
+  (() => {
+    const adaptationFields = document.getElementById(
+      "adaptation-fields"
+    );
+
+    if (!adaptationFields) {
+      return;
+    }
+
+    const entryTypeInputs = document.querySelectorAll(
+      'input[name="{{ form.entry_type.html_name }}"]'
+    );
+
+    const internalTransferValue = (
+      adaptationFields.dataset.internalTransferValue
+    );
+
+    function updateAdaptationFields() {
+      const selectedEntryType = document.querySelector(
+        'input[name="{{ form.entry_type.html_name }}"]:checked'
+      );
+
+      const isInternalTransfer = (
+        selectedEntryType
+        && selectedEntryType.value
+          === internalTransferValue
+      );
+
+      adaptationFields.hidden = isInternalTransfer;
+
+      adaptationFields
+        .querySelectorAll("input, select, textarea")
+        .forEach((field) => {
+          field.disabled = isInternalTransfer;
+        });
+    }
+
+    entryTypeInputs.forEach((input) => {
+      input.addEventListener(
+        "change",
+        updateAdaptationFields
+      );
+    });
+
+    updateAdaptationFields();
+  })();
+</script>
 {% endblock %}

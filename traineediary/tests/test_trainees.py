@@ -35,49 +35,131 @@ class TraineeKanbanAndCreationTests(TestCase):
         response = self.client.get(reverse("traineediary:trainees_kanban"))
         self.assertEqual(response.status_code, 200)
 
-    def test_create_trainee_creates_user_and_journey(self):
-        self.client.login(username="mentor-kanban", password="test")
-        response = self.client.post(reverse("traineediary:create_trainee"), {
-            "first_name": "Иван",
-            "last_name": "Петров",
-            "username": "ivan.petrov",
-            "entry_type": EntryType.NEW_HIRE,
-            "probation_start_date": date.today().isoformat(),
-            "current_stage": self.first_day.id,
-            "comment": "",
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(User.objects.filter(username="ivan.petrov").exists())
-        self.assertTrue(
-            TraineeJourney.objects.filter(user__username="ivan.petrov").exists(),
-        )
-        user = User.objects.get(
-            username="ivan.petrov",
-        )
-
-        self.assertEqual(
-            user.trainee_profile.level,
-            TraineeProfile.Level.L1,
-        )
-
-    def test_internal_transfer_is_created_with_l1_level(self):
+    def test_create_trainee_creates_user_journey_and_history(
+        self,
+    ):
         self.client.login(
             username="mentor-kanban",
             password="test",
         )
 
         response = self.client.post(
-            reverse("traineediary:create_trainee"),
+            reverse(
+                "traineediary:create_trainee",
+            ),
+            {
+                "first_name": "Иван",
+                "last_name": "Петров",
+                "username": "ivan.petrov",
+                "entry_type": EntryType.NEW_HIRE,
+                "probation_start_date": (
+                    date.today().isoformat()
+                ),
+                "current_stage": self.first_day.id,
+                "comment": "Новая адаптация",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        user = User.objects.get(
+            username="ivan.petrov",
+        )
+
+        self.assertEqual(
+            user.first_name,
+            "Иван",
+        )
+        self.assertEqual(
+            user.last_name,
+            "Петров",
+        )
+        self.assertEqual(
+            user.trainee_profile.level,
+            TraineeProfile.Level.L1,
+        )
+
+        journey = TraineeJourney.objects.get(
+            user=user,
+        )
+
+        self.assertEqual(
+            journey.entry_type,
+            EntryType.NEW_HIRE,
+        )
+        self.assertEqual(
+            journey.current_stage,
+            self.first_day,
+        )
+        self.assertEqual(
+            journey.probation_start_date,
+            date.today(),
+        )
+
+        self.assertEqual(
+            journey.stage_history.count(),
+            1,
+        )
+
+        initial_history = (
+            journey.stage_history.get()
+        )
+
+        self.assertEqual(
+            initial_history.stage,
+            self.first_day,
+        )
+        self.assertEqual(
+            initial_history.started_at,
+            date.today(),
+        )
+        self.assertEqual(
+            initial_history.changed_by,
+            self.staff_user,
+        )
+
+        self.assertContains(
+            response,
+            "Иван Петров",
+        )
+        self.assertContains(
+            response,
+            "ivan.petrov",
+        )
+        self.assertContains(
+            response,
+            "Новая адаптация",
+        )
+        self.assertContains(
+            response,
+            reverse(
+                "traineediary:trainee_detail",
+                args=[journey.id],
+            ),
+        )
+
+    def test_internal_transfer_creates_only_user_and_profile(
+        self,
+    ):
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        response = self.client.post(
+            reverse(
+                "traineediary:create_trainee",
+            ),
             {
                 "first_name": "Мария",
                 "last_name": "Смирнова",
                 "username": "maria.smirnova",
-                "entry_type": EntryType.INTERNAL_TRANSFER,
-                "probation_start_date": (
-                    date.today().isoformat()
+                "entry_type": (
+                    EntryType.INTERNAL_TRANSFER
                 ),
-                "current_stage": self.with_review.id,
-                "comment": "",
             },
         )
 
@@ -91,30 +173,98 @@ class TraineeKanbanAndCreationTests(TestCase):
         )
 
         self.assertEqual(
+            user.first_name,
+            "Мария",
+        )
+        self.assertEqual(
+            user.last_name,
+            "Смирнова",
+        )
+        self.assertEqual(
             user.trainee_profile.level,
             TraineeProfile.Level.L1,
         )
 
-        self.assertTrue(
+        self.assertFalse(
             TraineeJourney.objects.filter(
                 user=user,
-                entry_type=EntryType.INTERNAL_TRANSFER,
             ).exists(),
         )
 
-    def test_create_trainee_rejects_inapplicable_stage_for_internal_transfer(self):
-        self.client.login(username="mentor-kanban", password="test")
-        response = self.client.post(reverse("traineediary:create_trainee"), {
-            "first_name": "Мария",
-            "last_name": "Смирнова",
-            "username": "maria.smirnova",
-            "entry_type": EntryType.INTERNAL_TRANSFER,
-            "probation_start_date": date.today().isoformat(),
-            "current_stage": self.first_day.id,  # неприменим для internal_transfer
-            "comment": "",
-        })
-        self.assertEqual(response.status_code, 200)  # форма не сохранилась, показала ошибку
-        self.assertFalse(User.objects.filter(username="maria.smirnova").exists())
+        self.assertContains(
+            response,
+            "Мария Смирнова",
+        )
+        self.assertContains(
+            response,
+            "maria.smirnova",
+        )
+        self.assertContains(
+            response,
+            "Сотрудник из другого отдела",
+        )
+        self.assertContains(
+            response,
+            reverse(
+                "traineediary:trainees_kanban",
+            ),
+        )
+        self.assertContains(
+            response,
+            reverse(
+                "sandbox:dashboard",
+            ),
+        )
+
+    def test_internal_transfer_ignores_adaptation_fields(
+        self,
+    ):
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        response = self.client.post(
+            reverse(
+                "traineediary:create_trainee",
+            ),
+            {
+                "first_name": "Олег",
+                "last_name": "Иванов",
+                "username": "oleg.ivanov",
+                "entry_type": (
+                    EntryType.INTERNAL_TRANSFER
+                ),
+                "probation_start_date": (
+                    date.today().isoformat()
+                ),
+                "current_stage": self.first_day.id,
+                "comment": (
+                    "Этот комментарий "
+                    "не должен сохраняться"
+                ),
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        user = User.objects.get(
+            username="oleg.ivanov",
+        )
+
+        self.assertEqual(
+            user.trainee_profile.level,
+            TraineeProfile.Level.L1,
+        )
+
+        self.assertFalse(
+            TraineeJourney.objects.filter(
+                user=user,
+            ).exists(),
+        )
 
     def test_move_trainee_stage_via_ajax(self):
         user = User.objects.create_user(
