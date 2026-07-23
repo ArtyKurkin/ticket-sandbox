@@ -20,6 +20,11 @@ urlpatterns = [
     path("trainees/board-fragment/", views.kanban_board_fragment, name="kanban_board_fragment"),
     path("trainees/new/", views.create_trainee, name="create_trainee"),
     path(
+        "trainees/pre-adaptation/",
+        views.pre_adaptation_users,
+        name="pre_adaptation_users",
+    ),
+    path(
         "trainees/<int:journey_id>/",
         views.trainee_detail,
         name="trainee_detail",

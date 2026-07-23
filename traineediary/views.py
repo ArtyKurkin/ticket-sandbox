@@ -21,6 +21,7 @@ from .models import (
     TraineeStage,
     WeeklyMetric,
 )
+from sandbox.models import TraineeProfile
 from .forms import (
     EditTraineeForm,
     NewTraineeForm,
@@ -627,18 +628,82 @@ def _build_kanban_columns():
     return working_columns, done_column
 
 
+def _pre_adaptation_users_queryset():
+    """
+    Сотрудники с доступом к очереди L1,
+    для которых адаптация ещё не началась.
+    """
+    journey_user_ids = (
+        TraineeJourney.objects
+        .values_list(
+            "user_id",
+            flat=True,
+        )
+    )
+
+    return (
+        User.objects
+        .filter(
+            trainee_profile__level=(
+                TraineeProfile.Level.L1
+            ),
+        )
+        .exclude(
+            id__in=journey_user_ids,
+        )
+        .select_related(
+            "trainee_profile",
+        )
+        .order_by(
+            "last_name",
+            "first_name",
+            "username",
+        )
+    )
+
+
 @login_required
 def trainees_kanban(request):
     if not request.user.is_staff:
         raise PermissionDenied
 
-    working_columns, done_column = _build_kanban_columns()
+    working_columns, done_column = (
+        _build_kanban_columns()
+    )
 
     context = {
         "columns": working_columns,
         "done_column": done_column,
+        "pre_adaptation_count": (
+            _pre_adaptation_users_queryset()
+            .count()
+        ),
     }
-    return render(request, "traineediary/trainees_kanban.html", context)
+
+    return render(
+        request,
+        "traineediary/trainees_kanban.html",
+        context,
+    )
+
+
+@login_required
+def pre_adaptation_users(request):
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    users = _pre_adaptation_users_queryset()
+
+    return render(
+        request,
+        (
+            "traineediary/"
+            "pre_adaptation_users.html"
+        ),
+        {
+            "pre_adaptation_users": users,
+        },
+    )
 
 
 @login_required

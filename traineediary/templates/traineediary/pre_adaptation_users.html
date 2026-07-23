@@ -1,0 +1,203 @@
+{% extends "traineediary/_base.html" %}
+
+{% block title %}До начала адаптации{% endblock %}
+
+{% block content %}
+<div class="hero flex-between">
+  <div>
+    <h1>До начала адаптации</h1>
+    <p>
+      Сотрудники уже могут проходить обучение
+      и выполнять задания Ticket Sandbox,
+      но их адаптация и испытательный срок
+      ещё не начались.
+    </p>
+  </div>
+
+  <div
+    style="
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    "
+  >
+    <a
+      href="{% url 'traineediary:trainees_kanban' %}"
+      class="button secondary"
+      style="width: auto;"
+    >
+      <i data-lucide="layout-dashboard"></i>
+      К канбану
+    </a>
+
+    <a
+      href="{% url 'traineediary:create_trainee' %}"
+      class="button"
+      style="width: auto;"
+    >
+      <i data-lucide="user-plus"></i>
+      Добавить сотрудника
+    </a>
+  </div>
+</div>
+
+{% if pre_adaptation_users %}
+  <div class="card">
+    <div style="overflow-x: auto;">
+      <table
+        style="
+          width: 100%;
+          border-collapse: collapse;
+        "
+      >
+        <thead>
+          <tr>
+            <th
+              style="
+                padding: 14px 16px;
+                text-align: left;
+              "
+            >
+              Сотрудник
+            </th>
+
+            <th
+              style="
+                padding: 14px 16px;
+                text-align: left;
+              "
+            >
+              Логин
+            </th>
+
+            <th
+              style="
+                padding: 14px 16px;
+                text-align: left;
+              "
+            >
+              Аккаунт создан
+            </th>
+
+            <th
+              style="
+                padding: 14px 16px;
+                text-align: left;
+              "
+            >
+              Статус
+            </th>
+
+            <th
+              style="
+                padding: 14px 16px;
+                text-align: right;
+              "
+            >
+              Ticket Sandbox
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for trainee_user in pre_adaptation_users %}
+            <tr>
+              <td
+                style="
+                  padding: 16px;
+                  border-top:
+                    1px solid
+                    rgba(255, 255, 255, 0.08);
+                "
+              >
+                <strong>
+                  {% if trainee_user.get_full_name %}
+                    {{ trainee_user.get_full_name }}
+                  {% else %}
+                    {{ trainee_user.username }}
+                  {% endif %}
+                </strong>
+              </td>
+
+              <td
+                style="
+                  padding: 16px;
+                  border-top:
+                    1px solid
+                    rgba(255, 255, 255, 0.08);
+                "
+              >
+                {{ trainee_user.username }}
+              </td>
+
+              <td
+                style="
+                  padding: 16px;
+                  border-top:
+                    1px solid
+                    rgba(255, 255, 255, 0.08);
+                "
+              >
+                {{ trainee_user.date_joined|date:"d.m.Y H:i" }}
+              </td>
+
+              <td
+                style="
+                  padding: 16px;
+                  border-top:
+                    1px solid
+                    rgba(255, 255, 255, 0.08);
+                "
+              >
+                {% if trainee_user.is_active %}
+                  <span class="status status-success">
+                    Обучение до адаптации
+                  </span>
+                {% else %}
+                  <span class="status status-danger">
+                    Аккаунт отключён
+                  </span>
+                {% endif %}
+              </td>
+
+              <td
+                style="
+                  padding: 16px;
+                  text-align: right;
+                  border-top:
+                    1px solid
+                    rgba(255, 255, 255, 0.08);
+                "
+              >
+                <span class="status">
+                  Очередь L1 доступна
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="card">
+    <h2>Список пока пуст</h2>
+
+    <p>
+      Здесь появятся сотрудники из других
+      отделов, для которых создан доступ,
+      но адаптация ещё не начата.
+    </p>
+
+    <a
+      href="{% url 'traineediary:create_trainee' %}"
+      class="button mt-16"
+      style="width: auto;"
+    >
+      <i data-lucide="user-plus"></i>
+      Добавить сотрудника
+    </a>
+  </div>
+{% endif %}
+{% endblock %}

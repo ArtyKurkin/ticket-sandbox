@@ -12,14 +12,32 @@
     <p>Перетащи карточку в другую колонку, чтобы сменить этап.</p>
   </div>
 
-  <a
-    href="{% url 'traineediary:create_trainee' %}"
-    class="button"
-    style="width: auto;"
+  <div
+    style="
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    "
   >
-    <i data-lucide="user-plus"></i>
-    Добавить стажёра
-  </a>
+    <a
+      href="{% url 'traineediary:pre_adaptation_users' %}"
+      class="button secondary"
+      style="width: auto;"
+    >
+      <i data-lucide="clock-3"></i>
+      До начала адаптации · {{ pre_adaptation_count }}
+    </a>
+
+    <a
+      href="{% url 'traineediary:create_trainee' %}"
+      class="button"
+      style="width: auto;"
+    >
+      <i data-lucide="user-plus"></i>
+      Добавить сотрудника
+    </a>
+  </div>
 </div>
 
 <div

@@ -426,3 +426,162 @@ class TraineeKanbanAndCreationTests(TestCase):
             response,
             'class="kanban-done-count"',
         )
+
+    def test_pre_adaptation_page_contains_only_l1_users_without_journey(
+        self,
+    ):
+        waiting_user = User.objects.create_user(
+            username="waiting.for.adaptation",
+            first_name="Роман",
+            last_name="Гурин",
+            password="test",
+        )
+
+        TraineeProfile.objects.update_or_create(
+            user=waiting_user,
+            defaults={
+                "level": TraineeProfile.Level.L1,
+            },
+        )
+
+        active_trainee = User.objects.create_user(
+            username="active.adaptation",
+            first_name="Анна",
+            last_name="Тестова",
+            password="test",
+        )
+
+        TraineeProfile.objects.update_or_create(
+            user=active_trainee,
+            defaults={
+                "level": TraineeProfile.Level.L1,
+            },
+        )
+
+        TraineeJourney.objects.create(
+            user=active_trainee,
+            entry_type=EntryType.NEW_HIRE,
+            probation_start_date=date.today(),
+            current_stage=self.first_day,
+            stage_started_at=date.today(),
+        )
+
+        candidate_user = User.objects.create_user(
+            username="candidate.without.journey",
+            first_name="Пётр",
+            last_name="Кандидатов",
+            password="test",
+        )
+
+        TraineeProfile.objects.update_or_create(
+            user=candidate_user,
+            defaults={
+                "level": (
+                    TraineeProfile.Level.CANDIDATE
+                ),
+            },
+        )
+
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:pre_adaptation_users",
+            ),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertContains(
+            response,
+            "Роман Гурин",
+        )
+        self.assertContains(
+            response,
+            "waiting.for.adaptation",
+        )
+        self.assertContains(
+            response,
+            "Очередь L1 доступна",
+        )
+
+        self.assertNotContains(
+            response,
+            "active.adaptation",
+        )
+        self.assertNotContains(
+            response,
+            "candidate.without.journey",
+        )
+
+    def test_kanban_shows_pre_adaptation_users_count(
+        self,
+    ):
+        for username in (
+            "waiting-one",
+            "waiting-two",
+        ):
+            user = User.objects.create_user(
+                username=username,
+                password="test",
+            )
+
+            TraineeProfile.objects.update_or_create(
+                user=user,
+                defaults={
+                    "level": TraineeProfile.Level.L1,
+                },
+            )
+
+        active_user = User.objects.create_user(
+            username="already-in-adaptation",
+            password="test",
+        )
+
+        TraineeProfile.objects.update_or_create(
+            user=active_user,
+            defaults={
+                "level": TraineeProfile.Level.L1,
+            },
+        )
+
+        TraineeJourney.objects.create(
+            user=active_user,
+            entry_type=EntryType.NEW_HIRE,
+            probation_start_date=date.today(),
+            current_stage=self.first_day,
+            stage_started_at=date.today(),
+        )
+
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainees_kanban",
+            ),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertContains(
+            response,
+            "До начала адаптации · 2",
+        )
+        self.assertContains(
+            response,
+            reverse(
+                "traineediary:pre_adaptation_users",
+            ),
+        )
