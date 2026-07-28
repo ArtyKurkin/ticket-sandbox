@@ -672,7 +672,9 @@ def start_adaptation(
         raise PermissionDenied
 
     trainee_user = get_object_or_404(
-        _pre_adaptation_users_queryset(),
+        _pre_adaptation_users_queryset().filter(
+            is_active=True,
+        ),
         pk=user_id,
     )
 

@@ -317,6 +317,14 @@ class StartAdaptationForm(forms.Form):
     def clean(self):
         cleaned_data = super().clean()
 
+        if not self.user.is_active:
+            raise forms.ValidationError(
+                (
+                    "Нельзя начать адаптацию: "
+                    "аккаунт сотрудника отключён."
+                ),
+            )
+
         probation_start_date = cleaned_data.get(
             "probation_start_date",
         )

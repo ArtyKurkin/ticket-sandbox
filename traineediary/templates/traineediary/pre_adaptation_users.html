@@ -163,17 +163,23 @@
                     rgba(255, 255, 255, 0.08);
                 "
               >
-                <a
-                  href="{% url 'traineediary:start_adaptation' trainee_user.id %}"
-                  class="button"
-                  style="
-                    width: auto;
-                    white-space: nowrap;
-                  "
-                >
-                  <i data-lucide="play"></i>
-                  Начать адаптацию
-                </a>
+                {% if trainee_user.is_active %}
+                  <a
+                    href="{% url 'traineediary:start_adaptation' trainee_user.id %}"
+                    class="button"
+                    style="
+                      width: auto;
+                      white-space: nowrap;
+                    "
+                  >
+                    <i data-lucide="play"></i>
+                    Начать адаптацию
+                  </a>
+                {% else %}
+                  <span class="status status-danger">
+                    Сначала включи аккаунт
+                  </span>
+                {% endif %}
               </td>
             </tr>
           {% endfor %}

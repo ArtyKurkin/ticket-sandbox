@@ -206,8 +206,12 @@ class TraineeKanbanAndCreationTests(TestCase):
         self.assertContains(
             response,
             reverse(
-                "traineediary:trainees_kanban",
+                "traineediary:pre_adaptation_users",
             ),
+        )
+        self.assertContains(
+            response,
+            "К сотрудникам до адаптации",
         )
         self.assertContains(
             response,
@@ -746,4 +750,71 @@ class TraineeKanbanAndCreationTests(TestCase):
         self.assertNotContains(
             pre_adaptation_response,
             "start.adaptation",
+        )
+
+    def test_inactive_user_cannot_start_adaptation(
+        self,
+    ):
+        user = User.objects.create_user(
+            username="inactive.before.adaptation",
+            first_name="Олег",
+            last_name="Отключённый",
+            password="test",
+            is_active=False,
+        )
+
+        TraineeProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                "level": TraineeProfile.Level.L1,
+            },
+        )
+
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        list_response = self.client.get(
+            reverse(
+                "traineediary:pre_adaptation_users",
+            ),
+        )
+
+        self.assertEqual(
+            list_response.status_code,
+            200,
+        )
+        self.assertContains(
+            list_response,
+            "inactive.before.adaptation",
+        )
+        self.assertContains(
+            list_response,
+            "Сначала включи аккаунт",
+        )
+        self.assertNotContains(
+            list_response,
+            reverse(
+                "traineediary:start_adaptation",
+                args=[user.id],
+            ),
+        )
+
+        start_response = self.client.get(
+            reverse(
+                "traineediary:start_adaptation",
+                args=[user.id],
+            ),
+        )
+
+        self.assertEqual(
+            start_response.status_code,
+            404,
+        )
+
+        self.assertFalse(
+            TraineeJourney.objects.filter(
+                user=user,
+            ).exists(),
         )
