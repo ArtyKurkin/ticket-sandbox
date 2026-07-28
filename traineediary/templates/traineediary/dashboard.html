@@ -11,7 +11,7 @@
     </h1>
 
     <p>
-      Текущее состояние всех активных стажёров.
+      Текущее состояние стажёров.
     </p>
   </div>
 
@@ -60,22 +60,6 @@
 
     <div class="diary-summary-label">
       Готовы к переходу
-    </div>
-  </div>
-
-  <div
-    class="
-      card
-      diary-summary-card
-      diary-summary-card-warning
-    "
-  >
-    <div class="diary-summary-count">
-      {{ almost_ready_count }}
-    </div>
-
-    <div class="diary-summary-label">
-      Почти готовы
     </div>
   </div>
 
@@ -506,32 +490,45 @@
                 {{ row.journey.current_stage.name }}
               </span>
 
-              <span
-                class="
-                  diary-readiness-label
-                  is-{{ row.assessment.readiness.state }}
-                "
-              >
-                {% if row.assessment.readiness.is_completed %}
+              {% if row.assessment.readiness.is_completed %}
+                <span
+                  class="
+                    diary-readiness-label
+                    is-completed
+                  "
+                >
                   <i data-lucide="trophy"></i>
+                  Адаптация завершена
+                </span>
 
-                {% elif row.assessment.readiness.is_ready %}
+              {% elif row.assessment.readiness.is_ready %}
+                <span
+                  class="
+                    diary-readiness-label
+                    is-ready
+                  "
+                >
                   <i data-lucide="badge-check"></i>
 
-                {% elif row.assessment.readiness.is_almost_ready %}
+                  Готов к переходу
+
+                  {% if row.assessment.readiness.next_stage %}
+                    ·
+                    {{ row.assessment.readiness.next_stage.name }}
+                  {% endif %}
+                </span>
+
+              {% elif row.assessment.readiness.is_almost_ready %}
+                <span
+                  class="
+                    diary-readiness-label
+                    is-almost_ready
+                  "
+                >
                   <i data-lucide="clock-3"></i>
-
-                {% else %}
-                  <i data-lucide="circle-dashed"></i>
-                {% endif %}
-
-                {{ row.assessment.readiness.label }}
-
-                {% if row.assessment.readiness.is_ready and row.assessment.readiness.next_stage %}
-                  ·
-                  {{ row.assessment.readiness.next_stage.name }}
-                {% endif %}
-              </span>
+                  Почти готов
+                </span>
+              {% endif %}
             </td>
 
             <td>
