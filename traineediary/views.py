@@ -32,8 +32,8 @@ from .services.sandbox_progress import (
     build_sandbox_queue_progress,
     build_sandbox_queue_progress_map,
 )
-from .services.attention import (
-    build_attention_summary,
+from .services.assessment import (
+    build_trainee_assessment,
 )
 
 
@@ -282,13 +282,20 @@ def dashboard(request):
 
     if stage_filter:
         try:
-            stage_id = int(stage_filter)
-        except (TypeError, ValueError):
+            stage_id = int(
+                stage_filter,
+            )
+        except (
+            TypeError,
+            ValueError,
+        ):
             stage_filter = ""
 
     weekly_metrics_queryset = (
         WeeklyMetric.objects
-        .order_by("week_number")
+        .order_by(
+            "week_number",
+        )
     )
 
     journeys_queryset = (
@@ -300,7 +307,9 @@ def dashboard(request):
         .prefetch_related(
             Prefetch(
                 "weekly_metrics",
-                queryset=weekly_metrics_queryset,
+                queryset=(
+                    weekly_metrics_queryset
+                ),
             ),
         )
     )
@@ -308,14 +317,18 @@ def dashboard(request):
     if status_filter == "active":
         journeys_queryset = (
             journeys_queryset.exclude(
-                current_stage__group=StageGroup.DONE,
+                current_stage__group=(
+                    StageGroup.DONE
+                ),
             )
         )
 
     elif status_filter == "completed":
         journeys_queryset = (
             journeys_queryset.filter(
-                current_stage__group=StageGroup.DONE,
+                current_stage__group=(
+                    StageGroup.DONE
+                ),
             )
         )
 
@@ -323,13 +336,19 @@ def dashboard(request):
         journeys_queryset = (
             journeys_queryset.filter(
                 Q(
-                    user__first_name__icontains=query,
+                    user__first_name__icontains=(
+                        query
+                    ),
                 )
                 | Q(
-                    user__last_name__icontains=query,
+                    user__last_name__icontains=(
+                        query
+                    ),
                 )
                 | Q(
-                    user__username__icontains=query,
+                    user__username__icontains=(
+                        query
+                    ),
                 )
             )
         )
@@ -337,7 +356,9 @@ def dashboard(request):
     if entry_type_filter:
         journeys_queryset = (
             journeys_queryset.filter(
-                entry_type=entry_type_filter,
+                entry_type=(
+                    entry_type_filter
+                ),
             )
         )
 
@@ -363,10 +384,12 @@ def dashboard(request):
                 journey.user
                 for journey in journeys
             ],
+            queue_slug="l1",
         )
     )
 
     ready_to_transition_count = 0
+    almost_ready_count = 0
     needs_attention_count = 0
 
     group_counts = {}
@@ -374,47 +397,15 @@ def dashboard(request):
     filtered_journeys = []
 
     for journey in journeys:
-        risk = journey.risk_level
-
-        attention_summary = (
-            build_attention_summary(
-                journey,
-            )
-        )
-
-        if (
-            attention_filter == "1"
-            and not (
-                attention_summary
-                .requires_attention
-            )
-        ):
-            continue
-
-        if (
-            attention_filter == "0"
-            and (
-                attention_summary
-                .requires_attention
-            )
-        ):
-            continue
-
-        group = journey.current_stage.group
-
-        group_counts[group] = (
-            group_counts.get(group, 0) + 1
-        )
-
         sandbox_l1_progress = (
             sandbox_progress_by_user_id[
                 journey.user_id
             ]
         )
 
-        l1_transition_state = (
-            _build_l1_transition_state(
-                journey=journey,
+        assessment = (
+            build_trainee_assessment(
+                journey,
                 sandbox_progress=(
                     sandbox_l1_progress
                 ),
@@ -422,16 +413,41 @@ def dashboard(request):
         )
 
         if (
-            l1_transition_state[
-                "should_transition"
-            ]
+            attention_filter == "1"
+            and not (
+                assessment
+                .requires_attention
+            )
         ):
-            ready_to_transition_count += 1
+            continue
 
         if (
-            attention_summary
-            .requires_attention
+            attention_filter == "0"
+            and assessment.requires_attention
         ):
+            continue
+
+        group = journey.current_stage.group
+
+        group_counts[group] = (
+            group_counts.get(
+                group,
+                0,
+            )
+            + 1
+        )
+
+        if assessment.readiness.is_ready:
+            ready_to_transition_count += 1
+
+        elif (
+            assessment
+            .readiness
+            .is_almost_ready
+        ):
+            almost_ready_count += 1
+
+        if assessment.requires_attention:
             needs_attention_count += 1
 
         filtered_journeys.append(
@@ -440,10 +456,17 @@ def dashboard(request):
 
         rows.append({
             "journey": journey,
-            "risk": risk,
+            "assessment": assessment,
+
+            # Временно оставляем алиасы,
+            # чтобы старые интеграционные
+            # тесты и шаблоны не ломались
+            # во время перехода.
+            "risk": assessment.risk_level,
             "attention_summary": (
-                attention_summary
+                assessment.attention
             ),
+
             "progress_percent": (
                 journey.progress_percent
             ),
@@ -465,16 +488,16 @@ def dashboard(request):
             "sandbox_l1_progress": (
                 sandbox_l1_progress
             ),
-            "l1_transition_state": (
-                l1_transition_state
-            ),
         })
 
     if status_filter == "completed":
         summary_groups = [
             choice
             for choice in StageGroup.choices
-            if choice[0] == StageGroup.DONE
+            if (
+                choice[0]
+                == StageGroup.DONE
+            )
         ]
 
     elif status_filter == "all":
@@ -486,7 +509,10 @@ def dashboard(request):
         summary_groups = [
             choice
             for choice in StageGroup.choices
-            if choice[0] != StageGroup.DONE
+            if (
+                choice[0]
+                != StageGroup.DONE
+            )
         ]
 
     summary_cards = [
@@ -502,13 +528,20 @@ def dashboard(request):
 
     context = {
         "rows": rows,
-        "filtered_count": len(rows),
-        "summary_cards": summary_cards,
+        "filtered_count": len(
+            rows,
+        ),
+        "summary_cards": (
+            summary_cards
+        ),
         "needs_attention_count": (
             needs_attention_count
         ),
         "ready_to_transition_count": (
             ready_to_transition_count
+        ),
+        "almost_ready_count": (
+            almost_ready_count
         ),
         "weekly_pulse": (
             _build_weekly_pulse(
@@ -516,14 +549,22 @@ def dashboard(request):
             )
         ),
         "entry_type_choices": [
-            (value, label)
-            for value, label in EntryType.choices
+            (
+                value,
+                label,
+            )
+            for value, label
+            in EntryType.choices
             if value
         ],
         "stage_choices": (
             TraineeStage.objects
-            .filter(is_active=True)
-            .order_by("order")
+            .filter(
+                is_active=True,
+            )
+            .order_by(
+                "order",
+            )
         ),
         "filters": {
             "q": query,
@@ -548,8 +589,20 @@ def dashboard(request):
 def _build_kanban_columns():
     stages = list(
         TraineeStage.objects
-        .filter(is_active=True)
-        .order_by("order", "id")
+        .filter(
+            is_active=True,
+        )
+        .order_by(
+            "order",
+            "id",
+        )
+    )
+
+    weekly_metrics_queryset = (
+        WeeklyMetric.objects
+        .order_by(
+            "week_number",
+        )
     )
 
     journeys = list(
@@ -557,6 +610,14 @@ def _build_kanban_columns():
         .select_related(
             "user",
             "current_stage",
+        )
+        .prefetch_related(
+            Prefetch(
+                "weekly_metrics",
+                queryset=(
+                    weekly_metrics_queryset
+                ),
+            ),
         )
         .order_by(
             "user__last_name",
@@ -571,6 +632,7 @@ def _build_kanban_columns():
                 journey.user
                 for journey in journeys
             ],
+            queue_slug="l1",
         )
     )
 
@@ -583,31 +645,36 @@ def _build_kanban_columns():
             ]
         )
 
-        l1_transition_state = (
-            _build_l1_transition_state(
-                journey=journey,
-                sandbox_progress=sandbox_l1_progress,
+        assessment = (
+            build_trainee_assessment(
+                journey,
+                sandbox_progress=(
+                    sandbox_l1_progress
+                ),
             )
         )
 
         card = {
             "journey": journey,
+            "assessment": assessment,
             "sandbox_l1_progress": (
                 sandbox_l1_progress
             ),
-            "l1_transition_state": (
-                l1_transition_state
-            ),
             "show_sandbox_progress": (
                 journey.current_stage.group
-                == StageGroup.SANDBOX_CANDIDATE
+                == (
+                    StageGroup
+                    .SANDBOX_CANDIDATE
+                )
             ),
         }
 
         cards_by_stage.setdefault(
             journey.current_stage_id,
             [],
-        ).append(card)
+        ).append(
+            card,
+        )
 
     working_columns = []
     done_column = None
@@ -615,18 +682,25 @@ def _build_kanban_columns():
     for stage in stages:
         column = {
             "stage": stage,
-            "cards": cards_by_stage.get(
-                stage.id,
-                [],
+            "cards": (
+                cards_by_stage.get(
+                    stage.id,
+                    [],
+                )
             ),
         }
 
         if stage.group == StageGroup.DONE:
             done_column = column
         else:
-            working_columns.append(column)
+            working_columns.append(
+                column,
+            )
 
-    return working_columns, done_column
+    return (
+        working_columns,
+        done_column,
+    )
 
 
 def _pre_adaptation_users_queryset():

@@ -96,6 +96,34 @@ def _get_latest_metric(
     journey,
     field_name,
 ):
+    prefetched_metrics = (
+        getattr(
+            journey,
+            "_prefetched_objects_cache",
+            {},
+        )
+        .get(
+            "weekly_metrics",
+        )
+    )
+
+    if prefetched_metrics is not None:
+        return max(
+            (
+                metric
+                for metric in prefetched_metrics
+                if getattr(
+                    metric,
+                    field_name,
+                ) is not None
+            ),
+            key=lambda metric: (
+                metric.week_number,
+                metric.id,
+            ),
+            default=None,
+        )
+
     return (
         journey.weekly_metrics
         .filter(

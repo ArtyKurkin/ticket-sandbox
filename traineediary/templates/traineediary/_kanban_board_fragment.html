@@ -19,12 +19,16 @@
           data-stage-name="{{ column.stage.name }}"
         >
           {% for card in column.cards %}
-            {% with journey=card.journey progress=card.sandbox_l1_progress transition=card.l1_transition_state %}
+            {% with journey=card.journey progress=card.sandbox_l1_progress assessment=card.assessment readiness=card.assessment.readiness %}
               <div
                 class="
                   kanban-card
-                  {% if transition.should_transition %}
+
+                  {% if readiness.is_ready %}
                     is-transition-ready
+
+                  {% elif readiness.is_almost_ready %}
+                    is-almost-ready
                   {% endif %}
                 "
                 data-journey-id="{{ journey.id }}"
@@ -47,17 +51,6 @@
                 <div class="kanban-card-meta">
                   {{ journey.get_entry_type_display }}
                 </div>
-
-                {% if journey.risk_level == "high" %}
-                  <span class="status status-danger status-full">
-                    Высокий риск
-                  </span>
-
-                {% elif journey.risk_level == "medium" %}
-                  <span class="status status-primary status-full">
-                    Средний риск
-                  </span>
-                {% endif %}
 
                 {% if card.show_sandbox_progress %}
                   <div class="kanban-card-sandbox">
@@ -128,7 +121,66 @@
                   </div>
                 {% endif %}
 
-                {% if transition.should_transition %}
+                <div class="kanban-card-assessment">
+                  <span
+                    class="
+                      status
+                      kanban-card-readiness-status
+
+                      {% if readiness.is_ready %}
+                        status-success
+
+                      {% elif readiness.is_almost_ready %}
+                        status-primary
+
+                      {% else %}
+                        status-muted
+                      {% endif %}
+                    "
+                  >
+                    {% if readiness.is_ready %}
+                      <i data-lucide="badge-check"></i>
+
+                    {% elif readiness.is_almost_ready %}
+                      <i data-lucide="clock-3"></i>
+
+                    {% else %}
+                      <i data-lucide="circle-dashed"></i>
+                    {% endif %}
+
+                    {{ readiness.label }}
+                  </span>
+
+                  {% if assessment.requires_attention %}
+                    <span
+                      class="
+                        status
+
+                        {% if assessment.attention.highest_severity == 'danger' %}
+                          status-danger
+                        {% else %}
+                          status-primary
+                        {% endif %}
+                      "
+                    >
+                      Требует внимания
+                    </span>
+                  {% endif %}
+                </div>
+
+                {% if readiness.reasons and not readiness.is_ready %}
+                  <div class="kanban-card-readiness-reason">
+                    <strong>
+                      {{ readiness.reasons.0.label }}
+                    </strong>
+
+                    <span>
+                      {{ readiness.reasons.0.description }}
+                    </span>
+                  </div>
+                {% endif %}
+
+                {% if readiness.is_ready and readiness.next_stage %}
                   <div class="kanban-card-ready">
                     <div class="kanban-card-ready-label">
                       <i data-lucide="badge-check"></i>
@@ -138,22 +190,20 @@
                       </span>
                     </div>
 
-                    {% if transition.next_stage %}
-                      <button
-                        type="button"
-                        class="
-                          button
-                          button-small
-                          kanban-card-transition-button
-                        "
-                        data-kanban-stage-move-button
-                        data-stage-id="{{ transition.next_stage.id }}"
-                        data-stage-name="{{ transition.next_stage.name }}"
-                      >
-                        <i data-lucide="arrow-right"></i>
-                        Перевести
-                      </button>
-                    {% endif %}
+                    <button
+                      type="button"
+                      class="
+                        button
+                        button-small
+                        kanban-card-transition-button
+                      "
+                      data-kanban-stage-move-button
+                      data-stage-id="{{ readiness.next_stage.id }}"
+                      data-stage-name="{{ readiness.next_stage.name }}"
+                    >
+                      <i data-lucide="arrow-right"></i>
+                      Перевести
+                    </button>
                   </div>
                 {% endif %}
 

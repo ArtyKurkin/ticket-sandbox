@@ -390,3 +390,42 @@ class TraineeAssessmentTests(TestCase):
             assessment.risk_level,
             RiskLevel.LOW,
         )
+
+    def test_assessment_reuses_prefetched_weekly_metrics(
+        self,
+    ):
+        journey = self.create_journey(
+            stage=self.with_review_stage,
+            stage_days_ago=20,
+        )
+
+        self.create_metric(
+            journey,
+            speed="6.0",
+            quality=80,
+        )
+
+        journey = (
+            TraineeJourney.objects
+            .select_related(
+                "current_stage",
+                "user",
+            )
+            .prefetch_related(
+                "weekly_metrics",
+            )
+            .get(
+                pk=journey.pk,
+            )
+        )
+
+        with self.assertNumQueries(1):
+            assessment = (
+                build_trainee_assessment(
+                    journey,
+                )
+            )
+
+        self.assertTrue(
+            assessment.readiness.is_ready,
+        )
