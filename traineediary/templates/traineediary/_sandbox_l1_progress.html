@@ -1,0 +1,87 @@
+<div
+  class="
+    pre-adaptation-sandbox-progress
+    {% if progress.is_ready %}
+      is-ready
+    {% endif %}
+  "
+>
+  {% if not progress.queue_exists %}
+    <div class="pre-adaptation-sandbox-empty is-error">
+      <i data-lucide="triangle-alert"></i>
+
+      <span>
+        Очередь L1 не найдена
+      </span>
+    </div>
+
+  {% elif not progress.total_count %}
+    <div class="pre-adaptation-sandbox-empty">
+      <i data-lucide="circle-minus"></i>
+
+      <span>
+        В очереди L1 нет активных заданий
+      </span>
+    </div>
+
+  {% else %}
+    <div class="pre-adaptation-sandbox-header">
+      <strong>
+        {{ progress.passed_count }}
+        из
+        {{ progress.total_count }}
+      </strong>
+
+      <span>
+        {{ progress.progress_percent }}%
+      </span>
+    </div>
+
+    <div class="pre-adaptation-sandbox-bar">
+      <div
+        class="
+          pre-adaptation-sandbox-bar-fill
+          {% if progress.is_ready %}
+            is-ready
+          {% endif %}
+        "
+        style="
+          width: {{ progress.progress_percent }}%;
+        "
+      ></div>
+    </div>
+
+    <div class="pre-adaptation-sandbox-footer">
+      {% if progress.is_ready %}
+        <span class="is-ready">
+          <i data-lucide="circle-check"></i>
+          L1 завершён
+        </span>
+
+      {% elif progress.on_review_count %}
+        <span class="is-review">
+          <i data-lucide="clock-3"></i>
+
+          На проверке:
+          {{ progress.on_review_count }}
+        </span>
+
+        <span>
+          Осталось зачесть:
+          {{ progress.remaining_count }}
+        </span>
+
+      {% elif progress.passed_count %}
+        <span>
+          Осталось зачесть:
+          {{ progress.remaining_count }}
+        </span>
+
+      {% else %}
+        <span>
+          Задания ещё не начаты
+        </span>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>

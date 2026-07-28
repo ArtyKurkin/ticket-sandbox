@@ -4369,3 +4369,93 @@ body.terminal-is-expanded {
     width: 100%;
   }
 }
+
+
+/* === Traineediary: pre-adaptation L1 progress === */
+
+.pre-adaptation-sandbox-progress {
+  min-width: 220px;
+}
+
+.pre-adaptation-sandbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.pre-adaptation-sandbox-header span {
+  color: var(--muted);
+}
+
+.pre-adaptation-sandbox-bar {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.pre-adaptation-sandbox-bar-fill {
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: var(--blue-light);
+}
+
+.pre-adaptation-sandbox-bar-fill.is-ready {
+  background: #28d17c;
+}
+
+.pre-adaptation-sandbox-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.pre-adaptation-sandbox-footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pre-adaptation-sandbox-footer svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pre-adaptation-sandbox-footer .is-ready {
+  color: #28d17c;
+}
+
+.pre-adaptation-sandbox-footer .is-review {
+  color: var(--blue-light);
+}
+
+.pre-adaptation-sandbox-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.pre-adaptation-sandbox-empty svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.pre-adaptation-sandbox-empty.is-error {
+  border-color: rgba(239, 68, 68, 0.28);
+  color: #ef4444;
+}

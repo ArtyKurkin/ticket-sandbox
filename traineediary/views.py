@@ -678,6 +678,13 @@ def start_adaptation(
         pk=user_id,
     )
 
+    sandbox_l1_progress = (
+        build_sandbox_queue_progress(
+            user=trainee_user,
+            queue_slug="l1",
+        )
+    )
+
     if request.method == "POST":
         form = StartAdaptationForm(
             request.POST,
@@ -716,6 +723,9 @@ def start_adaptation(
         {
             "form": form,
             "trainee_user": trainee_user,
+            "sandbox_l1_progress": (
+                sandbox_l1_progress
+            ),
         },
     )
 
@@ -750,7 +760,25 @@ def pre_adaptation_users(request):
     if not request.user.is_staff:
         raise PermissionDenied
 
-    users = _pre_adaptation_users_queryset()
+    users = list(
+        _pre_adaptation_users_queryset()
+    )
+
+    sandbox_progress_by_user_id = (
+        build_sandbox_queue_progress_map(
+            users=users,
+            queue_slug="l1",
+        )
+    )
+
+    for trainee_user in users:
+        # Атрибут используется только при отображении
+        # страницы и не сохраняется в базе.
+        trainee_user.sandbox_l1_progress = (
+            sandbox_progress_by_user_id[
+                trainee_user.id
+            ]
+        )
 
     return render(
         request,

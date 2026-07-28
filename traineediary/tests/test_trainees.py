@@ -11,7 +11,12 @@ from traineediary.models import (
     TraineeJourney,
     TraineeStage,
 )
-from sandbox.models import TraineeProfile
+from sandbox.models import (
+    Queue,
+    Task,
+    TaskAttempt,
+    TraineeProfile,
+)
 
 
 class TraineeKanbanAndCreationTests(TestCase):
@@ -29,6 +34,44 @@ class TraineeKanbanAndCreationTests(TestCase):
         self.staff_user = User.objects.create_user(
             username="mentor-kanban", password="test", is_staff=True,
         )
+
+    def _create_l1_tasks(self):
+        queue, _ = Queue.objects.update_or_create(
+            slug="l1",
+            defaults={
+                "name": "ОТП Cloud L1",
+                "description": "",
+                "order": 2,
+                "is_active": True,
+                "required_level": (
+                    TraineeProfile.Level.L1
+                ),
+            },
+        )
+
+        Task.objects.filter(
+            queue=queue,
+        ).delete()
+
+        first_task = Task.objects.create(
+            queue=queue,
+            title="Первое L1-задание",
+            slug="pre-adaptation-first",
+            order=1,
+            description="Тестовое задание.",
+            is_active=True,
+        )
+
+        second_task = Task.objects.create(
+            queue=queue,
+            title="Второе L1-задание",
+            slug="pre-adaptation-second",
+            order=2,
+            description="Тестовое задание.",
+            is_active=True,
+        )
+
+        return first_task, second_task
 
     def test_kanban_renders_for_staff(self):
         self.client.login(username="mentor-kanban", password="test")
@@ -510,11 +553,6 @@ class TraineeKanbanAndCreationTests(TestCase):
             response,
             "waiting.for.adaptation",
         )
-        self.assertContains(
-            response,
-            "Очередь L1 доступна",
-        )
-
         self.assertNotContains(
             response,
             "active.adaptation",
@@ -872,4 +910,194 @@ class TraineeKanbanAndCreationTests(TestCase):
             TraineeJourney.objects.filter(
                 user__username="future.trainee",
             ).exists(),
+        )
+
+    def test_pre_adaptation_page_shows_l1_progress(
+        self,
+    ):
+        user = User.objects.create_user(
+            username="pre.adaptation.progress",
+            first_name="Роман",
+            last_name="Гурин",
+            password="test",
+        )
+
+        TraineeProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                "level": TraineeProfile.Level.L1,
+            },
+        )
+
+        first_task, second_task = (
+            self._create_l1_tasks()
+        )
+
+        TaskAttempt.objects.create(
+            user=user,
+            task=first_task,
+            attempt_number=1,
+            is_current=True,
+            status=TaskAttempt.Status.PASSED,
+        )
+
+        TaskAttempt.objects.create(
+            user=user,
+            task=second_task,
+            attempt_number=1,
+            is_current=True,
+            status=TaskAttempt.Status.ON_REVIEW,
+        )
+
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:pre_adaptation_users",
+            ),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        users = response.context[
+            "pre_adaptation_users"
+        ]
+
+        progress_user = next(
+            trainee_user
+            for trainee_user in users
+            if trainee_user.id == user.id
+        )
+
+        progress = (
+            progress_user.sandbox_l1_progress
+        )
+
+        self.assertEqual(
+            progress.total_count,
+            2,
+        )
+        self.assertEqual(
+            progress.passed_count,
+            1,
+        )
+        self.assertEqual(
+            progress.on_review_count,
+            1,
+        )
+        self.assertEqual(
+            progress.progress_percent,
+            50,
+        )
+        self.assertFalse(
+            progress.is_ready,
+        )
+
+        self.assertContains(
+            response,
+            "50%",
+        )
+        self.assertContains(
+            response,
+            "На проверке:",
+        )
+        self.assertContains(
+            response,
+            "Осталось зачесть:",
+        )
+
+    def test_incomplete_l1_progress_warns_but_does_not_block_adaptation(
+        self,
+    ):
+        user = User.objects.create_user(
+            username="start.with.incomplete.l1",
+            first_name="Мария",
+            last_name="Смирнова",
+            password="test",
+        )
+
+        TraineeProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                "level": TraineeProfile.Level.L1,
+            },
+        )
+
+        first_task, _ = self._create_l1_tasks()
+
+        TaskAttempt.objects.create(
+            user=user,
+            task=first_task,
+            attempt_number=1,
+            is_current=True,
+            status=TaskAttempt.Status.PASSED,
+        )
+
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        start_url = reverse(
+            "traineediary:start_adaptation",
+            args=[user.id],
+        )
+
+        get_response = self.client.get(
+            start_url,
+        )
+
+        self.assertEqual(
+            get_response.status_code,
+            200,
+        )
+        self.assertContains(
+            get_response,
+            (
+                "Сотрудник ещё не завершил "
+                "задания L1."
+            ),
+        )
+        self.assertContains(
+            get_response,
+            "Начать всё равно",
+        )
+
+        post_response = self.client.post(
+            start_url,
+            {
+                "probation_start_date": (
+                    date.today().isoformat()
+                ),
+                "current_stage": (
+                    self.with_review.id
+                ),
+                "comment": (
+                    "Адаптация начата до "
+                    "завершения L1"
+                ),
+            },
+        )
+
+        journey = TraineeJourney.objects.get(
+            user=user,
+        )
+
+        self.assertRedirects(
+            post_response,
+            reverse(
+                "traineediary:trainee_detail",
+                args=[journey.id],
+            ),
+        )
+
+        self.assertEqual(
+            journey.entry_type,
+            EntryType.INTERNAL_TRANSFER,
         )

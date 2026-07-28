@@ -45,6 +45,34 @@
     </p>
   </div>
 
+  <div style="margin-bottom: 24px;">
+  <p class="field-label">
+    Ticket Sandbox · L1
+  </p>
+
+  {% include "traineediary/_sandbox_l1_progress.html" with progress=sandbox_l1_progress %}
+
+  {% if not sandbox_l1_progress.queue_exists %}
+    <div class="status status-danger status-full mt-8">
+      Не удалось проверить готовность сотрудника:
+      очередь L1 не найдена. Адаптацию всё равно
+      можно начать вручную.
+    </div>
+
+  {% elif not sandbox_l1_progress.total_count %}
+    <div class="status status-warning status-full mt-8">
+      В очереди L1 нет активных заданий.
+      Адаптацию можно начать вручную.
+    </div>
+
+  {% elif not sandbox_l1_progress.is_ready %}
+    <div class="status status-warning status-full mt-8">
+      Сотрудник ещё не завершил задания L1.
+      Это предупреждение не блокирует запуск адаптации.
+    </div>
+  {% endif %}
+</div>
+
   <form method="post" novalidate>
     {% csrf_token %}
 
@@ -114,7 +142,12 @@
         style="width: auto;"
       >
         <i data-lucide="play"></i>
-        Начать адаптацию
+
+        {% if sandbox_l1_progress.is_ready %}
+          Начать адаптацию
+        {% else %}
+          Начать всё равно
+        {% endif %}
       </button>
     </div>
   </form>

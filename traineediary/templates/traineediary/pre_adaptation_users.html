@@ -149,9 +149,7 @@
                     rgba(255, 255, 255, 0.08);
                 "
               >
-                <span class="status">
-                  Очередь L1 доступна
-                </span>
+                {% include "traineediary/_sandbox_l1_progress.html" with progress=trainee_user.sandbox_l1_progress %}
               </td>
 
               <td
