@@ -51,7 +51,7 @@ class NewTraineeForm(forms.Form):
     probation_start_date = forms.DateField(
         label="Дата старта ИС",
         required=False,
-        initial=timezone.now().date,
+        initial=timezone.localdate,
         widget=forms.DateInput(
             attrs={
                 "type": "date",
@@ -118,6 +118,19 @@ class NewTraineeForm(forms.Form):
                     "Укажи дату старта ИС.",
                 )
 
+            if (
+                probation_start_date
+                and probation_start_date
+                > timezone.localdate()
+            ):
+                self.add_error(
+                    "probation_start_date",
+                    (
+                        "Дата начала испытательного срока "
+                        "не может быть в будущем."
+                    ),
+                )
+
             if stage is None:
                 self.add_error(
                     "current_stage",
@@ -140,7 +153,7 @@ class NewTraineeForm(forms.Form):
 
         if entry_type == EntryType.INTERNAL_TRANSFER:
             # Эти данные не относятся к аккаунту
-            # сотрудника из другого отдела.
+            # сотрудника до начала адаптации.
             cleaned_data["probation_start_date"] = None
             cleaned_data["current_stage"] = None
             cleaned_data["comment"] = ""

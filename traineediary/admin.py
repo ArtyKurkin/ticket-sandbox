@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from .models import StageHistory, TraineeJourney, TraineeStage, WeeklyMetric
+from .models import (
+    RiskLevel,
+    StageHistory,
+    TraineeJourney,
+    TraineeStage,
+    WeeklyMetric,
+)
 
 
 @admin.register(TraineeStage)
@@ -71,7 +77,14 @@ class TraineeJourneyAdmin(admin.ModelAdmin):
 
     @admin.display(description="Риск")
     def risk_level_display(self, obj):
-        return obj.get_risk_level_display() if obj.risk_level else "—"
+        risk_level = obj.risk_level
+
+        if not risk_level:
+            return "—"
+
+        return RiskLevel(
+            risk_level,
+        ).label
 
 
 admin.site.register(StageHistory)

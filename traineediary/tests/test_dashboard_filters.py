@@ -334,3 +334,42 @@ class DashboardFilterTests(TestCase):
             ),
             4,
         )
+
+    def test_entry_type_filter_has_single_empty_option(
+        self,
+    ):
+        response = self.client.get(
+            self.url,
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        html = response.content.decode()
+
+        select_start = html.index(
+            'id="diary-entry-type-filter"',
+        )
+        select_end = html.index(
+            "</select>",
+            select_start,
+        )
+
+        entry_type_select = html[
+            select_start:select_end
+        ]
+
+        self.assertEqual(
+            entry_type_select.count(
+                "<option",
+            ),
+            len(EntryType.choices) + 1,
+        )
+        self.assertEqual(
+            entry_type_select.count(
+                "Все типы",
+            ),
+            1,
+        )

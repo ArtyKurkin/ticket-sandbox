@@ -818,3 +818,58 @@ class TraineeKanbanAndCreationTests(TestCase):
                 user=user,
             ).exists(),
         )
+
+    def test_new_adaptation_rejects_future_probation_start_date(
+        self,
+    ):
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        future_date = (
+            date.today()
+            + timedelta(days=1)
+        )
+
+        response = self.client.post(
+            reverse(
+                "traineediary:create_trainee",
+            ),
+            {
+                "first_name": "Будущий",
+                "last_name": "Стажёр",
+                "username": "future.trainee",
+                "entry_type": EntryType.NEW_HIRE,
+                "probation_start_date": (
+                    future_date.isoformat()
+                ),
+                "current_stage": self.first_day.id,
+                "comment": "",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertContains(
+            response,
+            (
+                "Дата начала испытательного срока "
+                "не может быть в будущем."
+            ),
+        )
+
+        self.assertFalse(
+            User.objects.filter(
+                username="future.trainee",
+            ).exists(),
+        )
+
+        self.assertFalse(
+            TraineeJourney.objects.filter(
+                user__username="future.trainee",
+            ).exists(),
+        )

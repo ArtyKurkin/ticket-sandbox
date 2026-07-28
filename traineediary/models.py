@@ -171,10 +171,17 @@ class TraineeJourney(models.Model):
     def _applicable_stages(self):
         field_name = (
             "applies_to_internal_transfer"
-            if self.entry_type == EntryType.INTERNAL_TRANSFER
+            if self.entry_type
+            == EntryType.INTERNAL_TRANSFER
             else "applies_to_new_hire"
         )
-        return TraineeStage.objects.filter(**{field_name: True})
+
+        return TraineeStage.objects.filter(
+            is_active=True,
+            **{
+                field_name: True,
+            },
+        )
 
     @property
     def progress_percent(self):

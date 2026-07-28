@@ -3,10 +3,12 @@ from decimal import Decimal
 from datetime import date, timedelta
 from unittest.mock import patch
 
+from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
+from traineediary.admin import TraineeJourneyAdmin
 from traineediary.models import (
     EntryType,
     RiskLevel,
@@ -386,6 +388,130 @@ class TraineeJourneyModelTests(TestCase):
         )
         self.assertIsNone(
             journey.quality_fixed_at,
+        )
+
+
+class TraineeJourneyAdminTests(TestCase):
+    def test_risk_level_display_uses_property_label(
+        self,
+    ):
+        stage = TraineeStage.objects.create(
+            name="В тикетах с проверками",
+            slug="admin-risk-with-review",
+            order=7,
+            min_days=15,
+            max_days=20,
+            progress_weight_percent=35,
+            group=StageGroup.WITH_REVIEW,
+        )
+
+        user = User.objects.create_user(
+            username="admin-risk-trainee",
+            password="test",
+        )
+
+        journey = TraineeJourney.objects.create(
+            user=user,
+            entry_type=EntryType.NEW_HIRE,
+            probation_start_date=(
+                date.today()
+                - timedelta(days=10)
+            ),
+            current_stage=stage,
+            stage_started_at=(
+                date.today()
+                - timedelta(days=5)
+            ),
+        )
+
+        model_admin = TraineeJourneyAdmin(
+            TraineeJourney,
+            AdminSite(),
+        )
+
+        self.assertEqual(
+            journey.risk_level,
+            RiskLevel.LOW,
+        )
+        self.assertEqual(
+            model_admin.risk_level_display(
+                journey,
+            ),
+            "Низкий",
+        )
+
+
+class TraineeProgressCalculationTests(TestCase):
+    def test_progress_ignores_inactive_stages(
+        self,
+    ):
+        active_completed_stage = (
+            TraineeStage.objects.create(
+                name="Активный завершённый этап",
+                slug="active-completed-progress",
+                order=1,
+                min_days=1,
+                max_days=1,
+                progress_weight_percent=20,
+                group=StageGroup.TEACHBASE,
+                is_active=True,
+                applies_to_new_hire=True,
+            )
+        )
+
+        TraineeStage.objects.create(
+            name="Неактивный этап",
+            slug="inactive-progress-stage",
+            order=2,
+            min_days=1,
+            max_days=1,
+            progress_weight_percent=80,
+            group=StageGroup.TEACHBASE,
+            is_active=False,
+            applies_to_new_hire=True,
+        )
+
+        current_stage = (
+            TraineeStage.objects.create(
+                name="Текущий активный этап",
+                slug="current-active-progress",
+                order=3,
+                min_days=1,
+                max_days=10,
+                progress_weight_percent=80,
+                group=StageGroup.WITH_REVIEW,
+                is_active=True,
+                applies_to_new_hire=True,
+            )
+        )
+
+        user = User.objects.create_user(
+            username="progress-active-only",
+            password="test",
+        )
+
+        journey = TraineeJourney.objects.create(
+            user=user,
+            entry_type=EntryType.NEW_HIRE,
+            probation_start_date=(
+                date.today()
+                - timedelta(days=5)
+            ),
+            current_stage=current_stage,
+            stage_started_at=date.today(),
+        )
+
+        self.assertTrue(
+            active_completed_stage.is_active,
+        )
+
+        # Активный завершённый этап весит 20,
+        # текущий активный — 80.
+        # Текущий этап только начался:
+        # 20 / (20 + 80) = 20%.
+        self.assertEqual(
+            journey.progress_percent,
+            20,
         )
 
 
