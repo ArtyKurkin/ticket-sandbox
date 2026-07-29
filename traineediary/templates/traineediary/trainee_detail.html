@@ -40,15 +40,31 @@
         {{ journey.user.get_full_name|default:journey.user.username }}
       </h1>
 
-      {% if risk == "high" %}
+      {% if assessment.requires_attention %}
+        <span
+          class="
+            status
+            {% if assessment.attention.highest_severity == 'danger' %}
+              status-danger
+            {% else %}
+              status-primary
+            {% endif %}
+          "
+        >
+          Требует внимания
+        </span>
+
+      {% elif assessment.risk_level == "high" %}
         <span class="status status-danger">
           Высокий риск
         </span>
-      {% elif risk == "medium" %}
+
+      {% elif assessment.risk_level == "medium" %}
         <span class="status status-primary">
           Средний риск
         </span>
-      {% elif risk == "low" %}
+
+      {% elif assessment.risk_level == "low" %}
         <span class="status status-success">
           Низкий риск
         </span>
@@ -176,6 +192,164 @@
   </div>
 </div>
 
+<div class="card trainee-assessment-card">
+  <div class="card-title-bar trainee-assessment-title">
+    <div class="trainee-assessment-heading">
+      <i data-lucide="route"></i>
+
+      <div>
+        <h2>Переход на следующий этап</h2>
+
+        <p>
+          Условия и рекомендации по текущему этапу.
+        </p>
+      </div>
+    </div>
+
+    {% if assessment.readiness.is_completed %}
+      <span class="status status-success">
+        Адаптация завершена
+      </span>
+
+    {% elif assessment.readiness.is_ready %}
+      <span class="status status-success">
+        Готов к переходу
+      </span>
+
+    {% elif assessment.readiness.is_almost_ready %}
+      <span class="status status-primary">
+        Почти готов
+      </span>
+
+    {% else %}
+      <span class="status status-muted">
+        Пока не готов
+      </span>
+    {% endif %}
+  </div>
+
+  {% if assessment.readiness.is_completed %}
+    <div class="trainee-assessment-result is-completed">
+      <i data-lucide="trophy"></i>
+
+      <div>
+        <strong>
+          Адаптация завершена
+        </strong>
+
+        <p>
+          Сотрудник находится на финальном этапе.
+        </p>
+      </div>
+    </div>
+
+  {% else %}
+    <div class="trainee-assessment-next-stage">
+      <span>
+        Следующий этап
+      </span>
+
+      <strong>
+        {% if assessment.readiness.next_stage %}
+          {{ assessment.readiness.next_stage.name }}
+        {% else %}
+          Не определён
+        {% endif %}
+      </strong>
+    </div>
+
+    {% if assessment.readiness.is_ready %}
+      <div class="trainee-assessment-result is-ready">
+        <i data-lucide="badge-check"></i>
+
+        <div>
+          <strong>
+            Можно переводить сотрудника
+          </strong>
+
+          <p>
+            Все условия текущего этапа выполнены.
+          </p>
+        </div>
+
+        {% if assessment.readiness.next_stage %}
+          <a
+            href="{% url 'traineediary:trainees_kanban' %}"
+            class="button button-small"
+          >
+            <i data-lucide="columns-3"></i>
+            Открыть канбан
+          </a>
+        {% endif %}
+      </div>
+
+    {% elif assessment.readiness.reasons %}
+      <div class="trainee-assessment-requirements">
+        <strong>
+          {% if assessment.readiness.is_almost_ready %}
+            Для перехода осталось:
+          {% else %}
+            Для перехода необходимо:
+          {% endif %}
+        </strong>
+
+        <div class="trainee-assessment-reason-list">
+          {% for reason in assessment.readiness.reasons %}
+            <div class="trainee-assessment-reason">
+              <i data-lucide="circle-dashed"></i>
+
+              <div>
+                <strong>
+                  {{ reason.label }}
+                </strong>
+
+                <span>
+                  {{ reason.description }}
+                </span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {% if assessment.requires_attention %}
+    <div class="trainee-assessment-attention">
+      <div class="trainee-assessment-attention-title">
+        <i data-lucide="triangle-alert"></i>
+
+        <strong>
+          Обрати внимание
+        </strong>
+      </div>
+
+      <div class="trainee-assessment-reason-list">
+        {% for reason in assessment.attention.reasons %}
+          <div
+            class="
+              trainee-assessment-reason
+              is-{{ reason.severity }}
+            "
+          >
+            <i data-lucide="circle-alert"></i>
+
+            <div>
+              <strong>
+                {{ reason.label }}
+              </strong>
+
+              <span>
+                {{ reason.description }}
+              </span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+
 <div class="card trainee-sandbox-progress-card">
   <div class="card-title-bar trainee-sandbox-progress-title">
     <div class="trainee-sandbox-progress-heading">
@@ -217,37 +391,6 @@
       </span>
     {% endif %}
   </div>
-
-  {% if l1_transition_state.should_transition %}
-    <div class="trainee-l1-transition-ready">
-      <i data-lucide="badge-check"></i>
-
-      <div class="trainee-l1-transition-ready-content">
-        <strong>
-          Сотрудник готов к переходу
-        </strong>
-
-        <p>
-          Все зачётные задания очереди L1 пройдены.
-
-          {% if l1_transition_state.next_stage %}
-            Можно переводить на этап
-            «{{ l1_transition_state.next_stage.name }}».
-          {% else %}
-            Можно переводить на следующий этап маршрута.
-          {% endif %}
-        </p>
-      </div>
-
-      <a
-        href="{% url 'traineediary:trainees_kanban' %}"
-        class="button button-small"
-      >
-        <i data-lucide="columns-3"></i>
-        Открыть канбан
-      </a>
-    </div>
-{% endif %}
 
   {% if not sandbox_l1_progress.queue_exists %}
     <div class="trainee-sandbox-progress-empty is-error">

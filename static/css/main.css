@@ -4547,3 +4547,157 @@ body.terminal-is-expanded {
   color: var(--muted);
   line-height: 1.4;
 }
+
+
+/* === Traineediary: trainee assessment detail === */
+
+.trainee-assessment-card {
+  margin-bottom: 24px;
+}
+
+.trainee-assessment-title {
+  align-items: flex-start;
+}
+
+.trainee-assessment-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.trainee-assessment-heading > svg {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.trainee-assessment-heading h2 {
+  margin: 0;
+}
+
+.trainee-assessment-heading p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.trainee-assessment-next-stage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.trainee-assessment-next-stage span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.trainee-assessment-result {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px;
+}
+
+.trainee-assessment-result > svg {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.trainee-assessment-result > div {
+  flex: 1;
+}
+
+.trainee-assessment-result p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.trainee-assessment-result.is-ready {
+  color: #28d17c;
+}
+
+.trainee-assessment-result.is-completed {
+  color: var(--muted);
+}
+
+.trainee-assessment-requirements {
+  padding: 18px 16px;
+}
+
+.trainee-assessment-reason-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.trainee-assessment-reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.trainee-assessment-reason > svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+}
+
+.trainee-assessment-reason > div {
+  display: grid;
+  gap: 3px;
+}
+
+.trainee-assessment-reason strong {
+  font-size: 12px;
+}
+
+.trainee-assessment-reason span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.trainee-assessment-reason.is-danger {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.trainee-assessment-attention {
+  padding: 16px;
+  border-top: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.trainee-assessment-attention-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ef4444;
+}
+
+.trainee-assessment-attention-title svg {
+  width: 17px;
+  height: 17px;
+}
+
+@media (max-width: 720px) {
+  .trainee-assessment-next-stage {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .trainee-assessment-result {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

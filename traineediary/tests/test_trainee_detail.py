@@ -566,7 +566,9 @@ class TraineeDetailViewTests(TestCase):
         self.assertContains(response, "1 из")
         self.assertContains(response, "Есть на проверке")
 
-    def test_detail_shows_l1_ready_state(self):
+    def test_detail_shows_l1_ready_state(
+        self,
+    ):
         first_task, second_task = (
             self.create_l1_tasks()
         )
@@ -595,14 +597,47 @@ class TraineeDetailViewTests(TestCase):
             ),
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
 
         progress = response.context[
             "sandbox_l1_progress"
         ]
+        readiness = response.context[
+            "assessment"
+        ].readiness
 
-        self.assertTrue(progress.is_ready)
-        self.assertEqual(progress.progress_percent, 100)
+        # L1 полностью завершён.
+        self.assertTrue(
+            progress.is_ready,
+        )
+        self.assertEqual(
+            progress.progress_percent,
+            100,
+        )
+
+        # Но сотрудник уже находится на WITH_REVIEW,
+        # поэтому переход оценивается по сроку
+        # этапа и качеству.
+        self.assertFalse(
+            readiness.is_ready,
+        )
+
+        reason_codes = {
+            reason.code
+            for reason in readiness.reasons
+        }
+
+        self.assertIn(
+            "minimum_stage_days",
+            reason_codes,
+        )
+        self.assertIn(
+            "quality_missing",
+            reason_codes,
+        )
 
         self.assertContains(
             response,
@@ -610,31 +645,39 @@ class TraineeDetailViewTests(TestCase):
         )
         self.assertContains(
             response,
-            "Готов",
+            "Не пройден минимальный срок",
         )
-        self.assertFalse(
-            response.context[
-                "l1_transition_state"
-            ]["should_transition"],
+        self.assertContains(
+            response,
+            "Нет данных по качеству",
         )
-
         self.assertNotContains(
             response,
-            "Сотрудник готов к переходу",
+            "Можно переводить сотрудника",
         )
 
-    def test_detail_recommends_transition_after_l1_completion(self):
-        pre_ticket_stage = TraineeStage.objects.create(
-            name="Перед выходом в тикеты",
-            slug="before-tickets-l1-ready",
-            order=self.stage.order - 1,
-            group=StageGroup.SANDBOX_CANDIDATE,
-            applies_to_new_hire=True,
-            applies_to_internal_transfer=False,
+    def test_detail_recommends_transition_after_l1_completion(
+        self,
+    ):
+        pre_ticket_stage = (
+            TraineeStage.objects.create(
+                name="Перед выходом в тикеты",
+                slug="before-tickets-l1-ready",
+                order=self.stage.order - 1,
+                group=(
+                    StageGroup.SANDBOX_CANDIDATE
+                ),
+                applies_to_new_hire=True,
+                applies_to_internal_transfer=False,
+            )
         )
 
-        self.journey.current_stage = pre_ticket_stage
-        self.journey.stage_started_at = date.today()
+        self.journey.current_stage = (
+            pre_ticket_stage
+        )
+        self.journey.stage_started_at = (
+            date.today()
+        )
 
         self.journey.save(
             update_fields=[
@@ -671,27 +714,30 @@ class TraineeDetailViewTests(TestCase):
             ),
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
 
-        transition_state = response.context[
-            "l1_transition_state"
-        ]
+        readiness = response.context[
+            "assessment"
+        ].readiness
 
         self.assertTrue(
-            transition_state[
-                "should_transition"
-            ],
+            readiness.is_ready,
         )
         self.assertEqual(
-            transition_state[
-                "next_stage"
-            ],
+            readiness.next_stage,
             self.stage,
         )
 
         self.assertContains(
             response,
-            "Сотрудник готов к переходу",
+            "Готов к переходу",
+        )
+        self.assertContains(
+            response,
+            "Можно переводить сотрудника",
         )
         self.assertContains(
             response,

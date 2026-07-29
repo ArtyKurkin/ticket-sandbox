@@ -240,3 +240,81 @@ class AssessmentViewIntegrationTests(
                 f'{self.optional_stage.name}"'
             ),
         )
+
+    def test_trainee_detail_uses_assessment(
+        self,
+    ):
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        assessment = response.context[
+            "assessment"
+        ]
+
+        self.assertTrue(
+            assessment.readiness.is_ready,
+        )
+        self.assertEqual(
+            assessment.readiness.next_stage,
+            self.optional_stage,
+        )
+
+        self.assertContains(
+            response,
+            "Переход на следующий этап",
+        )
+        self.assertContains(
+            response,
+            "Готов к переходу",
+        )
+        self.assertContains(
+            response,
+            "Можно переводить сотрудника",
+        )
+        self.assertContains(
+            response,
+            self.optional_stage.name,
+        )
+
+    def test_trainee_detail_shows_readiness_reason(
+        self,
+    ):
+        metric = self.journey.weekly_metrics.get(
+            week_number=1,
+        )
+
+        metric.quality_percent = 79
+        metric.save(
+            update_fields=[
+                "quality_percent",
+            ],
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainee_detail",
+                args=[self.journey.id],
+            ),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+        self.assertContains(
+            response,
+            "Для перехода необходимо:",
+        )
+        self.assertContains(
+            response,
+            "Качество ниже плана",
+        )

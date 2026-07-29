@@ -166,66 +166,6 @@ def _build_weekly_pulse(journeys):
     return pulse_rows
 
 
-def _get_next_applicable_stage(journey):
-    """
-    Возвращает следующий активный этап маршрута
-    с учётом типа входа сотрудника.
-    """
-    applicable_field = (
-        "applies_to_internal_transfer"
-        if (
-            journey.entry_type
-            == EntryType.INTERNAL_TRANSFER
-        )
-        else "applies_to_new_hire"
-    )
-
-    return (
-        TraineeStage.objects
-        .filter(
-            is_active=True,
-            order__gt=journey.current_stage.order,
-            **{
-                applicable_field: True,
-            },
-        )
-        .order_by(
-            "order",
-            "id",
-        )
-        .first()
-    )
-
-
-def _build_l1_transition_state(
-    journey,
-    sandbox_progress,
-):
-    """
-    Рекомендует переход только тогда, когда:
-
-    - все зачётные задания L1 пройдены;
-    - сотрудник всё ещё находится на этапе
-      перед выходом в реальные тикеты.
-    """
-    should_transition = (
-        sandbox_progress.is_ready
-        and (
-            journey.current_stage.group
-            == StageGroup.SANDBOX_CANDIDATE
-        )
-    )
-
-    return {
-        "should_transition": should_transition,
-        "next_stage": (
-            _get_next_applicable_stage(journey)
-            if should_transition
-            else None
-        ),
-    }
-
-
 @login_required
 def dashboard(request):
     if not request.user.is_staff:
@@ -1248,14 +1188,13 @@ def trainee_detail(request, journey_id):
     sandbox_l1_progress = (
         build_sandbox_queue_progress(
             user=journey.user,
+            queue_slug="l1",
         )
     )
 
-    l1_transition_state = (
-        _build_l1_transition_state(
-            journey=journey,
-            sandbox_progress=sandbox_l1_progress,
-        )
+    assessment = build_trainee_assessment(
+        journey,
+        sandbox_progress=sandbox_l1_progress,
     )
 
     today = timezone.localdate()
@@ -1371,11 +1310,11 @@ def trainee_detail(request, journey_id):
 
     context = {
         "journey": journey,
+        "assessment": assessment,
         "history_rows": history_rows,
         "gantt_rows": gantt_rows,
         "probation_end_date": probation_end_date,
         "progress_percent": journey.progress_percent,
-        "risk": journey.risk_level,
         "weekly_metrics_summary": weekly_metrics_summary,
         "weekly_feedback_rows": (
             weekly_feedback_rows
@@ -1385,7 +1324,6 @@ def trainee_detail(request, journey_id):
         "weekly_speed_target": WEEKLY_SPEED_TARGET,
         "weekly_quality_target": WEEKLY_QUALITY_TARGET,
         "sandbox_l1_progress": sandbox_l1_progress,
-        "l1_transition_state": l1_transition_state,
     }
 
     return render(
