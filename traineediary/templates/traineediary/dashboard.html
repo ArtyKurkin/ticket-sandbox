@@ -439,7 +439,7 @@
         <tr>
           <th>Стажёр</th>
           <th>Тип входа</th>
-          <th>Этап и готовность</th>
+          <th>Этап</th>
           <th>Дней всего</th>
           <th>Осталось до конца ИС</th>
           <th>Прогресс</th>
@@ -454,13 +454,6 @@
             class="
               {% if row.assessment.requires_attention %}
                 diary-row-attention
-              {% endif %}
-
-              {% if row.assessment.readiness.is_ready %}
-                diary-row-transition-ready
-
-              {% elif row.assessment.readiness.is_almost_ready %}
-                diary-row-almost-ready
               {% endif %}
             "
           >
@@ -489,46 +482,6 @@
               >
                 {{ row.journey.current_stage.name }}
               </span>
-
-              {% if row.assessment.readiness.is_completed %}
-                <span
-                  class="
-                    diary-readiness-label
-                    is-completed
-                  "
-                >
-                  <i data-lucide="trophy"></i>
-                  Адаптация завершена
-                </span>
-
-              {% elif row.assessment.readiness.is_ready %}
-                <span
-                  class="
-                    diary-readiness-label
-                    is-ready
-                  "
-                >
-                  <i data-lucide="badge-check"></i>
-
-                  Готов к переходу
-
-                  {% if row.assessment.readiness.next_stage %}
-                    ·
-                    {{ row.assessment.readiness.next_stage.name }}
-                  {% endif %}
-                </span>
-
-              {% elif row.assessment.readiness.is_almost_ready %}
-                <span
-                  class="
-                    diary-readiness-label
-                    is-almost_ready
-                  "
-                >
-                  <i data-lucide="clock-3"></i>
-                  Почти готов
-                </span>
-              {% endif %}
             </td>
 
             <td>

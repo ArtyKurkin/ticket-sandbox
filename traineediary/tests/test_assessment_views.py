@@ -149,11 +149,6 @@ class AssessmentViewIntegrationTests(
             0,
         )
 
-        self.assertContains(
-            response,
-            "Готов к переходу",
-        )
-
     def test_dashboard_shows_almost_ready_state(
         self,
     ):
@@ -189,11 +184,6 @@ class AssessmentViewIntegrationTests(
                 "almost_ready_count"
             ],
             1,
-        )
-
-        self.assertContains(
-            response,
-            "Почти готов",
         )
 
     def test_kanban_uses_assessment_next_stage(
@@ -237,10 +227,6 @@ class AssessmentViewIntegrationTests(
             self.optional_stage,
         )
 
-        self.assertContains(
-            response,
-            "Готов к переходу",
-        )
         self.assertContains(
             response,
             (
