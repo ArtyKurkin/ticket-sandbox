@@ -124,7 +124,7 @@ class DashboardAttentionIntegrationTests(
 
         self.assertFalse(
             row[
-                "attention_summary"
+                "assessment"
             ].requires_attention,
         )
 
@@ -171,7 +171,7 @@ class DashboardAttentionIntegrationTests(
 
         self.assertTrue(
             row[
-                "attention_summary"
+                "assessment"
             ].requires_attention,
         )
 

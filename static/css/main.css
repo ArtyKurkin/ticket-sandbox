@@ -4463,46 +4463,6 @@ body.terminal-is-expanded {
 
 /* === Traineediary: unified assessment === */
 
-.diary-summary-card-warning {
-  border-color: rgba(245, 158, 11, 0.35);
-}
-
-.diary-row-almost-ready {
-  box-shadow:
-    inset 3px 0 0
-    rgba(245, 158, 11, 0.85);
-}
-
-.diary-readiness-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.diary-readiness-label svg {
-  width: 14px;
-  height: 14px;
-}
-
-.diary-readiness-label.is-ready {
-  color: #28d17c;
-}
-
-.diary-readiness-label.is-almost_ready {
-  color: #f59e0b;
-}
-
-.diary-readiness-label.is-not_ready {
-  color: var(--muted);
-}
-
-.diary-readiness-label.is-completed {
-  color: var(--muted);
-}
-
 .kanban-card.is-almost-ready {
   box-shadow:
     inset 3px 0 0

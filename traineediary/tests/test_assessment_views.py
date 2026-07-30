@@ -142,12 +142,6 @@ class AssessmentViewIntegrationTests(
             ],
             1,
         )
-        self.assertEqual(
-            response.context[
-                "almost_ready_count"
-            ],
-            0,
-        )
 
     def test_dashboard_shows_almost_ready_state(
         self,
@@ -179,11 +173,17 @@ class AssessmentViewIntegrationTests(
             ],
             0,
         )
-        self.assertEqual(
-            response.context[
-                "almost_ready_count"
-            ],
-            1,
+        row = next(
+            row
+            for row in response.context["rows"]
+            if row["journey"].id
+            == self.journey.id
+        )
+
+        self.assertTrue(
+            row[
+                "assessment"
+            ].readiness.is_almost_ready,
         )
 
     def test_kanban_uses_assessment_next_stage(

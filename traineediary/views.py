@@ -350,7 +350,6 @@ def dashboard(request):
     )
 
     ready_to_transition_count = 0
-    almost_ready_count = 0
     needs_attention_count = 0
 
     completion_counts = {
@@ -440,13 +439,6 @@ def dashboard(request):
         if assessment.readiness.is_ready:
             ready_to_transition_count += 1
 
-        elif (
-            assessment
-            .readiness
-            .is_almost_ready
-        ):
-            almost_ready_count += 1
-
         if assessment.requires_attention:
             needs_attention_count += 1
 
@@ -457,16 +449,6 @@ def dashboard(request):
         rows.append({
             "journey": journey,
             "assessment": assessment,
-
-            # Временно оставляем алиасы,
-            # чтобы старые интеграционные
-            # тесты и шаблоны не ломались
-            # во время перехода.
-            "risk": assessment.risk_level,
-            "attention_summary": (
-                assessment.attention
-            ),
-
             "progress_percent": (
                 journey.progress_percent
             ),
@@ -608,9 +590,6 @@ def dashboard(request):
         ),
         "ready_to_transition_count": (
             ready_to_transition_count
-        ),
-        "almost_ready_count": (
-            almost_ready_count
         ),
         "weekly_pulse": (
             _build_weekly_pulse(
