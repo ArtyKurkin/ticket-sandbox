@@ -15,6 +15,7 @@ from django.views.decorators.http import require_POST
 from django.db.models import Max, Prefetch, Q
 
 from .models import (
+    CompletionStatus,
     EntryType,
     StageGroup,
     StageHistory,
@@ -198,6 +199,11 @@ def dashboard(request):
         "active",
     )
 
+    completion_filter = request.GET.get(
+        "completion",
+        "",
+    )
+
     valid_entry_types = {
         value
         for value, _label in EntryType.choices
@@ -219,6 +225,19 @@ def dashboard(request):
         "all",
     }:
         status_filter = "active"
+
+    valid_completion_filters = {
+        "",
+        CompletionStatus.SUCCESS,
+        CompletionStatus.TERMINATED,
+        "missing",
+    }
+
+    if (
+        completion_filter
+        not in valid_completion_filters
+    ):
+        completion_filter = ""
 
     stage_id = None
 
@@ -334,6 +353,12 @@ def dashboard(request):
     almost_ready_count = 0
     needs_attention_count = 0
 
+    completion_counts = {
+        CompletionStatus.SUCCESS: 0,
+        CompletionStatus.TERMINATED: 0,
+        "missing": 0,
+    }
+
     group_counts = {}
     rows = []
     filtered_journeys = []
@@ -370,6 +395,39 @@ def dashboard(request):
             continue
 
         group = journey.current_stage.group
+
+        completion_bucket = None
+
+        if group == StageGroup.DONE:
+            if (
+                journey.completion_status
+                == CompletionStatus.SUCCESS
+            ):
+                completion_bucket = (
+                    CompletionStatus.SUCCESS
+                )
+
+            elif (
+                journey.completion_status
+                == CompletionStatus.TERMINATED
+            ):
+                completion_bucket = (
+                    CompletionStatus.TERMINATED
+                )
+
+            else:
+                completion_bucket = "missing"
+
+            completion_counts[
+                completion_bucket
+            ] += 1
+
+        if (
+            completion_filter
+            and completion_bucket
+            != completion_filter
+        ):
+            continue
 
         group_counts[group] = (
             group_counts.get(
@@ -468,6 +526,75 @@ def dashboard(request):
         for value, label in summary_groups
     ]
 
+    completion_card_definitions = [
+        {
+            "value": "",
+            "label": "Всего завершено",
+            "count": sum(
+                completion_counts.values(),
+            ),
+            "tone": "",
+        },
+        {
+            "value": CompletionStatus.SUCCESS,
+            "label": "Успешно завершили",
+            "count": completion_counts[
+                CompletionStatus.SUCCESS
+            ],
+            "tone": "success",
+        },
+        {
+            "value": (
+                CompletionStatus.TERMINATED
+            ),
+            "label": "ИС прекращён",
+            "count": completion_counts[
+                CompletionStatus.TERMINATED
+            ],
+            "tone": "danger",
+        },
+        {
+            "value": "missing",
+            "label": "Без результата",
+            "count": completion_counts[
+                "missing"
+            ],
+            "tone": "muted",
+        },
+    ]
+
+    completion_summary_cards = []
+
+    for card in completion_card_definitions:
+        query_params = request.GET.copy()
+
+        query_params["status"] = "completed"
+
+        if card["value"]:
+            query_params["completion"] = (
+                card["value"]
+            )
+        else:
+            query_params.pop(
+                "completion",
+                None,
+            )
+
+        completion_summary_cards.append({
+            **card,
+            "is_active": (
+                completion_filter
+                == card["value"]
+            ),
+            "url": (
+                reverse(
+                    "traineediary:dashboard",
+                )
+                + "?"
+                + query_params.urlencode()
+            ),
+        })
+
     context = {
         "rows": rows,
         "filtered_count": len(
@@ -508,6 +635,23 @@ def dashboard(request):
                 "order",
             )
         ),
+        "completion_summary_cards": (
+            completion_summary_cards
+        ),
+        "completion_filter_choices": [
+            (
+                CompletionStatus.SUCCESS,
+                "Успешно завершили",
+            ),
+            (
+                CompletionStatus.TERMINATED,
+                "ИС прекращён",
+            ),
+            (
+                "missing",
+                "Без результата",
+            ),
+        ],
         "filters": {
             "q": query,
             "entry_type": (
@@ -518,6 +662,7 @@ def dashboard(request):
                 attention_filter
             ),
             "status": status_filter,
+            "completion": completion_filter,
         },
     }
 

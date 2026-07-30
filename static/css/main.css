@@ -5162,3 +5162,29 @@ input[type="date"].trainee-start-control::-webkit-calendar-picker-indicator {
     flex-direction: column;
   }
 }
+
+
+/* === Traineediary: completion dashboard === */
+
+.diary-summary-link {
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.diary-summary-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(129, 140, 248, 0.42);
+}
+
+.diary-summary-link.is-active {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.diary-summary-card-muted {
+  border-color: rgba(148, 163, 184, 0.2);
+}
