@@ -62,7 +62,7 @@ class SeedStagesCommandTests(TestCase):
         )
         self.assertEqual(
             sandbox_stage.group,
-            StageGroup.SANDBOX_CANDIDATE,
+            StageGroup.SANDBOX_L1,
         )
         self.assertEqual(
             before_tickets_stage.order,
@@ -136,7 +136,7 @@ class SeedStagesCommandTests(TestCase):
         )
         self.assertEqual(
             sandbox_stage.group,
-            StageGroup.SANDBOX_CANDIDATE,
+            StageGroup.SANDBOX_L1,
         )
         self.assertTrue(
             sandbox_stage.applies_to_new_hire,

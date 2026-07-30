@@ -665,7 +665,7 @@ class TraineeDetailViewTests(TestCase):
                 slug="before-tickets-l1-ready",
                 order=self.stage.order - 1,
                 group=(
-                    StageGroup.SANDBOX_CANDIDATE
+                    StageGroup.SANDBOX_L1
                 ),
                 applies_to_new_hire=True,
                 applies_to_internal_transfer=False,

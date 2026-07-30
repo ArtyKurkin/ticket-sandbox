@@ -469,7 +469,7 @@ class WeeklyMetricsViewTests(TestCase):
             name="Перед выходом в тикеты",
             slug="before-tickets-weekly-test",
             order=6,
-            group=StageGroup.SANDBOX_CANDIDATE,
+            group=StageGroup.SANDBOX_L1,
         )
 
         self.journey.current_stage = pre_ticket_stage

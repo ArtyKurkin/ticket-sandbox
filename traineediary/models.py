@@ -9,12 +9,30 @@ from django.utils import timezone
 
 
 class StageGroup(models.TextChoices):
-    TEACHBASE = "teachbase", "Teachbase"
-    SANDBOX_CANDIDATE = "sandbox_candidate", "Задания в ticket-sandbox"
-    WITH_REVIEW = "with_review", "В тикетах с проверками"
-    OPTIONAL_REVIEW = "optional_review", "Кнопка по желанию"
-    NO_REVIEW = "no_review", "Без проверок"
-    DONE = "done", "Завершено"
+    TEACHBASE = (
+        "teachbase",
+        "Teachbase",
+    )
+    SANDBOX_L1 = (
+        "sandbox_candidate",
+        "Задания в ticket-sandbox",
+    )
+    WITH_REVIEW = (
+        "with_review",
+        "В тикетах с проверками",
+    )
+    OPTIONAL_REVIEW = (
+        "optional_review",
+        "Кнопка по желанию",
+    )
+    NO_REVIEW = (
+        "no_review",
+        "Без проверок",
+    )
+    DONE = (
+        "done",
+        "Завершено",
+    )
 
 
 class EntryType(models.TextChoices):

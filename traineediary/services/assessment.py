@@ -565,7 +565,7 @@ def build_readiness_summary(
 
     if (
         current_group
-        == StageGroup.SANDBOX_CANDIDATE
+        == StageGroup.SANDBOX_L1
     ):
         if sandbox_progress is None:
             sandbox_progress = (

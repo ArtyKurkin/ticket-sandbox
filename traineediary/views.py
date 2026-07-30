@@ -730,7 +730,7 @@ def _build_kanban_columns():
                 journey.current_stage.group
                 == (
                     StageGroup
-                    .SANDBOX_CANDIDATE
+                    .SANDBOX_L1
                 )
             ),
         }
