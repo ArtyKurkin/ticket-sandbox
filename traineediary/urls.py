@@ -43,4 +43,12 @@ urlpatterns = [
         name="edit_trainee",
     ),
     path("trainees/<int:journey_id>/move/", views.move_trainee_stage, name="move_trainee_stage"),
+    path(
+        (
+            "trainees/<int:journey_id>/"
+            "complete/"
+        ),
+        views.complete_trainee,
+        name="complete_trainee",
+    ),
 ]

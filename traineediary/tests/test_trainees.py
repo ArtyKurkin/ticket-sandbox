@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from traineediary.models import (
+    CompletionStatus,
     EntryType,
     StageGroup,
     TraineeJourney,
@@ -468,6 +469,10 @@ class TraineeKanbanAndCreationTests(TestCase):
         self.assertContains(
             response,
             'data-stage-name="Выход с ИС"',
+        )
+        self.assertContains(
+            response,
+            'data-requires-completion="true"',
         )
         self.assertContains(
             response,
@@ -1100,4 +1105,223 @@ class TraineeKanbanAndCreationTests(TestCase):
         self.assertEqual(
             journey.entry_type,
             EntryType.INTERNAL_TRANSFER,
+        )
+
+    def test_move_to_done_requires_completion_form(
+        self,
+    ):
+        done_stage = (
+            TraineeStage.objects.create(
+                name="Выход с ИС",
+                slug="done-requires-completion",
+                order=20,
+                group=StageGroup.DONE,
+            )
+        )
+
+        user = User.objects.create_user(
+            username="trainee-completion-required",
+            password="test",
+        )
+
+        journey = (
+            TraineeJourney.objects.create(
+                user=user,
+                entry_type=EntryType.NEW_HIRE,
+                probation_start_date=(
+                    date.today()
+                    - timedelta(days=30)
+                ),
+                current_stage=self.with_review,
+                stage_started_at=(
+                    date.today()
+                    - timedelta(days=15)
+                ),
+            )
+        )
+
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        response = self.client.post(
+            reverse(
+                "traineediary:move_trainee_stage",
+                args=[journey.id],
+            ),
+            data=json.dumps({
+                "stage_id": done_stage.id,
+                "transition_date": (
+                    date.today().isoformat()
+                ),
+                "note": "Попытка прямого завершения",
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            409,
+        )
+
+        response_data = response.json()
+
+        self.assertEqual(
+            response_data["code"],
+            "completion_required",
+        )
+
+        self.assertEqual(
+            response_data["redirect_url"],
+            reverse(
+                "traineediary:complete_trainee",
+                args=[journey.id],
+            ),
+        )
+
+        journey.refresh_from_db()
+
+        self.assertEqual(
+            journey.current_stage,
+            self.with_review,
+        )
+
+        self.assertEqual(
+            journey.completion_status,
+            "",
+        )
+
+        self.assertFalse(
+            journey.stage_history.filter(
+                stage=done_stage,
+            ).exists(),
+        )
+
+    def test_kanban_card_contains_completion_url(
+        self,
+    ):
+        TraineeStage.objects.create(
+            name="Выход с ИС",
+            slug="done-completion-url",
+            order=20,
+            group=StageGroup.DONE,
+        )
+
+        user = User.objects.create_user(
+            username="trainee-kanban-completion-url",
+            password="test",
+        )
+
+        journey = (
+            TraineeJourney.objects.create(
+                user=user,
+                entry_type=EntryType.NEW_HIRE,
+                probation_start_date=date.today(),
+                current_stage=self.first_day,
+                stage_started_at=date.today(),
+            )
+        )
+
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainees_kanban",
+            ),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertContains(
+            response,
+            (
+                'data-completion-url="'
+                + reverse(
+                    "traineediary:complete_trainee",
+                    args=[journey.id],
+                )
+                + '"'
+            ),
+        )
+
+    def test_done_card_shows_completion_result(
+        self,
+    ):
+        done_stage = TraineeStage.objects.create(
+            name="Выход с ИС",
+            slug="done-result-kanban",
+            order=20,
+            group=StageGroup.DONE,
+        )
+
+        user = User.objects.create_user(
+            username="completed-kanban-trainee",
+            first_name="Иван",
+            last_name="Готовый",
+            password="test",
+        )
+
+        journey = TraineeJourney.objects.create(
+            user=user,
+            entry_type=EntryType.NEW_HIRE,
+            probation_start_date=(
+                date.today()
+                - timedelta(days=30)
+            ),
+            current_stage=self.with_review,
+            stage_started_at=(
+                date.today()
+                - timedelta(days=15)
+            ),
+        )
+
+        journey.complete_probation(
+            status=CompletionStatus.SUCCESS,
+            completed_at=date.today(),
+            completed_by=self.staff_user,
+            comment="Плановые показатели выполнены.",
+        )
+
+        self.client.login(
+            username="mentor-kanban",
+            password="test",
+        )
+
+        response = self.client.get(
+            reverse(
+                "traineediary:trainees_kanban",
+            ),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+        self.assertContains(
+            response,
+            "Иван Готовый",
+        )
+        self.assertContains(
+            response,
+            "ИС пройден",
+        )
+        self.assertContains(
+            response,
+            date.today().strftime("%d.%m.%Y"),
+        )
+        self.assertContains(
+            response,
+            "Плановые показатели выполнены.",
+        )
+
+        self.assertEqual(
+            journey.current_stage,
+            done_stage,
         )

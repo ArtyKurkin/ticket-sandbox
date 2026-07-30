@@ -28,6 +28,17 @@ class RiskLevel(models.TextChoices):
     HIGH = "high", "Высокий"
 
 
+class CompletionStatus(models.TextChoices):
+    SUCCESS = (
+        "success",
+        "Испытательный срок успешно пройден",
+    )
+    TERMINATED = (
+        "terminated",
+        "Испытательный срок прекращён",
+    )
+
+
 # Срок испытательного срока зависит от типа входа:
 # внешний найм — 90 дней, внутренний переход — 30 дней.
 PROBATION_DAYS_BY_ENTRY_TYPE = {
@@ -102,6 +113,33 @@ class TraineeJourney(models.Model):
         verbose_name="Дата фиксации качества",
     )
 
+    completion_status = models.CharField(
+        max_length=16,
+        choices=CompletionStatus.choices,
+        blank=True,
+        verbose_name="Результат испытательного срока",
+    )
+
+    completed_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Дата завершения испытательного срока",
+    )
+
+    completion_comment = models.TextField(
+        blank=True,
+        verbose_name="Итоговый комментарий",
+    )
+
+    completed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="Завершил испытательный срок",
+    )
+
     class Meta:
         verbose_name = "Карточка стажёра"
         verbose_name_plural = "Карточки стажёров"
@@ -110,9 +148,96 @@ class TraineeJourney(models.Model):
         return self.user.get_full_name() or self.user.username
 
     def clean(self):
-        if self.current_stage_id and not self.current_stage.applies_to_entry_type(self.entry_type):
+        errors = {}
+
+        if (
+            self.current_stage_id
+            and not (
+                self.current_stage
+                .applies_to_entry_type(
+                    self.entry_type,
+                )
+            )
+        ):
+            errors["current_stage"] = (
+                "Этот этап не применим "
+                "к выбранному типу входа."
+            )
+
+        has_completion_data = any(
+            (
+                self.completion_status,
+                self.completed_at,
+                self.completion_comment,
+                self.completed_by_id,
+            ),
+        )
+
+        if has_completion_data:
+            if (
+                self.current_stage_id
+                and self.current_stage.group
+                != StageGroup.DONE
+            ):
+                errors["completion_status"] = (
+                    "Результат ИС можно сохранить "
+                    "только на финальном этапе."
+                )
+
+            if not self.completion_status:
+                errors["completion_status"] = (
+                    "Укажи результат испытательного срока."
+                )
+
+            elif (
+                self.completion_status
+                not in CompletionStatus.values
+            ):
+                errors["completion_status"] = (
+                    "Указан неизвестный результат "
+                    "испытательного срока."
+                )
+
+            if self.completed_at is None:
+                errors["completed_at"] = (
+                    "Укажи дату завершения "
+                    "испытательного срока."
+                )
+
+            elif (
+                self.completed_at
+                < self.probation_start_date
+            ):
+                errors["completed_at"] = (
+                    "Дата завершения не может быть "
+                    "раньше даты начала ИС."
+                )
+
+            elif (
+                self.completed_at
+                > timezone.localdate()
+            ):
+                errors["completed_at"] = (
+                    "Дата завершения не может быть "
+                    "в будущем."
+                )
+
+            if (
+                self.completion_status
+                == CompletionStatus.TERMINATED
+                and not (
+                    self.completion_comment
+                    or ""
+                ).strip()
+            ):
+                errors["completion_comment"] = (
+                    "При прекращении испытательного "
+                    "срока укажи причину."
+                )
+
+        if errors:
             raise ValidationError(
-                {"current_stage": "Этот этап не применим к выбранному типу входа."},
+                errors,
             )
 
     def save(self, *args, **kwargs):
@@ -133,15 +258,48 @@ class TraineeJourney(models.Model):
 
     @property
     def days_total(self):
-        return (timezone.now().date() - self.probation_start_date).days
+        end_date = (
+            self.completed_at
+            or timezone.localdate()
+        )
+
+        return max(
+            (
+                end_date
+                - self.probation_start_date
+            ).days,
+            0,
+        )
 
     @property
     def days_left_until_probation_end(self):
-        return max(self.probation_days_total - self.days_total, 0)
+        if self.completed_at is not None:
+            return 0
+
+        return max(
+            self.probation_days_total
+            - self.days_total,
+            0,
+        )
 
     @property
     def days_on_stage(self):
-        return (timezone.now().date() - self.stage_started_at).days
+        end_date = timezone.localdate()
+
+        if (
+            self.current_stage.group
+            == StageGroup.DONE
+            and self.completed_at is not None
+        ):
+            end_date = self.completed_at
+
+        return max(
+            (
+                end_date
+                - self.stage_started_at
+            ).days,
+            0,
+        )
 
     @property
     def expected_stage_transition_date(self):
@@ -185,6 +343,12 @@ class TraineeJourney(models.Model):
 
     @property
     def progress_percent(self):
+        if (
+            self.current_stage.group
+            == StageGroup.DONE
+        ):
+            return 100
+
         applicable = self._applicable_stages()
 
         total_weight = applicable.aggregate(
@@ -275,6 +439,201 @@ class TraineeJourney(models.Model):
             latest_quality_metric.quality_percent
         )
         self.quality_fixed_at = transition_date
+
+    def complete_probation(
+        self,
+        *,
+        status,
+        completed_at=None,
+        completed_by=None,
+        comment="",
+    ):
+        completed_at = (
+            completed_at
+            or timezone.localdate()
+        )
+        comment = (
+            comment
+            or ""
+        ).strip()
+
+        if status not in CompletionStatus.values:
+            raise ValidationError(
+                {
+                    "completion_status": (
+                        "Указан неизвестный результат "
+                        "испытательного срока."
+                    ),
+                },
+            )
+
+        completion_errors = {}
+
+        if (
+            completed_at
+            < self.probation_start_date
+        ):
+            completion_errors["completed_at"] = (
+                "Дата завершения не может быть "
+                "раньше даты начала ИС."
+            )
+
+        elif completed_at > timezone.localdate():
+            completion_errors["completed_at"] = (
+                "Дата завершения не может быть "
+                "в будущем."
+            )
+
+        if (
+            status == CompletionStatus.TERMINATED
+            and not comment
+        ):
+            completion_errors["completion_comment"] = (
+                "При прекращении испытательного "
+                "срока укажи причину."
+            )
+
+        if completion_errors:
+            raise ValidationError(
+                completion_errors,
+            )
+
+        if (
+            self.current_stage.group
+            == StageGroup.DONE
+            and self.completion_status
+        ):
+            raise ValidationError(
+                "Испытательный срок уже завершён.",
+            )
+
+        applicable_field = (
+            "applies_to_internal_transfer"
+            if (
+                self.entry_type
+                == EntryType.INTERNAL_TRANSFER
+            )
+            else "applies_to_new_hire"
+        )
+
+        if (
+            self.current_stage.group
+            == StageGroup.DONE
+        ):
+            done_stage = self.current_stage
+        else:
+            done_stage = (
+                TraineeStage.objects
+                .filter(
+                    group=StageGroup.DONE,
+                    is_active=True,
+                    **{
+                        applicable_field: True,
+                    },
+                )
+                .order_by(
+                    "order",
+                    "id",
+                )
+                .first()
+            )
+
+        if done_stage is None:
+            raise ValidationError(
+                {
+                    "current_stage": (
+                        "Не найден активный финальный "
+                        "этап для этого типа входа."
+                    ),
+                },
+            )
+
+        original_stage = self.current_stage
+        original_stage_started_at = (
+            self.stage_started_at
+        )
+        original_fixed_quality = (
+            self.fixed_quality_percent
+        )
+        original_quality_fixed_at = (
+            self.quality_fixed_at
+        )
+        original_completion_status = (
+            self.completion_status
+        )
+        original_completed_at = (
+            self.completed_at
+        )
+        original_completion_comment = (
+            self.completion_comment
+        )
+        original_completed_by_id = (
+            self.completed_by_id
+        )
+
+        try:
+            with transaction.atomic():
+                self.completion_status = status
+                self.completed_at = completed_at
+                self.completion_comment = comment
+                self.completed_by = completed_by
+
+                history_note = (
+                    comment
+                    or CompletionStatus(
+                        status,
+                    ).label
+                )
+
+                previous_stage = (
+                    self.move_to_stage(
+                        done_stage,
+                        changed_by=completed_by,
+                        note=history_note,
+                        transition_date=completed_at,
+                    )
+                )
+
+                self.full_clean()
+
+                self.save(
+                    update_fields=[
+                        "completion_status",
+                        "completed_at",
+                        "completion_comment",
+                        "completed_by",
+                    ],
+                )
+
+        except Exception:
+            # Транзакция откатит базу,
+            # но возвращаем значения объекта
+            # в исходное состояние.
+            self.current_stage = original_stage
+            self.stage_started_at = (
+                original_stage_started_at
+            )
+            self.fixed_quality_percent = (
+                original_fixed_quality
+            )
+            self.quality_fixed_at = (
+                original_quality_fixed_at
+            )
+            self.completion_status = (
+                original_completion_status
+            )
+            self.completed_at = (
+                original_completed_at
+            )
+            self.completion_comment = (
+                original_completion_comment
+            )
+            self.completed_by_id = (
+                original_completed_by_id
+            )
+            raise
+
+        return previous_stage
 
     # --- смена этапа ---
 

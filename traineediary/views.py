@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.db.models import Max, Prefetch, Q
 
@@ -23,6 +24,7 @@ from .models import (
 )
 from sandbox.models import TraineeProfile
 from .forms import (
+    CompleteProbationForm,
     EditTraineeForm,
     NewTraineeForm,
     StartAdaptationForm,
@@ -1333,6 +1335,123 @@ def trainee_detail(request, journey_id):
     )
 
 
+@login_required
+def complete_trainee(
+    request,
+    journey_id,
+):
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    journey = get_object_or_404(
+        TraineeJourney.objects.select_related(
+            "user",
+            "current_stage",
+            "completed_by",
+        ),
+        pk=journey_id,
+    )
+
+    if journey.completion_status:
+        messages.info(
+            request,
+            (
+                "Испытательный срок этого "
+                "сотрудника уже завершён."
+            ),
+        )
+
+        return redirect(
+            "traineediary:trainee_detail",
+            journey.id,
+        )
+
+    if request.method == "POST":
+        form = CompleteProbationForm(
+            request.POST,
+            journey=journey,
+        )
+
+        if form.is_valid():
+            try:
+                journey.complete_probation(
+                    status=(
+                        form.cleaned_data[
+                            "completion_status"
+                        ]
+                    ),
+                    completed_at=(
+                        form.cleaned_data[
+                            "completed_at"
+                        ]
+                    ),
+                    completed_by=request.user,
+                    comment=(
+                        form.cleaned_data[
+                            "completion_comment"
+                        ]
+                    ),
+                )
+
+            except ValidationError as error:
+                if hasattr(
+                    error,
+                    "message_dict",
+                ):
+                    for field, error_messages in (
+                        error.message_dict.items()
+                    ):
+                        form_field = (
+                            field
+                            if field in form.fields
+                            else None
+                        )
+
+                        for error_message in (
+                            error_messages
+                        ):
+                            form.add_error(
+                                form_field,
+                                error_message,
+                            )
+                else:
+                    form.add_error(
+                        None,
+                        error,
+                    )
+
+            else:
+                messages.success(
+                    request,
+                    (
+                        "Испытательный срок "
+                        "успешно завершён."
+                    ),
+                )
+
+                return redirect(
+                    "traineediary:trainee_detail",
+                    journey.id,
+                )
+
+    else:
+        form = CompleteProbationForm(
+            journey=journey,
+        )
+
+    return render(
+        request,
+        (
+            "traineediary/"
+            "complete_trainee.html"
+        ),
+        {
+            "journey": journey,
+            "form": form,
+        },
+    )
+
+
 def _weekly_metric_value_state(value, target):
     if value is None:
         return "empty"
@@ -1873,6 +1992,35 @@ def move_trainee_stage(request, journey_id):
         id=new_stage_id,
         is_active=True,
     )
+
+    if journey.completion_status:
+        return JsonResponse(
+            {
+                "error": (
+                    "Испытательный срок сотрудника "
+                    "уже завершён."
+                ),
+                "code": "probation_completed",
+            },
+            status=400,
+        )
+
+    if new_stage.group == StageGroup.DONE:
+        return JsonResponse(
+            {
+                "error": (
+                    "Для выхода с испытательного "
+                    "срока необходимо заполнить "
+                    "результат завершения."
+                ),
+                "code": "completion_required",
+                "redirect_url": reverse(
+                    "traineediary:complete_trainee",
+                    args=[journey.id],
+                ),
+            },
+            status=409,
+        )
 
     try:
         previous_stage = journey.move_to_stage(

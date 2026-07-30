@@ -33,6 +33,7 @@
                 "
                 data-journey-id="{{ journey.id }}"
                 data-move-url="{% url 'traineediary:move_trainee_stage' journey.id %}"
+                data-completion-url="{% url 'traineediary:complete_trainee' journey.id %}"
                 data-trainee-name="{{ journey.user.get_full_name|default:journey.user.username }}"
                 data-current-stage-id="{{ journey.current_stage_id }}"
                 data-current-stage-name="{{ journey.current_stage.name }}"
@@ -200,6 +201,7 @@
                       data-kanban-stage-move-button
                       data-stage-id="{{ readiness.next_stage.id }}"
                       data-stage-name="{{ readiness.next_stage.name }}"
+                      data-requires-completion="{% if readiness.next_stage.group == 'done' %}true{% else %}false{% endif %}"
                     >
                       <i data-lucide="arrow-right"></i>
                       Перевести
@@ -237,6 +239,7 @@
     class="kanban-done-section kanban-dropzone"
     data-stage-id="{{ done_column.stage.id }}"
     data-stage-name="{{ done_column.stage.name }}"
+    data-requires-completion="true"
   >
     <summary class="kanban-done-header">
       <span class="kanban-done-header-title">
@@ -262,20 +265,62 @@
         <div class="kanban-done-grid">
           {% for card in done_column.cards %}
             {% with journey=card.journey %}
-              <div class="kanban-done-card">
-                <a
-                  href="{% url 'traineediary:trainee_detail' journey.id %}"
-                  class="
-                    kanban-done-card-name
-                    kanban-card-detail-link
-                  "
-                >
-                  {{ journey.user.get_full_name|default:journey.user.username }}
-                </a>
+              <div
+                class="
+                  kanban-done-card
+
+                  {% if journey.completion_status == 'terminated' %}
+                    is-terminated
+                  {% elif journey.completion_status == 'success' %}
+                    is-success
+                  {% endif %}
+                "
+              >
+                <div class="kanban-done-card-header">
+                  <a
+                    href="{% url 'traineediary:trainee_detail' journey.id %}"
+                    class="
+                      kanban-done-card-name
+                      kanban-card-detail-link
+                    "
+                  >
+                    {{ journey.user.get_full_name|default:journey.user.username }}
+                  </a>
+
+                  {% if journey.completion_status == "terminated" %}
+                    <span class="status status-danger">
+                      ИС прекращён
+                    </span>
+
+                  {% elif journey.completion_status == "success" %}
+                    <span class="status status-success">
+                      ИС пройден
+                    </span>
+
+                  {% else %}
+                    <span class="status status-muted">
+                      Без результата
+                    </span>
+                  {% endif %}
+                </div>
 
                 <div class="kanban-done-card-meta">
-                  {{ journey.get_entry_type_display }}
+                  <span>
+                    {{ journey.get_entry_type_display }}
+                  </span>
+
+                  {% if journey.completed_at %}
+                    <span>
+                      Завершён {{ journey.completed_at|date:"d.m.Y" }}
+                    </span>
+                  {% endif %}
                 </div>
+
+                {% if journey.completion_comment %}
+                  <div class="kanban-done-card-comment">
+                    {{ journey.completion_comment|truncatechars:100 }}
+                  </div>
+                {% endif %}
               </div>
             {% endwith %}
           {% endfor %}
@@ -283,8 +328,8 @@
 
       {% else %}
         <p class="kanban-done-empty">
-          Перетащи сюда карточку после завершения
-          испытательного срока.
+          Перетащи карточку сюда, чтобы открыть
+          форму завершения испытательного срока.
         </p>
       {% endif %}
     </div>

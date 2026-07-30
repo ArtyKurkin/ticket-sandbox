@@ -1,0 +1,206 @@
+{% extends "traineediary/_base.html" %}
+
+{% block title %}
+  Завершение ИС ·
+  {{ journey.user.get_full_name|default:journey.user.username }}
+{% endblock %}
+
+{% block content %}
+<div class="trainee-detail-toolbar">
+  <a
+    href="{% url 'traineediary:trainee_detail' journey.id %}"
+    class="trainee-back-link"
+  >
+    <i data-lucide="arrow-left"></i>
+    Вернуться к сотруднику
+  </a>
+</div>
+
+<div class="hero">
+  <div>
+    <h1>
+      Завершение
+      <span class="accent">
+        испытательного срока
+      </span>
+    </h1>
+
+    <p>
+      {{ journey.user.get_full_name|default:journey.user.username }}
+      · {{ journey.current_stage.name }}
+    </p>
+  </div>
+</div>
+
+<div class="trainee-completion-layout">
+  <div class="card trainee-completion-card">
+    <div class="card-title-bar">
+      <i data-lucide="flag"></i>
+      <h2>Результат испытательного срока</h2>
+    </div>
+
+    <form
+      method="post"
+      class="trainee-completion-form"
+    >
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="trainee-completion-errors">
+          {% for error in form.non_field_errors %}
+            <div>
+              {{ error }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="trainee-completion-field">
+        <label
+          for="{{ form.completion_status.id_for_label }}"
+        >
+          {{ form.completion_status.label }}
+        </label>
+
+        {{ form.completion_status }}
+
+        {% for error in form.completion_status.errors %}
+          <span class="trainee-completion-error">
+            {{ error }}
+          </span>
+        {% endfor %}
+      </div>
+
+      <div class="trainee-completion-field">
+        <label
+          for="{{ form.completed_at.id_for_label }}"
+        >
+          {{ form.completed_at.label }}
+        </label>
+
+        {{ form.completed_at }}
+
+        {% for error in form.completed_at.errors %}
+          <span class="trainee-completion-error">
+            {{ error }}
+          </span>
+        {% endfor %}
+      </div>
+
+      <div class="trainee-completion-field">
+        <label
+          for="{{ form.completion_comment.id_for_label }}"
+        >
+          {{ form.completion_comment.label }}
+        </label>
+
+        {{ form.completion_comment }}
+
+        <p class="trainee-completion-help">
+          При успешном завершении комментарий
+          необязателен. При прекращении ИС
+          необходимо указать причину.
+        </p>
+
+        {% for error in form.completion_comment.errors %}
+          <span class="trainee-completion-error">
+            {{ error }}
+          </span>
+        {% endfor %}
+      </div>
+
+      <div class="trainee-completion-warning">
+        <i data-lucide="triangle-alert"></i>
+
+        <div>
+          <strong>
+            После подтверждения сотрудник будет
+            перенесён на финальный этап
+          </strong>
+
+          <p>
+            История текущего этапа закроется
+            выбранной датой. Общая длительность
+            адаптации и прогресс больше не будут
+            увеличиваться.
+          </p>
+        </div>
+      </div>
+
+      <div class="trainee-completion-actions">
+        <a
+          href="{% url 'traineediary:trainee_detail' journey.id %}"
+          class="button secondary"
+        >
+          Отмена
+        </a>
+
+        <button
+          type="submit"
+          class="button"
+        >
+          <i data-lucide="check"></i>
+          Завершить испытательный срок
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card trainee-completion-summary">
+    <div class="card-title-bar">
+      <i data-lucide="user-round"></i>
+      <h2>Сотрудник</h2>
+    </div>
+
+    <div class="trainee-completion-summary-list">
+      <div>
+        <span>Сотрудник</span>
+
+        <strong>
+          {{ journey.user.get_full_name|default:journey.user.username }}
+        </strong>
+      </div>
+
+      <div>
+        <span>Тип входа</span>
+
+        <strong>
+          {{ journey.get_entry_type_display }}
+        </strong>
+      </div>
+
+      <div>
+        <span>Начало ИС</span>
+
+        <strong>
+          {{ journey.probation_start_date|date:"d.m.Y" }}
+        </strong>
+      </div>
+
+      <div>
+        <span>Текущий этап</span>
+
+        <strong>
+          {{ journey.current_stage.name }}
+        </strong>
+      </div>
+
+      <div>
+        <span>Прошло дней</span>
+
+        <strong>
+          {{ journey.days_total }}
+        </strong>
+      </div>
+
+      <div>
+        <span>Осталось по плану</span>
+
+        <strong>
+          {{ journey.days_left_until_probation_end }}
+        </strong>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -15,6 +15,15 @@
   </a>
 
   <div class="trainee-detail-actions">
+    {% if not journey.completion_status %}
+      <a
+        href="{% url 'traineediary:complete_trainee' journey.id %}"
+        class="button"
+      >
+        <i data-lucide="flag"></i>
+        Завершить ИС
+      </a>
+    {% endif %}
     <a
       href="{% url 'traineediary:edit_trainee' journey.id %}"
       class="button secondary"
@@ -77,6 +86,91 @@
     </p>
   </div>
 </div>
+
+{% if journey.completion_status %}
+  <div
+    class="
+      card
+      trainee-completion-result-card
+      {% if journey.completion_status == 'terminated' %}
+        is-terminated
+      {% else %}
+        is-success
+      {% endif %}
+    "
+  >
+    <div class="trainee-completion-result-header">
+      <div class="trainee-completion-result-title">
+        {% if journey.completion_status == "terminated" %}
+          <i data-lucide="circle-x"></i>
+        {% else %}
+          <i data-lucide="badge-check"></i>
+        {% endif %}
+
+        <div>
+          <span>
+            Результат испытательного срока
+          </span>
+
+          <strong>
+            {{ journey.get_completion_status_display }}
+          </strong>
+        </div>
+      </div>
+
+      <span
+        class="
+          status
+          {% if journey.completion_status == 'terminated' %}
+            status-danger
+          {% else %}
+            status-success
+          {% endif %}
+        "
+      >
+        Завершён {{ journey.completed_at|date:"d.m.Y" }}
+      </span>
+    </div>
+
+    <div class="trainee-completion-result-info">
+      <div>
+        <span>Завершил</span>
+
+        <strong>
+          {% if journey.completed_by %}
+            {{ journey.completed_by.get_full_name|default:journey.completed_by.username }}
+          {% else %}
+            —
+          {% endif %}
+        </strong>
+      </div>
+
+      <div>
+        <span>Длительность адаптации</span>
+
+        <strong>
+          {{ journey.days_total }} дн.
+        </strong>
+      </div>
+    </div>
+
+    <div class="trainee-completion-result-comment">
+      <span>
+        Итоговый комментарий
+      </span>
+
+      {% if journey.completion_comment %}
+        <p>
+          {{ journey.completion_comment|linebreaksbr }}
+        </p>
+      {% else %}
+        <p class="trainee-empty-text">
+          Комментарий не добавлен.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
 
 <div class="trainee-detail-grid">
   <div class="card trainee-main-card">

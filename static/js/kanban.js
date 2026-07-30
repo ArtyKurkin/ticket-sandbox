@@ -56,8 +56,16 @@ function initStageMoveDialog(container) {
         return refreshKanbanBoard(container);
       })
       .catch(function (error) {
+        if (error.redirectUrl) {
+          window.location.assign(
+            error.redirectUrl,
+          );
+          return;
+        }
+
         showMoveError(
-          error.message || "Не удалось изменить этап.",
+          error.message
+          || "Не удалось изменить этап.",
         );
       })
       .finally(function () {
@@ -443,16 +451,61 @@ function positionGhost(ghost, x, y) {
   ghost.style.top = y + "px";
 }
 
-function openStageMoveDialog(card, dropZone) {
+function openStageMoveDialog(
+  card,
+  dropZone,
+) {
+  const currentStageId =
+    card.dataset.currentStageId;
+
+  const targetStageId =
+    dropZone.dataset.stageId;
+
+  // Отпустили карточку в её же колонке.
+  if (
+    !targetStageId ||
+    currentStageId === targetStageId
+  ) {
+    return;
+  }
+
+  // Финальный этап нельзя открывать
+  // через обычное окно смены этапа.
+  // Перенаправляем на отдельную форму
+  // завершения испытательного срока.
+  if (
+    dropZone.dataset.requiresCompletion
+    === "true"
+  ) {
+    const completionUrl =
+      card.dataset.completionUrl;
+
+    if (!completionUrl) {
+      showMoveError(
+        "Не указан адрес формы "
+        + "завершения испытательного срока.",
+      );
+      return;
+    }
+
+    window.location.assign(
+      completionUrl,
+    );
+    return;
+  }
+
   const dialog = document.getElementById(
     "stage-move-dialog",
   );
+
   const summary = document.getElementById(
     "stage-move-summary",
   );
+
   const dateInput = document.getElementById(
     "stage-move-date",
   );
+
   const noteInput = document.getElementById(
     "stage-move-note",
   );
@@ -469,27 +522,21 @@ function openStageMoveDialog(card, dropZone) {
     return;
   }
 
-  const currentStageId =
-    card.dataset.currentStageId;
-  const targetStageId =
-    dropZone.dataset.stageId;
-
-  // Отпустили карточку в её же колонке.
-  if (
-    !targetStageId ||
-    currentStageId === targetStageId
-  ) {
-    return;
-  }
-
   const traineeName =
-    card.dataset.traineeName || "Стажёр";
+    card.dataset.traineeName
+    || "Стажёр";
+
   const currentStageName =
-    card.dataset.currentStageName || "Текущий этап";
+    card.dataset.currentStageName
+    || "Текущий этап";
+
   const targetStageName =
-    dropZone.dataset.stageName || "Новый этап";
+    dropZone.dataset.stageName
+    || "Новый этап";
+
   const currentStageStartedAt =
     card.dataset.currentStageStartedAt;
+
   const defaultTransitionDate =
     dialog.dataset.defaultTransitionDate;
 
@@ -498,28 +545,38 @@ function openStageMoveDialog(card, dropZone) {
     stageId: targetStageId,
   };
 
-  summary.textContent =
-    traineeName +
-    ": " +
-    currentStageName +
-    " → " +
-    targetStageName;
+  summary.textContent = (
+    traineeName
+    + ": "
+    + currentStageName
+    + " → "
+    + targetStageName
+  );
 
-  // Нельзя выбрать дату раньше начала текущего этапа
-  // или позже сегодняшнего дня.
-  dateInput.min = currentStageStartedAt || "";
-  dateInput.max = defaultTransitionDate || "";
-  dateInput.value =
-    defaultTransitionDate ||
-    currentStageStartedAt ||
-    "";
+  dateInput.min = (
+    currentStageStartedAt
+    || ""
+  );
+
+  dateInput.max = (
+    defaultTransitionDate
+    || ""
+  );
+
+  dateInput.value = (
+    defaultTransitionDate
+    || currentStageStartedAt
+    || ""
+  );
 
   noteInput.value = "";
 
   dialog.showModal();
   dateInput.focus();
 
-  if (typeof lucide !== "undefined") {
+  if (
+    typeof lucide !== "undefined"
+  ) {
     lucide.createIcons();
   }
 }
@@ -576,38 +633,61 @@ function setStageMoveDialogBusy(
 }
 
 function moveTraineeStage(options) {
-  return fetch(options.moveUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": getCsrfCookie(),
+  return fetch(
+    options.moveUrl,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": (
+          "application/json"
+        ),
+        "X-CSRFToken": (
+          getCsrfCookie()
+        ),
+      },
+      body: JSON.stringify({
+        stage_id: options.stageId,
+        transition_date: (
+          options.transitionDate
+        ),
+        note: options.note,
+      }),
     },
-    body: JSON.stringify({
-      stage_id: options.stageId,
-      transition_date: options.transitionDate,
-      note: options.note,
-    }),
-  }).then(function (response) {
-    return response.text().then(function (text) {
-      let data = {};
+  ).then(function (response) {
+    return response
+      .text()
+      .then(function (text) {
+        let data = {};
 
-      if (text) {
-        try {
-          data = JSON.parse(text);
-        } catch (error) {
-          data = {};
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (error) {
+            data = {};
+          }
         }
-      }
 
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-          "Не удалось изменить этап.",
-        );
-      }
+        if (!response.ok) {
+          const requestError = new Error(
+            data.error
+            || "Не удалось изменить этап.",
+          );
 
-      return data;
-    });
+          requestError.code = (
+            data.code
+            || ""
+          );
+
+          requestError.redirectUrl = (
+            data.redirect_url
+            || ""
+          );
+
+          throw requestError;
+        }
+
+        return data;
+      });
   });
 }
 

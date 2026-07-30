@@ -4701,3 +4701,464 @@ body.terminal-is-expanded {
     flex-wrap: wrap;
   }
 }
+
+/* === Traineediary: probation completion === */
+
+.trainee-completion-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.6fr)
+    minmax(280px, 0.8fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.trainee-completion-card,
+.trainee-completion-summary {
+  overflow: hidden;
+}
+
+.trainee-completion-card,
+.trainee-completion-summary {
+  color: #f4f6ff;
+}
+
+.trainee-completion-card h2,
+.trainee-completion-summary h2 {
+  color: #f4f6ff;
+}
+
+.trainee-completion-form {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+}
+
+.trainee-completion-field {
+  display: grid;
+  gap: 8px;
+}
+
+.trainee-completion-field label {
+  color: #f4f6ff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.trainee-completion-control {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #f4f6ff;
+  caret-color: #f4f6ff;
+  font: inherit;
+  color-scheme: dark;
+}
+
+.trainee-completion-control:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.trainee-completion-control:focus {
+  border-color: var(--accent);
+  outline: 2px solid rgba(99, 102, 241, 0.18);
+  outline-offset: 1px;
+}
+
+.trainee-completion-control::placeholder {
+  color: rgba(182, 192, 226, 0.5);
+}
+
+select.trainee-completion-control {
+  color: #f4f6ff;
+  cursor: pointer;
+}
+
+select.trainee-completion-control option {
+  background: #182244;
+  color: #f4f6ff;
+}
+
+textarea.trainee-completion-control {
+  min-height: 150px;
+  padding: 14px;
+  color: #f4f6ff;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+input[type="date"].trainee-completion-control {
+  color: #f4f6ff;
+}
+
+input[type="date"].trainee-completion-control::-webkit-datetime-edit,
+input[type="date"].trainee-completion-control::-webkit-datetime-edit-fields-wrapper,
+input[type="date"].trainee-completion-control::-webkit-datetime-edit-text,
+input[type="date"].trainee-completion-control::-webkit-datetime-edit-day-field,
+input[type="date"].trainee-completion-control::-webkit-datetime-edit-month-field,
+input[type="date"].trainee-completion-control::-webkit-datetime-edit-year-field {
+  color: #f4f6ff;
+}
+
+input[type="date"].trainee-completion-control::-webkit-calendar-picker-indicator {
+  opacity: 0.9;
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.trainee-completion-help {
+  margin: 0;
+  color: #aeb9df;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.trainee-completion-error {
+  color: #ef4444;
+  font-size: 12px;
+}
+
+.trainee-completion-errors {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.06);
+  color: #ef4444;
+  font-size: 12px;
+}
+
+.trainee-completion-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.trainee-completion-warning > svg {
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+  color: #f59e0b;
+}
+
+.trainee-completion-warning strong {
+  color: #f4f6ff;
+}
+
+.trainee-completion-warning p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.trainee-completion-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.trainee-completion-summary-list {
+  display: grid;
+}
+
+.trainee-completion-summary-list > div {
+  display: grid;
+  gap: 5px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.trainee-completion-summary-list > div:last-child {
+  border-bottom: 0;
+}
+
+.trainee-completion-summary-list span {
+  color: #aeb9df;
+  font-size: 11px;
+}
+
+.trainee-completion-summary-list strong {
+  color: #f4f6ff;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .trainee-completion-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .trainee-completion-form {
+    padding: 18px;
+  }
+
+  .trainee-completion-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .trainee-completion-actions .button {
+    justify-content: center;
+  }
+}
+
+
+/* === Traineediary: completion result === */
+
+.trainee-completion-result-card {
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.trainee-completion-result-card.is-success {
+  border-color: rgba(40, 209, 124, 0.28);
+}
+
+.trainee-completion-result-card.is-terminated {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.trainee-completion-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.trainee-completion-result-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trainee-completion-result-title > svg {
+  flex: 0 0 auto;
+  width: 23px;
+  height: 23px;
+}
+
+.trainee-completion-result-card.is-success
+.trainee-completion-result-title > svg {
+  color: #28d17c;
+}
+
+.trainee-completion-result-card.is-terminated
+.trainee-completion-result-title > svg {
+  color: #ef4444;
+}
+
+.trainee-completion-result-title > div {
+  display: grid;
+  gap: 3px;
+}
+
+.trainee-completion-result-title span,
+.trainee-completion-result-info span,
+.trainee-completion-result-comment > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.trainee-completion-result-title strong {
+  font-size: 15px;
+}
+
+.trainee-completion-result-info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+
+.trainee-completion-result-info > div {
+  display: grid;
+  gap: 4px;
+  padding: 14px 20px;
+  border-right: 1px solid var(--border);
+}
+
+.trainee-completion-result-info > div:last-child {
+  border-right: 0;
+}
+
+.trainee-completion-result-comment {
+  padding: 18px 20px;
+}
+
+.trainee-completion-result-comment p {
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 620px) {
+  .trainee-completion-result-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .trainee-completion-result-info {
+    grid-template-columns: 1fr;
+  }
+
+  .trainee-completion-result-info > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .trainee-completion-result-info > div:last-child {
+    border-bottom: 0;
+  }
+}
+
+/* === Traineediary: start adaptation === */
+
+.trainee-start-card {
+  color: #f4f6ff;
+}
+
+.trainee-start-card strong {
+  color: #f4f6ff;
+}
+
+.trainee-start-card .field-label {
+  color: #b6c0e2;
+}
+
+.trainee-start-card p {
+  color: #b6c0e2;
+}
+
+.trainee-start-card p strong {
+  color: #f4f6ff;
+}
+
+.trainee-start-form {
+  color: #f4f6ff;
+}
+
+.trainee-start-control {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #f4f6ff;
+  caret-color: #f4f6ff;
+  font: inherit;
+  color-scheme: dark;
+}
+
+.trainee-start-control:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.trainee-start-control:focus {
+  border-color: var(--accent);
+  outline: 2px solid rgba(99, 102, 241, 0.18);
+  outline-offset: 1px;
+}
+
+.trainee-start-control::placeholder {
+  color: rgba(182, 192, 226, 0.5);
+}
+
+select.trainee-start-control {
+  color: #f4f6ff;
+}
+
+select.trainee-start-control option {
+  background: #182244;
+  color: #f4f6ff;
+}
+
+textarea.trainee-start-control {
+  min-height: 140px;
+  padding: 14px;
+  color: #f4f6ff;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+input[type="date"].trainee-start-control {
+  color: #f4f6ff;
+}
+
+input[type="date"].trainee-start-control::-webkit-datetime-edit,
+input[type="date"].trainee-start-control::-webkit-datetime-edit-fields-wrapper,
+input[type="date"].trainee-start-control::-webkit-datetime-edit-text,
+input[type="date"].trainee-start-control::-webkit-datetime-edit-day-field,
+input[type="date"].trainee-start-control::-webkit-datetime-edit-month-field,
+input[type="date"].trainee-start-control::-webkit-datetime-edit-year-field {
+  color: #f4f6ff;
+}
+
+input[type="date"].trainee-start-control::-webkit-calendar-picker-indicator {
+  opacity: 0.9;
+  filter: invert(1);
+  cursor: pointer;
+}
+
+
+/* === Traineediary: completed kanban cards === */
+
+.kanban-done-card {
+  display: grid;
+  gap: 10px;
+}
+
+.kanban-done-card.is-success {
+  border-color: rgba(40, 209, 124, 0.24);
+}
+
+.kanban-done-card.is-terminated {
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.kanban-done-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kanban-done-card-header .status {
+  flex: 0 0 auto;
+}
+
+.kanban-done-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.kanban-done-card-comment {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: #b6c0e2;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 620px) {
+  .kanban-done-card-header,
+  .kanban-done-card-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
