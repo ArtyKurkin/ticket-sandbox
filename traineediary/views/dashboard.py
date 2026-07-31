@@ -1,11 +1,21 @@
 from decimal import Decimal
 
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.contrib.auth.decorators import (
+    login_required,
+)
+from django.core.exceptions import (
+    PermissionDenied,
+)
+from django.db.models import (
+    Prefetch,
+    Q,
+)
 from django.shortcuts import render
 from django.urls import reverse
-from django.db.models import Prefetch, Q
 
+from ..constants import (
+    TICKET_METRIC_GROUPS,
+)
 from ..models import (
     CompletionStatus,
     EntryType,
@@ -14,14 +24,11 @@ from ..models import (
     TraineeStage,
     WeeklyMetric,
 )
-from ..services.sandbox_progress import (
-    build_sandbox_queue_progress_map,
-)
 from ..services.assessment import (
     build_trainee_assessment,
 )
-from ..constants import (
-    TICKET_METRIC_GROUPS,
+from ..services.sandbox_progress import (
+    build_sandbox_queue_progress_map,
 )
 
 
