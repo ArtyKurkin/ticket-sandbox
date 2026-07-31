@@ -1,10 +1,9 @@
 # Временный compatibility-слой.
 #
-# Пока остальные view постепенно
-# переносятся из legacy.py
-# в тематические модули,
+# Пока последняя view постепенно
+# переносится из legacy.py,
 # urls.py продолжает обращаться
-# к ним через единый пакет
+# к обработчикам через единый пакет
 # traineediary.views.
 
 from .legacy import *  # noqa: F401,F403
@@ -15,6 +14,7 @@ from .kanban import (
     move_trainee_stage,
     trainees_kanban,
 )
+from .trainee_detail import trainee_detail
 from .trainee_management import (
     create_trainee,
     edit_trainee,
