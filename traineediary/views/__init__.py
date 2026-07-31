@@ -13,3 +13,9 @@ from .kanban import (
     move_trainee_stage,
     trainees_kanban,
 )
+from .trainee_management import (
+    create_trainee,
+    edit_trainee,
+    pre_adaptation_users,
+    start_adaptation,
+)
