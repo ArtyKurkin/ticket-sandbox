@@ -57,13 +57,36 @@ class TraineeJourneyAdmin(admin.ModelAdmin):
         "user",
         "entry_type",
         "current_stage",
+        "completion_status",
+        "completed_at",
         "days_total_display",
         "days_left_display",
         "risk_level_display",
         "expected_stage_transition_date",
     )
-    list_filter = ("entry_type", "current_stage", "current_stage__group")
-    search_fields = ("user__username", "user__first_name", "user__last_name")
+
+    list_filter = (
+        "entry_type",
+        "current_stage",
+        "current_stage__group",
+        "completion_status",
+    )
+
+    search_fields = (
+        "user__username",
+        "user__first_name",
+        "user__last_name",
+        "completion_comment",
+    )
+
+    raw_id_fields = (
+        "user",
+    )
+
+    inlines = (
+        StageHistoryInline,
+        WeeklyMetricInline,
+    )
     raw_id_fields = ("user",)
     inlines = (StageHistoryInline, WeeklyMetricInline)
 
