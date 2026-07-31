@@ -1,9 +1,11 @@
 # Временный compatibility-слой.
 #
-# Пока остальные view постепенно переносятся
-# из legacy.py в тематические модули,
-# urls.py продолжает обращаться к ним через
-# единый пакет traineediary.views.
+# Пока остальные view постепенно
+# переносятся из legacy.py
+# в тематические модули,
+# urls.py продолжает обращаться
+# к ним через единый пакет
+# traineediary.views.
 
 from .legacy import *  # noqa: F401,F403
 
@@ -18,4 +20,8 @@ from .trainee_management import (
     edit_trainee,
     pre_adaptation_users,
     start_adaptation,
+)
+from .weekly_metrics import (
+    save_weekly_metric,
+    weekly_metrics,
 )
