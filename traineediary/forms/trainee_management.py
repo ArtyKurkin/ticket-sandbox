@@ -1,16 +1,17 @@
 import secrets
 
 from django import forms
-from django.db import transaction
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.utils import timezone
+
+from sandbox.models import TraineeProfile
 
 from ..models import (
     EntryType,
     TraineeJourney,
     TraineeStage,
 )
-from sandbox.models import TraineeProfile
 
 
 class NewTraineeForm(forms.Form):

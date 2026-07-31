@@ -1,7 +1,7 @@
 """Формы приложения «Дневник стажёра»."""
 
 from .completion import CompleteProbationForm
-from .legacy import (
+from .trainee_management import (
     EditTraineeForm,
     NewTraineeForm,
     StartAdaptationForm,
