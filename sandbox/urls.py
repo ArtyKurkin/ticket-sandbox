@@ -5,7 +5,11 @@ from . import views
 app_name = "sandbox"
 
 urlpatterns = [
-    path("", views.dashboard, name="dashboard"),
+    path(
+        "sandbox/",
+        views.dashboard,
+        name="dashboard",
+    ),
     path(
         "attempts/<int:attempt_id>/", views.task_detail, name="task_detail"
     ),

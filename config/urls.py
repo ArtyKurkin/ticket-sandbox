@@ -3,10 +3,15 @@ from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
-from config.views import healthz
+from config.views import (
+    healthz,
+    home,
+)
 
 
 urlpatterns = [
+    path("", home, name="home"),
+
     path("healthz/", healthz, name="healthz"),
     path("admin/", admin.site.urls),
 
