@@ -316,11 +316,14 @@ python manage.py sync_training_tasks --dry-run --strict
 python manage.py build_task_images
 python manage.py cleanup_task_containers --dry-run
 python manage.py detect_stuck_attempts --dry-run
+python manage.py check_trainee_integrity
 ```
 
 `cleanup_task_containers` очищает старые незавершённые контейнеры.
 
 `detect_stuck_attempts` переводит зависшие background-операции в `error`, чтобы попытки не оставались навсегда в `starting`, `restarting` или `running`.
+
+`check_trainee_integrity` проверяет согласованность карточек, текущих этапов, истории переходов и результатов испытательного срока, ничего не изменяя в базе.
 
 ## Cron-примеры
 
