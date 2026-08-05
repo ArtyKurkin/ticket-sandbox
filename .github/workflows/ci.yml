@@ -57,7 +57,7 @@ jobs:
           python manage.py sync_training_tasks --dry-run --strict
 
       - name: Run tests
-        run: python manage.py test sandbox traineediary
+        run: python manage.py test sandbox traineediary assessment
 
   deploy-staging:
     name: Deploy staging

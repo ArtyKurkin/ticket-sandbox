@@ -31,7 +31,7 @@ sync-check:
 	python manage.py sync_training_tasks --dry-run --strict
 
 test:
-	python manage.py test sandbox
+	python manage.py test sandbox traineediary assessment
 
 test-terminal:
 	python manage.py test sandbox.tests.test_terminal_auth sandbox.tests.test_terminal_gateway

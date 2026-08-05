@@ -58,6 +58,7 @@ INSTALLED_APPS = [
 
     "sandbox.apps.SandboxConfig",
     "traineediary",
+    "assessment.apps.AssessmentConfig",
 ]
 
 MIDDLEWARE = [
