@@ -1,7 +1,17 @@
 from django.conf import settings
 from django.db import models
 
-from .constants import SupportLevel
+from django.core.validators import (
+    MaxValueValidator,
+    MinValueValidator,
+)
+
+from .constants import (
+    QuestionDifficulty,
+    QuestionStatus,
+    QuestionType,
+    SupportLevel,
+)
 
 
 class SupportProfile(models.Model):
@@ -226,3 +236,181 @@ class QuestionFamily(models.Model):
 
     def __str__(self):
         return f"{self.skill} → {self.name}"
+
+
+class Question(models.Model):
+    family = models.ForeignKey(
+        QuestionFamily,
+        on_delete=models.PROTECT,
+        related_name="questions",
+        verbose_name="Семейство вопросов",
+    )
+
+    title = models.CharField(
+        max_length=180,
+        verbose_name="Внутреннее название",
+        help_text=(
+            "Название видно наставнику, "
+            "но не показывается сотруднику."
+        ),
+    )
+
+    slug = models.SlugField(
+        max_length=120,
+        verbose_name="Slug",
+    )
+
+    level = models.CharField(
+        max_length=16,
+        choices=SupportLevel.choices,
+        verbose_name="Уровень",
+    )
+
+    difficulty = models.CharField(
+        max_length=16,
+        choices=QuestionDifficulty.choices,
+        default=QuestionDifficulty.HARD,
+        verbose_name="Сложность",
+    )
+
+    scenario = models.TextField(
+        blank=True,
+        verbose_name="Ситуация и вводные",
+        help_text=(
+            "Описание проблемы или обращения, "
+            "которое увидит сотрудник."
+        ),
+    )
+
+    diagnostic_data = models.TextField(
+        blank=True,
+        verbose_name="Логи и вывод команд",
+        help_text=(
+            "Необязательный блок с логами, "
+            "конфигурацией или выводом команд."
+        ),
+    )
+
+    prompt = models.TextField(
+        verbose_name="Вопрос",
+    )
+
+    answer_type = models.CharField(
+        max_length=32,
+        choices=QuestionType.choices,
+        default=QuestionType.SINGLE_CHOICE,
+        verbose_name="Тип ответа",
+    )
+
+    time_limit_seconds = models.PositiveSmallIntegerField(
+        default=90,
+        validators=(
+            MinValueValidator(30),
+            MaxValueValidator(300),
+        ),
+        verbose_name="Время на ответ, секунд",
+    )
+
+    explanation = models.TextField(
+        blank=True,
+        verbose_name="Объяснение для наставника",
+        help_text=(
+            "Почему ответ правильный и какое "
+            "знание проверяет вопрос."
+        ),
+    )
+
+    status = models.CharField(
+        max_length=16,
+        choices=QuestionStatus.choices,
+        default=QuestionStatus.DRAFT,
+        verbose_name="Статус",
+    )
+
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Порядок",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Создан",
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Обновлён",
+    )
+
+    class Meta:
+        ordering = (
+            "family__skill__topic__order",
+            "family__skill__order",
+            "family__order",
+            "order",
+            "title",
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    "family",
+                    "slug",
+                ),
+                name=(
+                    "assessment_unique_question_slug_"
+                    "per_family"
+                ),
+            ),
+        )
+
+        verbose_name = "Вопрос"
+        verbose_name_plural = "Вопросы"
+
+    def __str__(self):
+        return f"{self.family} → {self.title}"
+
+
+class AnswerOption(models.Model):
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name="answer_options",
+        verbose_name="Вопрос",
+    )
+
+    text = models.TextField(
+        verbose_name="Вариант ответа",
+    )
+
+    is_correct = models.BooleanField(
+        default=False,
+        verbose_name="Правильный ответ",
+    )
+
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Порядок",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Создан",
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Обновлён",
+    )
+
+    class Meta:
+        ordering = (
+            "order",
+            "id",
+        )
+
+        verbose_name = "Вариант ответа"
+        verbose_name_plural = "Варианты ответов"
+
+    def __str__(self):
+        return self.text
