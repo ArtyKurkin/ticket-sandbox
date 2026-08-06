@@ -14,6 +14,8 @@ from .question_validation import (
 
 from .models import (
     AnswerOption,
+    BlueprintSkillQuota,
+    ExamBlueprint,
     MatchingPair,
     OrderingItem,
     Question,
@@ -625,3 +627,119 @@ class QuestionAdmin(admin.ModelAdmin):
     )
     def topic_display(self, obj):
         return obj.family.skill.topic
+
+
+class BlueprintSkillQuotaInline(admin.TabularInline):
+    model = BlueprintSkillQuota
+    extra = 0
+
+    fields = (
+        "skill",
+        "question_count",
+        "order",
+    )
+
+    ordering = (
+        "order",
+        "skill__topic__order",
+        "skill__order",
+        "skill__name",
+    )
+
+    autocomplete_fields = (
+        "skill",
+    )
+
+
+@admin.register(ExamBlueprint)
+class ExamBlueprintAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "level",
+        "question_count_display",
+        "pass_percentage",
+        "allow_back_navigation",
+        "is_active",
+        "updated_at",
+    )
+
+    list_editable = (
+        "pass_percentage",
+        "is_active",
+    )
+
+    list_filter = (
+        "level",
+        "is_active",
+        "allow_back_navigation",
+    )
+
+    search_fields = (
+        "name",
+        "slug",
+    )
+
+    prepopulated_fields = {
+        "slug": (
+            "name",
+        ),
+    }
+
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+    )
+
+    fieldsets = (
+        (
+            "Основные настройки",
+            {
+                "fields": (
+                    "name",
+                    "slug",
+                    "level",
+                    "pass_percentage",
+                    "is_active",
+                ),
+            },
+        ),
+        (
+            "Прохождение",
+            {
+                "fields": (
+                    "allow_back_navigation",
+                    "shuffle_questions",
+                    "shuffle_answer_options",
+                ),
+            },
+        ),
+        (
+            "Служебная информация",
+            {
+                "fields": (
+                    "created_at",
+                    "updated_at",
+                ),
+                "classes": (
+                    "collapse",
+                ),
+            },
+        ),
+    )
+
+    inlines = (
+        BlueprintSkillQuotaInline,
+    )
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .prefetch_related("skill_quotas")
+        )
+
+    @admin.display(
+        description="Вопросов",
+    )
+    def question_count_display(self, obj):
+        return obj.question_count

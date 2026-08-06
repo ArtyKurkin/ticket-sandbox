@@ -238,6 +238,160 @@ class QuestionFamily(models.Model):
         return f"{self.skill} → {self.name}"
 
 
+class ExamBlueprint(models.Model):
+    name = models.CharField(
+        max_length=150,
+        verbose_name="Название",
+    )
+
+    slug = models.SlugField(
+        max_length=120,
+        unique=True,
+        verbose_name="Slug",
+    )
+
+    level = models.CharField(
+        max_length=16,
+        choices=SupportLevel.choices,
+        verbose_name="Уровень сотрудников",
+    )
+
+    pass_percentage = models.PositiveSmallIntegerField(
+        default=85,
+        validators=(
+            MinValueValidator(1),
+            MaxValueValidator(100),
+        ),
+        verbose_name="Проходной результат, %",
+    )
+
+    allow_back_navigation = models.BooleanField(
+        default=False,
+        verbose_name="Разрешить возврат к вопросам",
+        help_text=(
+            "Если выключено, после отправки ответа "
+            "вернуться к вопросу нельзя."
+        ),
+    )
+
+    shuffle_questions = models.BooleanField(
+        default=True,
+        verbose_name="Перемешивать вопросы",
+    )
+
+    shuffle_answer_options = models.BooleanField(
+        default=True,
+        verbose_name="Перемешивать варианты ответов",
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Активен",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Создан",
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Обновлён",
+    )
+
+    class Meta:
+        ordering = (
+            "level",
+            "name",
+        )
+        verbose_name = "Шаблон теста"
+        verbose_name_plural = "Шаблоны тестов"
+
+    def __str__(self):
+        return f"{self.name} — {self.get_level_display()}"
+
+    @property
+    def question_count(self):
+        prefetched_quotas = getattr(
+            self,
+            "_prefetched_objects_cache",
+            {},
+        ).get("skill_quotas")
+
+        if prefetched_quotas is not None:
+            return sum(
+                quota.question_count
+                for quota in prefetched_quotas
+            )
+
+        result = self.skill_quotas.aggregate(
+            total=models.Sum("question_count"),
+        )
+
+        return result["total"] or 0
+
+
+class BlueprintSkillQuota(models.Model):
+    blueprint = models.ForeignKey(
+        ExamBlueprint,
+        on_delete=models.CASCADE,
+        related_name="skill_quotas",
+        verbose_name="Шаблон теста",
+    )
+
+    skill = models.ForeignKey(
+        Skill,
+        on_delete=models.PROTECT,
+        related_name="blueprint_quotas",
+        verbose_name="Проверяемый навык",
+    )
+
+    question_count = models.PositiveSmallIntegerField(
+        default=1,
+        validators=(
+            MinValueValidator(1),
+            MaxValueValidator(20),
+        ),
+        verbose_name="Количество вопросов",
+    )
+
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Порядок",
+    )
+
+    class Meta:
+        ordering = (
+            "order",
+            "skill__topic__order",
+            "skill__order",
+            "skill__name",
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    "blueprint",
+                    "skill",
+                ),
+                name=(
+                    "assessment_unique_skill_"
+                    "per_blueprint"
+                ),
+            ),
+        )
+
+        verbose_name = "Квота навыка"
+        verbose_name_plural = "Квоты навыков"
+
+    def __str__(self):
+        return (
+            f"{self.blueprint.name}: "
+            f"{self.skill} — "
+            f"{self.question_count}"
+        )
+
+
 class Question(models.Model):
     family = models.ForeignKey(
         QuestionFamily,
