@@ -414,3 +414,103 @@ class AnswerOption(models.Model):
 
     def __str__(self):
         return self.text
+
+
+class MatchingPair(models.Model):
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name="matching_pairs",
+        verbose_name="Вопрос",
+    )
+
+    left_text = models.TextField(
+        verbose_name="Левая часть",
+    )
+
+    right_text = models.TextField(
+        verbose_name="Правильная правая часть",
+    )
+
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Порядок",
+    )
+
+    class Meta:
+        ordering = (
+            "order",
+            "id",
+        )
+        verbose_name = "Пара для сопоставления"
+        verbose_name_plural = "Пары для сопоставления"
+
+    def __str__(self):
+        return f"{self.left_text} → {self.right_text}"
+
+
+class OrderingItem(models.Model):
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name="ordering_items",
+        verbose_name="Вопрос",
+    )
+
+    text = models.TextField(
+        verbose_name="Элемент последовательности",
+    )
+
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Правильная позиция",
+        help_text=(
+            "Чем меньше значение, тем раньше "
+            "должен находиться элемент."
+        ),
+    )
+
+    class Meta:
+        ordering = (
+            "order",
+            "id",
+        )
+        verbose_name = "Элемент последовательности"
+        verbose_name_plural = "Элементы последовательности"
+
+    def __str__(self):
+        return self.text
+
+
+class SelectableLine(models.Model):
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name="selectable_lines",
+        verbose_name="Вопрос",
+    )
+
+    text = models.TextField(
+        verbose_name="Строка",
+    )
+
+    is_correct = models.BooleanField(
+        default=False,
+        verbose_name="Нужно выбрать",
+    )
+
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Номер строки",
+    )
+
+    class Meta:
+        ordering = (
+            "order",
+            "id",
+        )
+        verbose_name = "Строка лога или конфигурации"
+        verbose_name_plural = "Строки лога или конфигурации"
+
+    def __str__(self):
+        return self.text

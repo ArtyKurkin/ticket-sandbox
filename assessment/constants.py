@@ -22,6 +22,18 @@ class QuestionType(models.TextChoices):
         "multiple_choice",
         "Несколько правильных ответов",
     )
+    MATCHING = (
+        "matching",
+        "Сопоставление",
+    )
+    ORDERING = (
+        "ordering",
+        "Последовательность",
+    )
+    LINE_SELECTION = (
+        "line_selection",
+        "Выбор строк",
+    )
 
 
 class QuestionStatus(models.TextChoices):

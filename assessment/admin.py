@@ -1,15 +1,24 @@
 from django.contrib import admin
 from django.forms.models import BaseInlineFormSet
 
-from .constants import QuestionStatus
+from .constants import (
+    QuestionStatus,
+    QuestionType,
+)
 from .question_validation import (
     validate_answer_configuration,
+    validate_line_selection_configuration,
+    validate_matching_configuration,
+    validate_ordering_configuration,
 )
 
 from .models import (
     AnswerOption,
+    MatchingPair,
+    OrderingItem,
     Question,
     QuestionFamily,
+    SelectableLine,
     Skill,
     SupportProfile,
     Topic,
@@ -256,6 +265,12 @@ class AnswerOptionInlineFormSet(BaseInlineFormSet):
         if self.instance.status != QuestionStatus.ACTIVE:
             return
 
+        if self.instance.answer_type not in {
+            QuestionType.SINGLE_CHOICE,
+            QuestionType.MULTIPLE_CHOICE,
+        }:
+            return
+
         options = []
 
         for form in self.forms:
@@ -296,6 +311,185 @@ class AnswerOptionInline(admin.TabularInline):
     model = AnswerOption
     formset = AnswerOptionInlineFormSet
     extra = 4
+
+    fields = (
+        "text",
+        "is_correct",
+        "order",
+    )
+
+    ordering = (
+        "order",
+        "id",
+    )
+
+
+class MatchingPairInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+
+        if any(self.errors):
+            return
+
+        if self.instance.status != QuestionStatus.ACTIVE:
+            return
+
+        if self.instance.answer_type != QuestionType.MATCHING:
+            return
+
+        pairs = []
+
+        for form in self.forms:
+            cleaned_data = getattr(
+                form,
+                "cleaned_data",
+                None,
+            )
+
+            if not cleaned_data:
+                continue
+
+            if cleaned_data.get("DELETE"):
+                continue
+
+            pairs.append(
+                {
+                    "left_text": cleaned_data.get(
+                        "left_text"
+                    ),
+                    "right_text": cleaned_data.get(
+                        "right_text"
+                    ),
+                }
+            )
+
+        validate_matching_configuration(
+            pairs=pairs,
+        )
+
+
+class MatchingPairInline(admin.TabularInline):
+    model = MatchingPair
+    formset = MatchingPairInlineFormSet
+    extra = 4
+
+    fields = (
+        "left_text",
+        "right_text",
+        "order",
+    )
+
+    ordering = (
+        "order",
+        "id",
+    )
+
+
+class OrderingItemInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+
+        if any(self.errors):
+            return
+
+        if self.instance.status != QuestionStatus.ACTIVE:
+            return
+
+        if self.instance.answer_type != QuestionType.ORDERING:
+            return
+
+        items = []
+
+        for form in self.forms:
+            cleaned_data = getattr(
+                form,
+                "cleaned_data",
+                None,
+            )
+
+            if not cleaned_data:
+                continue
+
+            if cleaned_data.get("DELETE"):
+                continue
+
+            items.append(
+                {
+                    "text": cleaned_data.get("text"),
+                }
+            )
+
+        validate_ordering_configuration(
+            items=items,
+        )
+
+
+class OrderingItemInline(admin.TabularInline):
+    model = OrderingItem
+    formset = OrderingItemInlineFormSet
+    extra = 5
+
+    fields = (
+        "text",
+        "order",
+    )
+
+    ordering = (
+        "order",
+        "id",
+    )
+
+
+class SelectableLineInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+
+        if any(self.errors):
+            return
+
+        if self.instance.status != QuestionStatus.ACTIVE:
+            return
+
+        if (
+            self.instance.answer_type
+            != QuestionType.LINE_SELECTION
+        ):
+            return
+
+        lines = []
+
+        for form in self.forms:
+            cleaned_data = getattr(
+                form,
+                "cleaned_data",
+                None,
+            )
+
+            if not cleaned_data:
+                continue
+
+            if cleaned_data.get("DELETE"):
+                continue
+
+            lines.append(
+                {
+                    "text": cleaned_data.get("text"),
+                    "is_correct": cleaned_data.get(
+                        "is_correct",
+                        False,
+                    ),
+                }
+            )
+
+        validate_line_selection_configuration(
+            lines=lines,
+        )
+
+
+class SelectableLineInline(admin.TabularInline):
+    model = SelectableLine
+    formset = SelectableLineInlineFormSet
+    extra = 6
 
     fields = (
         "text",
@@ -420,6 +614,9 @@ class QuestionAdmin(admin.ModelAdmin):
 
     inlines = (
         AnswerOptionInline,
+        MatchingPairInline,
+        OrderingItemInline,
+        SelectableLineInline,
     )
 
     @admin.display(

@@ -4,6 +4,9 @@ from django.test import SimpleTestCase
 from assessment.constants import QuestionType
 from assessment.question_validation import (
     validate_answer_configuration,
+    validate_line_selection_configuration,
+    validate_matching_configuration,
+    validate_ordering_configuration,
 )
 
 
@@ -120,6 +123,97 @@ class QuestionAnswerValidationTests(SimpleTestCase):
                     {
                         "text": "Второй правильный",
                         "is_correct": True,
+                    },
+                ],
+            )
+
+    def test_valid_matching_configuration(self):
+        validate_matching_configuration(
+            pairs=[
+                {
+                    "left_text": "Высокий await",
+                    "right_text": "Проблема с диском",
+                },
+                {
+                    "left_text": "Сработал OOM Killer",
+                    "right_text": "Нехватка памяти",
+                },
+            ],
+        )
+
+    def test_matching_requires_two_pairs(self):
+        with self.assertRaises(ValidationError):
+            validate_matching_configuration(
+                pairs=[
+                    {
+                        "left_text": "Симптом",
+                        "right_text": "Причина",
+                    },
+                ],
+            )
+
+    def test_matching_right_parts_must_be_unique(self):
+        with self.assertRaises(ValidationError):
+            validate_matching_configuration(
+                pairs=[
+                    {
+                        "left_text": "Первый симптом",
+                        "right_text": "Одна причина",
+                    },
+                    {
+                        "left_text": "Второй симптом",
+                        "right_text": "Одна причина",
+                    },
+                ],
+            )
+
+    def test_valid_ordering_configuration(self):
+        validate_ordering_configuration(
+            items=[
+                {"text": "Изменить конфигурацию"},
+                {"text": "Проверить конфигурацию"},
+                {"text": "Применить изменения"},
+            ],
+        )
+
+    def test_ordering_requires_three_items(self):
+        with self.assertRaises(ValidationError):
+            validate_ordering_configuration(
+                items=[
+                    {"text": "Первый шаг"},
+                    {"text": "Второй шаг"},
+                ],
+            )
+
+    def test_valid_line_selection_configuration(self):
+        validate_line_selection_configuration(
+            lines=[
+                {
+                    "text": "Первая строка",
+                    "is_correct": False,
+                },
+                {
+                    "text": "Строка с ошибкой",
+                    "is_correct": True,
+                },
+                {
+                    "text": "Третья строка",
+                    "is_correct": False,
+                },
+            ],
+        )
+
+    def test_line_selection_requires_correct_line(self):
+        with self.assertRaises(ValidationError):
+            validate_line_selection_configuration(
+                lines=[
+                    {
+                        "text": "Первая строка",
+                        "is_correct": False,
+                    },
+                    {
+                        "text": "Вторая строка",
+                        "is_correct": False,
                     },
                 ],
             )
