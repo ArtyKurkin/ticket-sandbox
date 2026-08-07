@@ -1,7 +1,13 @@
 import math
+import uuid
 from datetime import timedelta
 
 from django.contrib import messages
+from django.contrib.admin.views.decorators import (
+    staff_member_required,
+)
+from django.db import transaction
+from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import (
     PermissionDenied,
@@ -20,10 +26,16 @@ from .constants import (
     QuestionType,
 )
 from .models import (
+    AnswerOption,
     ExamAssignment,
     ExamAttempt,
     ExamQuestionSnapshot,
+    MatchingPair,
+    OrderingItem,
+    SelectableLine,
     SupportProfile,
+    Question,
+    Topic,
 )
 from .services.attempts import start_exam_attempt
 from .services.answers import (
@@ -35,6 +47,13 @@ from .services.question_flow import (
 )
 from .services.results import (
     complete_exam_attempt,
+)
+from .forms import (
+    AnswerOptionEditorFormSet,
+    MatchingPairEditorFormSet,
+    OrderingItemEditorFormSet,
+    QuestionEditorForm,
+    SelectableLineEditorFormSet,
 )
 
 
@@ -589,4 +608,357 @@ def submit_question_answer(
     return redirect(
         "assessment:attempt_question",
         attempt_id=attempt.pk,
+    )
+
+
+@staff_member_required
+def mentor_question_list(request):
+    questions = (
+        Question.objects
+        .select_related(
+            "family",
+            "family__skill",
+            "family__skill__topic",
+        )
+        .order_by(
+            "family__skill__topic__order",
+            "family__skill__order",
+            "family__order",
+            "order",
+            "title",
+        )
+    )
+
+    query = request.GET.get(
+        "q",
+        "",
+    ).strip()
+
+    level = request.GET.get(
+        "level",
+        "",
+    ).strip()
+
+    topic_slug = request.GET.get(
+        "topic",
+        "",
+    ).strip()
+
+    status = request.GET.get(
+        "status",
+        "",
+    ).strip()
+
+    if query:
+        questions = questions.filter(
+            Q(title__icontains=query)
+            | Q(prompt__icontains=query)
+            | Q(scenario__icontains=query)
+            | Q(diagnostic_data__icontains=query)
+            | Q(family__name__icontains=query)
+            | Q(family__skill__name__icontains=query)
+        )
+
+    if level:
+        questions = questions.filter(
+            level=level,
+        )
+
+    if topic_slug:
+        questions = questions.filter(
+            family__skill__topic__slug=topic_slug,
+        )
+
+    if status:
+        questions = questions.filter(
+            status=status,
+        )
+
+    topics = (
+        Topic.objects
+        .filter(is_active=True)
+        .order_by(
+            "order",
+            "name",
+        )
+    )
+
+    return render(
+        request,
+        "assessment/mentor/question_list.html",
+        {
+            "questions": questions,
+            "question_count": questions.count(),
+            "topics": topics,
+            "filters": {
+                "q": query,
+                "level": level,
+                "topic": topic_slug,
+                "status": status,
+            },
+        },
+    )
+
+
+def _editor_answer_type(
+    request,
+    question,
+):
+    if request.method == "POST":
+        return request.POST.get(
+            "answer_type",
+            QuestionType.SINGLE_CHOICE,
+        )
+
+    if question.pk:
+        return question.answer_type
+
+    return QuestionType.SINGLE_CHOICE
+
+
+def _build_question_formsets(
+    request,
+    *,
+    question,
+    answer_type,
+):
+    post_data = (
+        request.POST
+        if request.method == "POST"
+        else None
+    )
+
+    choice_data = (
+        post_data
+        if answer_type in {
+            QuestionType.SINGLE_CHOICE,
+            QuestionType.MULTIPLE_CHOICE,
+        }
+        else None
+    )
+
+    matching_data = (
+        post_data
+        if answer_type
+        == QuestionType.MATCHING
+        else None
+    )
+
+    ordering_data = (
+        post_data
+        if answer_type
+        == QuestionType.ORDERING
+        else None
+    )
+
+    lines_data = (
+        post_data
+        if answer_type
+        == QuestionType.LINE_SELECTION
+        else None
+    )
+
+    return {
+        "options": (
+            AnswerOptionEditorFormSet(
+                choice_data,
+                instance=question,
+                prefix="options",
+            )
+        ),
+        "matching": (
+            MatchingPairEditorFormSet(
+                matching_data,
+                instance=question,
+                prefix="matching",
+            )
+        ),
+        "ordering": (
+            OrderingItemEditorFormSet(
+                ordering_data,
+                instance=question,
+                prefix="ordering",
+            )
+        ),
+        "lines": (
+            SelectableLineEditorFormSet(
+                lines_data,
+                instance=question,
+                prefix="lines",
+            )
+        ),
+    }
+
+
+def _active_question_formset(
+    formsets,
+    answer_type,
+):
+    if answer_type in {
+        QuestionType.SINGLE_CHOICE,
+        QuestionType.MULTIPLE_CHOICE,
+    }:
+        return formsets["options"]
+
+    if answer_type == QuestionType.MATCHING:
+        return formsets["matching"]
+
+    if answer_type == QuestionType.ORDERING:
+        return formsets["ordering"]
+
+    if answer_type == QuestionType.LINE_SELECTION:
+        return formsets["lines"]
+
+    return None
+
+
+def _delete_unused_question_configuration(
+    question,
+):
+    if question.answer_type not in {
+        QuestionType.SINGLE_CHOICE,
+        QuestionType.MULTIPLE_CHOICE,
+    }:
+        AnswerOption.objects.filter(
+            question=question
+        ).delete()
+
+    if (
+        question.answer_type
+        != QuestionType.MATCHING
+    ):
+        MatchingPair.objects.filter(
+            question=question
+        ).delete()
+
+    if (
+        question.answer_type
+        != QuestionType.ORDERING
+    ):
+        OrderingItem.objects.filter(
+            question=question
+        ).delete()
+
+    if (
+        question.answer_type
+        != QuestionType.LINE_SELECTION
+    ):
+        SelectableLine.objects.filter(
+            question=question
+        ).delete()
+
+
+def _mentor_question_editor(
+    request,
+    *,
+    question,
+):
+    answer_type = _editor_answer_type(
+        request,
+        question,
+    )
+
+    form = QuestionEditorForm(
+        request.POST or None,
+        instance=question,
+    )
+
+    formsets = _build_question_formsets(
+        request,
+        question=question,
+        answer_type=answer_type,
+    )
+
+    if request.method == "POST":
+        form_valid = form.is_valid()
+
+        if form_valid:
+            candidate = form.save(
+                commit=False
+            )
+
+            if not candidate.slug:
+                candidate.slug = (
+                    "question-"
+                    + uuid.uuid4().hex[:12]
+                )
+
+            for formset in formsets.values():
+                formset.instance = candidate
+
+            active_formset = (
+                _active_question_formset(
+                    formsets,
+                    candidate.answer_type,
+                )
+            )
+
+            formset_valid = (
+                active_formset is not None
+                and active_formset.is_valid()
+            )
+
+            if formset_valid:
+                with transaction.atomic():
+                    candidate.save()
+
+                    active_formset.instance = (
+                        candidate
+                    )
+
+                    active_formset.save()
+
+                    _delete_unused_question_configuration(
+                        candidate
+                    )
+
+                messages.success(
+                    request,
+                    "Вопрос сохранён.",
+                )
+
+                return redirect(
+                    "assessment:mentor_question_edit",
+                    question_id=candidate.pk,
+                )
+
+    return render(
+        request,
+        "assessment/mentor/question_form.html",
+        {
+            "question": question,
+            "form": form,
+            "formsets": formsets,
+            "selected_answer_type": (
+                answer_type
+            ),
+        },
+    )
+
+
+@staff_member_required
+def mentor_question_create(request):
+    return _mentor_question_editor(
+        request,
+        question=Question(),
+    )
+
+
+@staff_member_required
+def mentor_question_edit(
+    request,
+    question_id,
+):
+    question = get_object_or_404(
+        Question.objects.select_related(
+            "family",
+            "family__skill",
+            "family__skill__topic",
+        ),
+        pk=question_id,
+    )
+
+    return _mentor_question_editor(
+        request,
+        question=question,
     )

@@ -1,0 +1,322 @@
+{% extends "assessment/mentor/_base.html" %}
+
+{% block title %}
+  Банк вопросов
+{% endblock %}
+
+{% block mentor_content %}
+
+<header class="assessment-page-header">
+
+  <div>
+    <div class="assessment-eyebrow">
+      <i data-lucide="library"></i>
+      Банк вопросов
+    </div>
+
+    <h1>
+      Вопросы для оценки знаний
+    </h1>
+
+    <p>
+      Здесь хранятся все вопросы, из которых
+      собираются тесты сотрудников.
+    </p>
+  </div>
+
+  <div class="assessment-page-header-actions">
+  <a
+    href="{% url 'assessment:mentor_question_create' %}"
+    class="assessment-button"
+  >
+    <i data-lucide="plus"></i>
+    <span>Новый вопрос</span>
+  </a>
+  </div>
+
+</header>
+
+
+<form
+  method="get"
+  class="assessment-question-filters"
+>
+
+  <div class="assessment-search-field">
+    <i data-lucide="search"></i>
+
+    <input
+      type="search"
+      name="q"
+      value="{{ filters.q }}"
+      placeholder="Поиск по вопросам"
+    >
+  </div>
+
+
+  <select
+    name="level"
+    class="assessment-filter-select"
+  >
+    <option value="">
+      Уровень
+    </option>
+
+    <option
+      value="l1"
+      {% if filters.level == "l1" %}
+        selected
+      {% endif %}
+    >
+      L1
+    </option>
+
+    <option
+      value="l2"
+      {% if filters.level == "l2" %}
+        selected
+      {% endif %}
+    >
+      L2
+    </option>
+
+    <option
+      value="prime"
+      {% if filters.level == "prime" %}
+        selected
+      {% endif %}
+    >
+      Prime
+    </option>
+  </select>
+
+
+  <select
+    name="topic"
+    class="assessment-filter-select"
+  >
+    <option value="">
+      Тематика
+    </option>
+
+    {% for topic in topics %}
+      <option
+        value="{{ topic.slug }}"
+        {% if filters.topic == topic.slug %}
+          selected
+        {% endif %}
+      >
+        {{ topic.name }}
+      </option>
+    {% endfor %}
+  </select>
+
+
+  <select
+    name="status"
+    class="assessment-filter-select"
+  >
+    <option value="">
+      Статус
+    </option>
+
+    <option
+      value="active"
+      {% if filters.status == "active" %}
+        selected
+      {% endif %}
+    >
+      Активные
+    </option>
+
+    <option
+      value="draft"
+      {% if filters.status == "draft" %}
+        selected
+      {% endif %}
+    >
+      Черновики
+    </option>
+
+    <option
+      value="archived"
+      {% if filters.status == "archived" %}
+        selected
+      {% endif %}
+    >
+      Архив
+    </option>
+  </select>
+
+
+  <button
+    type="submit"
+    class="assessment-filter-button"
+  >
+    Применить
+  </button>
+
+
+  {% if filters.q or filters.level or filters.topic or filters.status %}
+    <a
+      href="{% url 'assessment:mentor_question_list' %}"
+      class="assessment-filter-reset"
+    >
+      Сбросить
+    </a>
+  {% endif %}
+
+</form>
+
+
+<div class="assessment-list-summary">
+  <strong>
+    {{ question_count }}
+  </strong>
+
+  {% if question_count == 1 %}
+    вопрос
+  {% else %}
+    вопросов
+  {% endif %}
+</div>
+
+
+{% if questions %}
+
+  <div class="assessment-question-bank">
+
+    {% for question in questions %}
+
+      <article class="assessment-bank-card">
+
+        <div class="assessment-bank-card-main">
+
+          <div class="assessment-bank-path">
+            <span>
+              {{ question.family.skill.topic.name }}
+            </span>
+
+            <i data-lucide="chevron-right"></i>
+
+            <span>
+              {{ question.family.skill.name }}
+            </span>
+          </div>
+
+
+          <h2>
+            {{ question.title }}
+          </h2>
+
+
+          <div class="assessment-bank-family">
+            Семейство:
+            <strong>
+              {{ question.family.name }}
+            </strong>
+          </div>
+
+
+          <div class="assessment-bank-prompt">
+            {{ question.prompt|truncatechars:240 }}
+          </div>
+
+        </div>
+
+
+        <div class="assessment-bank-card-side">
+
+          <div class="assessment-bank-badges">
+
+            <span class="assessment-mini-badge">
+              {{ question.get_level_display }}
+            </span>
+
+            <span class="assessment-mini-badge">
+              {{ question.get_difficulty_display }}
+            </span>
+
+            <span class="assessment-mini-badge">
+              {{ question.get_answer_type_display }}
+            </span>
+
+            {% if question.status == "active" %}
+              <span
+                class="
+                  assessment-mini-badge
+                  is-success
+                "
+              >
+                Активен
+              </span>
+
+            {% elif question.status == "draft" %}
+              <span
+                class="
+                  assessment-mini-badge
+                  is-warning
+                "
+              >
+                Черновик
+              </span>
+
+            {% else %}
+              <span
+                class="
+                  assessment-mini-badge
+                  is-neutral
+                "
+              >
+                Архив
+              </span>
+            {% endif %}
+
+          </div>
+
+
+          <div class="assessment-bank-time">
+            <i data-lucide="timer"></i>
+
+            {{ question.time_limit_seconds }} сек.
+          </div>
+
+
+          <a
+            href="{% url 'assessment:mentor_question_edit' question.id %}"
+            class="assessment-secondary-button"
+            >
+            Редактировать
+            <i data-lucide="arrow-right"></i>
+          </a>
+
+        </div>
+
+      </article>
+
+    {% endfor %}
+
+  </div>
+
+{% else %}
+
+  <div class="assessment-empty">
+
+    <div class="assessment-empty-icon">
+      <i data-lucide="search-x"></i>
+    </div>
+
+    <h2>
+      Ничего не найдено
+    </h2>
+
+    <p>
+      Попробуй изменить фильтры
+      или поисковый запрос.
+    </p>
+
+  </div>
+
+{% endif %}
+
+{% endblock %}

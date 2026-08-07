@@ -1,0 +1,504 @@
+{% extends "assessment/mentor/_base.html" %}
+{% load static %}
+
+{% block title %}
+  {% if question.pk %}
+    Редактирование вопроса
+  {% else %}
+    Новый вопрос
+  {% endif %}
+{% endblock %}
+
+
+{% block mentor_content %}
+
+<a
+  href="{% url 'assessment:mentor_question_list' %}"
+  class="assessment-back"
+>
+  <i data-lucide="arrow-left"></i>
+  Банк вопросов
+</a>
+
+
+<header class="assessment-page-header">
+  <div>
+    <div class="assessment-eyebrow">
+      <i data-lucide="file-question"></i>
+
+      {% if question.pk %}
+        Редактирование
+      {% else %}
+        Новый вопрос
+      {% endif %}
+    </div>
+
+    <h1>
+      {% if question.pk %}
+        {{ question.title }}
+      {% else %}
+        Создание вопроса
+      {% endif %}
+    </h1>
+
+    <p>
+      Сначала опиши ситуацию и вопрос,
+      затем настрой правильный ответ.
+    </p>
+  </div>
+</header>
+
+
+<form
+  method="post"
+  class="assessment-editor"
+  data-question-editor
+>
+  {% csrf_token %}
+
+
+  {% if form.non_field_errors %}
+    <div class="assessment-form-errors">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+
+  <section class="assessment-editor-section">
+
+    <div class="assessment-editor-section-title">
+      <span>1</span>
+
+      <div>
+        <h2>Основные настройки</h2>
+        <p>
+          К какому навыку относится вопрос
+          и кому он предназначен.
+        </p>
+      </div>
+    </div>
+
+
+    <div class="assessment-editor-grid">
+
+      <div class="assessment-field assessment-field-wide">
+        <label for="{{ form.family.id_for_label }}">
+          Семейство вопросов
+        </label>
+
+        {{ form.family }}
+
+        {{ form.family.errors }}
+      </div>
+
+
+      <div class="assessment-field assessment-field-wide">
+        <label for="{{ form.title.id_for_label }}">
+          Внутреннее название
+        </label>
+
+        {{ form.title }}
+
+        <div class="assessment-field-help">
+          Сотрудник это название не увидит.
+        </div>
+
+        {{ form.title.errors }}
+      </div>
+
+
+      <div class="assessment-field">
+        <label for="{{ form.level.id_for_label }}">
+          Уровень
+        </label>
+
+        {{ form.level }}
+        {{ form.level.errors }}
+      </div>
+
+
+      <div class="assessment-field">
+        <label for="{{ form.difficulty.id_for_label }}">
+          Сложность
+        </label>
+
+        {{ form.difficulty }}
+        {{ form.difficulty.errors }}
+      </div>
+
+
+      <div class="assessment-field">
+        <label for="{{ form.status.id_for_label }}">
+          Статус
+        </label>
+
+        {{ form.status }}
+        {{ form.status.errors }}
+      </div>
+
+
+      <div class="assessment-field">
+        <label for="{{ form.time_limit_seconds.id_for_label }}">
+          Время, секунд
+        </label>
+
+        {{ form.time_limit_seconds }}
+        {{ form.time_limit_seconds.errors }}
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <section class="assessment-editor-section">
+
+    <div class="assessment-editor-section-title">
+      <span>2</span>
+
+      <div>
+        <h2>Ситуация и вопрос</h2>
+        <p>
+          Именно этот блок увидит сотрудник
+          во время тестирования.
+        </p>
+      </div>
+    </div>
+
+
+    <div class="assessment-field">
+      <label for="{{ form.scenario.id_for_label }}">
+        Ситуация
+      </label>
+
+      {{ form.scenario }}
+      {{ form.scenario.errors }}
+    </div>
+
+
+    <div class="assessment-field">
+      <label for="{{ form.diagnostic_data.id_for_label }}">
+        Логи / конфигурация / вывод команд
+      </label>
+
+      {{ form.diagnostic_data }}
+
+      <div class="assessment-field-help">
+        Поле необязательное. Переносы строк
+        сохраняются.
+      </div>
+
+      {{ form.diagnostic_data.errors }}
+    </div>
+
+
+    <div class="assessment-field">
+      <label for="{{ form.prompt.id_for_label }}">
+        Вопрос
+      </label>
+
+      {{ form.prompt }}
+      {{ form.prompt.errors }}
+    </div>
+
+  </section>
+
+
+  <section class="assessment-editor-section">
+
+    <div class="assessment-editor-section-title">
+      <span>3</span>
+
+      <div>
+        <h2>Формат ответа</h2>
+        <p>
+          После выбора типа ниже появится
+          подходящий редактор.
+        </p>
+      </div>
+    </div>
+
+
+    <div class="assessment-field">
+      <label for="{{ form.answer_type.id_for_label }}">
+        Тип вопроса
+      </label>
+
+      {{ form.answer_type }}
+      {{ form.answer_type.errors }}
+    </div>
+
+
+    {# ===== Choice ===== #}
+
+    <div
+      class="assessment-config-editor"
+      data-answer-editor="single_choice,multiple_choice"
+    >
+      {{ formsets.options.management_form }}
+
+      <div class="assessment-config-heading">
+        <strong>Варианты ответа</strong>
+
+        <span>
+          Отметь правильный вариант.
+        </span>
+      </div>
+
+      <div class="assessment-editor-rows">
+
+        {% for option_form in formsets.options %}
+          <div class="assessment-editor-row">
+            {{ option_form.id }}
+
+            <div class="assessment-row-main">
+              {{ option_form.text }}
+            </div>
+
+            <label class="assessment-correct-toggle">
+              {{ option_form.is_correct }}
+              Правильный
+            </label>
+
+            {{ option_form.order }}
+
+            {% if option_form.instance.pk %}
+              <label class="assessment-delete-toggle">
+                {{ option_form.DELETE }}
+                Удалить
+              </label>
+            {% endif %}
+          </div>
+
+          {% if option_form.errors %}
+            <div class="assessment-row-errors">
+              {{ option_form.errors }}
+            </div>
+          {% endif %}
+        {% endfor %}
+
+      </div>
+
+      {{ formsets.options.non_form_errors }}
+    </div>
+
+
+    {# ===== Matching ===== #}
+
+    <div
+      class="assessment-config-editor"
+      data-answer-editor="matching"
+    >
+      {{ formsets.matching.management_form }}
+
+      <div class="assessment-config-heading">
+        <strong>Сопоставление</strong>
+
+        <span>
+          Что чему соответствует.
+        </span>
+      </div>
+
+      <div class="assessment-editor-rows">
+
+        {% for pair_form in formsets.matching %}
+          <div class="assessment-editor-row is-pair">
+            {{ pair_form.id }}
+
+            <div>
+              <span class="assessment-row-label">
+                Слева
+              </span>
+              {{ pair_form.left_text }}
+            </div>
+
+            <i data-lucide="arrow-right"></i>
+
+            <div>
+              <span class="assessment-row-label">
+                Справа
+              </span>
+              {{ pair_form.right_text }}
+            </div>
+
+            {{ pair_form.order }}
+
+            {% if pair_form.instance.pk %}
+              <label class="assessment-delete-toggle">
+                {{ pair_form.DELETE }}
+                Удалить
+              </label>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+      </div>
+
+      {{ formsets.matching.non_form_errors }}
+    </div>
+
+
+    {# ===== Ordering ===== #}
+
+    <div
+      class="assessment-config-editor"
+      data-answer-editor="ordering"
+    >
+      {{ formsets.ordering.management_form }}
+
+      <div class="assessment-config-heading">
+        <strong>Правильная последовательность</strong>
+
+        <span>
+          Расположи строки сразу
+          в правильном порядке.
+        </span>
+      </div>
+
+      <div class="assessment-editor-rows">
+
+        {% for item_form in formsets.ordering %}
+          <div class="assessment-editor-row">
+            {{ item_form.id }}
+
+            <div class="assessment-row-main">
+              {{ item_form.text }}
+            </div>
+
+            {{ item_form.order }}
+
+            {% if item_form.instance.pk %}
+              <label class="assessment-delete-toggle">
+                {{ item_form.DELETE }}
+                Удалить
+              </label>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+      </div>
+
+      {{ formsets.ordering.non_form_errors }}
+    </div>
+
+
+    {# ===== Lines ===== #}
+
+    <div
+      class="assessment-config-editor"
+      data-answer-editor="line_selection"
+    >
+      {{ formsets.lines.management_form }}
+
+      <div class="assessment-config-heading">
+        <strong>Строки</strong>
+
+        <span>
+          Отметь строки, которые сотрудник
+          должен выбрать.
+        </span>
+      </div>
+
+      <div class="assessment-editor-rows">
+
+        {% for line_form in formsets.lines %}
+          <div class="assessment-editor-row">
+            {{ line_form.id }}
+
+            <div class="assessment-row-main">
+              {{ line_form.text }}
+            </div>
+
+            <label class="assessment-correct-toggle">
+              {{ line_form.is_correct }}
+              Правильная
+            </label>
+
+            {{ line_form.order }}
+
+            {% if line_form.instance.pk %}
+              <label class="assessment-delete-toggle">
+                {{ line_form.DELETE }}
+                Удалить
+              </label>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+      </div>
+
+      {{ formsets.lines.non_form_errors }}
+    </div>
+
+  </section>
+
+
+  <section class="assessment-editor-section">
+
+    <div class="assessment-editor-section-title">
+      <span>4</span>
+
+      <div>
+        <h2>Комментарий наставнику</h2>
+
+        <p>
+          Можно сохранить объяснение правильного
+          решения. Сотруднику оно не показывается.
+        </p>
+      </div>
+    </div>
+
+    <div class="assessment-field">
+      {{ form.explanation }}
+      {{ form.explanation.errors }}
+    </div>
+
+    <div class="assessment-field is-small">
+      <label for="{{ form.order.id_for_label }}">
+        Порядок
+      </label>
+
+      {{ form.order }}
+      {{ form.order.errors }}
+    </div>
+
+  </section>
+
+
+  <div class="assessment-editor-footer">
+
+    <a
+      href="{% url 'assessment:mentor_question_list' %}"
+      class="assessment-secondary-button"
+    >
+      Отмена
+    </a>
+
+    <button
+      type="submit"
+      class="assessment-button assessment-button-large"
+    >
+      <i data-lucide="save"></i>
+
+      {% if question.pk %}
+        Сохранить изменения
+      {% else %}
+        Создать вопрос
+      {% endif %}
+    </button>
+
+  </div>
+
+</form>
+
+{% endblock %}
+
+
+{% block extra_js %}
+  {{ block.super }}
+
+  <script
+    src="{% static 'assessment/js/question_editor.js' %}"
+    defer
+  ></script>
+{% endblock %}

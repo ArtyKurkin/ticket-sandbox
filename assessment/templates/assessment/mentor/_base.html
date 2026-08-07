@@ -1,0 +1,38 @@
+{% extends "assessment/_base.html" %}
+
+{% block content %}
+<div class="assessment-mentor-shell">
+
+  <nav class="assessment-mentor-nav">
+    <div class="assessment-mentor-nav-title">
+      Управление оценкой
+    </div>
+
+    <div class="assessment-mentor-nav-links">
+      <a
+        href="{% url 'assessment:mentor_question_list' %}"
+        class="assessment-mentor-nav-link is-active"
+      >
+        <i data-lucide="library"></i>
+        Банк вопросов
+      </a>
+
+      <span class="assessment-mentor-nav-link is-disabled">
+        <i data-lucide="users"></i>
+        Тестирования
+      </span>
+
+      <span class="assessment-mentor-nav-link is-disabled">
+        <i data-lucide="bar-chart-3"></i>
+        Результаты
+      </span>
+    </div>
+  </nav>
+
+  <main class="assessment-mentor-content">
+    {% block mentor_content %}
+    {% endblock %}
+  </main>
+
+</div>
+{% endblock %}

@@ -36,4 +36,20 @@ urlpatterns = [
         views.submit_question_answer,
         name="submit_question_answer",
     ),
+    path(
+        "mentor/questions/",
+        views.mentor_question_list,
+        name="mentor_question_list",
+    ),
+    path(
+        "mentor/questions/new/",
+        views.mentor_question_create,
+        name="mentor_question_create",
+    ),
+
+    path(
+        "mentor/questions/<int:question_id>/edit/",
+        views.mentor_question_edit,
+        name="mentor_question_edit",
+    ),
 ]
