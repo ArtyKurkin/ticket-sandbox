@@ -1,0 +1,337 @@
+{% extends "assessment/_base.html" %}
+{% load static %}
+
+{% block title %}
+  Вопрос {{ snapshot.position }}
+{% endblock %}
+
+{% block content %}
+<div class="assessment-question-shell">
+
+  <div class="assessment-question-topbar">
+
+    <div class="assessment-question-progress">
+      <span>
+        Вопрос
+        {{ snapshot.position }}
+        из
+        {{ question_count }}
+      </span>
+
+      <div class="assessment-question-progress-track">
+        <div
+          class="assessment-question-progress-value"
+          style="
+            width:
+            {% widthratio snapshot.position question_count 100 %}%;
+          "
+        ></div>
+      </div>
+    </div>
+
+    <div
+      class="assessment-timer"
+      data-question-timer
+      data-remaining-ms="{{ remaining_milliseconds }}"
+    >
+      <i data-lucide="timer"></i>
+
+      <div>
+        <span>Осталось</span>
+        <strong data-timer-value>--:--</strong>
+      </div>
+    </div>
+
+  </div>
+
+
+  <main class="assessment-question-card">
+
+    <div class="assessment-question-topic">
+      {{ snapshot.topic_name }}
+    </div>
+
+    {% if snapshot.scenario %}
+      <div class="assessment-scenario">
+        {{ snapshot.scenario|linebreaksbr }}
+      </div>
+    {% endif %}
+
+
+    {% if snapshot.diagnostic_data %}
+      <div class="assessment-diagnostic">
+        <div class="assessment-diagnostic-header">
+          <i data-lucide="terminal-square"></i>
+          <span>Данные диагностики</span>
+        </div>
+
+        <pre>{{ snapshot.diagnostic_data }}</pre>
+      </div>
+    {% endif %}
+
+
+    <h1 class="assessment-question-prompt">
+      {{ snapshot.prompt }}
+    </h1>
+
+
+    <form
+      method="post"
+      action="
+        {% url 'assessment:submit_question_answer' attempt.id snapshot.id %}
+      "
+      class="assessment-answer-form"
+      data-question-form
+    >
+      {% csrf_token %}
+
+
+      {# ===== Один правильный ответ ===== #}
+
+      {% if snapshot.question_type == "single_choice" %}
+
+        <div class="assessment-options">
+
+          {% for option in snapshot.visible_payload.options %}
+            <label class="assessment-option">
+              <input
+                type="radio"
+                name="selected_keys"
+                value="{{ option.key }}"
+                {% if forloop.first %}required{% endif %}
+              >
+
+              <span class="assessment-option-marker">
+                {{ forloop.counter }}
+              </span>
+
+              <span class="assessment-option-text">
+                {{ option.text }}
+              </span>
+            </label>
+          {% endfor %}
+
+        </div>
+
+
+      {# ===== Несколько правильных ===== #}
+
+      {% elif snapshot.question_type == "multiple_choice" %}
+
+        <div class="assessment-answer-hint">
+          Можно выбрать несколько вариантов
+        </div>
+
+        <div class="assessment-options">
+
+          {% for option in snapshot.visible_payload.options %}
+            <label class="assessment-option">
+              <input
+                type="checkbox"
+                name="selected_keys"
+                value="{{ option.key }}"
+              >
+
+              <span class="assessment-option-marker">
+                {{ forloop.counter }}
+              </span>
+
+              <span class="assessment-option-text">
+                {{ option.text }}
+              </span>
+            </label>
+          {% endfor %}
+
+        </div>
+
+
+      {# ===== Сопоставление ===== #}
+
+      {% elif snapshot.question_type == "matching" %}
+
+        <div class="assessment-answer-hint">
+          Подбери соответствие для каждой строки
+        </div>
+
+        <div class="assessment-matching">
+
+          {% for left in snapshot.visible_payload.left_items %}
+            <div class="assessment-matching-row">
+
+              <div class="assessment-matching-left">
+                {{ left.text }}
+              </div>
+
+              <div class="assessment-matching-arrow">
+                <i data-lucide="arrow-right"></i>
+              </div>
+
+              <select
+                name="match_{{ left.key }}"
+                class="assessment-select"
+                required
+              >
+                <option value="">
+                  Выбери вариант
+                </option>
+
+                {% for right in snapshot.visible_payload.right_items %}
+                  <option value="{{ right.key }}">
+                    {{ right.text }}
+                  </option>
+                {% endfor %}
+              </select>
+
+            </div>
+          {% endfor %}
+
+        </div>
+
+
+      {# ===== Последовательность ===== #}
+
+      {% elif snapshot.question_type == "ordering" %}
+
+        <div class="assessment-answer-hint">
+          Расставь элементы в правильном порядке
+        </div>
+
+        <div
+          class="assessment-ordering"
+          data-ordering-list
+        >
+
+          {% for item in snapshot.visible_payload.items %}
+            <div
+              class="assessment-ordering-item"
+              draggable="true"
+              data-ordering-item
+            >
+              <input
+                type="hidden"
+                name="order"
+                value="{{ item.key }}"
+              >
+
+              <div class="assessment-ordering-handle">
+                <i data-lucide="grip-vertical"></i>
+              </div>
+
+              <div class="assessment-ordering-number">
+                <span data-order-number>
+                  {{ forloop.counter }}
+                </span>
+              </div>
+
+              <div class="assessment-ordering-text">
+                {{ item.text }}
+              </div>
+
+              <div class="assessment-ordering-controls">
+                <button
+                  type="button"
+                  class="assessment-order-button"
+                  data-move="up"
+                  aria-label="Переместить выше"
+                >
+                  <i data-lucide="chevron-up"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="assessment-order-button"
+                  data-move="down"
+                  aria-label="Переместить ниже"
+                >
+                  <i data-lucide="chevron-down"></i>
+                </button>
+              </div>
+
+            </div>
+          {% endfor %}
+
+        </div>
+
+
+      {# ===== Выбор строк ===== #}
+
+      {% elif snapshot.question_type == "line_selection" %}
+
+        <div class="assessment-answer-hint">
+          Выбери одну или несколько строк,
+          которые отвечают условию
+        </div>
+
+        <div class="assessment-line-selection">
+
+          {% for line in snapshot.visible_payload.lines %}
+            <label class="assessment-code-line">
+
+              <input
+                type="checkbox"
+                name="selected_keys"
+                value="{{ line.key }}"
+              >
+
+              <span class="assessment-code-line-number">
+                {{ forloop.counter }}
+              </span>
+
+              <code>
+                {{ line.text }}
+              </code>
+
+            </label>
+          {% endfor %}
+
+        </div>
+
+      {% endif %}
+
+
+      <div class="assessment-answer-footer">
+
+        {% if not attempt.allow_back_navigation %}
+          <div class="assessment-no-return">
+            <i data-lucide="lock-keyhole"></i>
+
+            <span>
+              После отправки изменить ответ нельзя
+            </span>
+          </div>
+        {% endif %}
+
+        <button
+          type="submit"
+          class="
+            assessment-button
+            assessment-button-large
+          "
+        >
+          {% if snapshot.position == question_count %}
+            Завершить тест
+          {% else %}
+            Ответить и продолжить
+          {% endif %}
+
+          <i data-lucide="arrow-right"></i>
+        </button>
+
+      </div>
+
+    </form>
+
+  </main>
+
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+  {{ block.super }}
+
+  <script
+    src="{% static 'assessment/js/question.js' %}"
+    defer
+  ></script>
+{% endblock %}

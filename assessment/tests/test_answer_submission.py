@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.utils import timezone
 
 from assessment.constants import (
     ExamAttemptStatus,
@@ -77,6 +78,7 @@ class ExamAnswerSubmissionTests(TestCase):
             difficulty=QuestionDifficulty.HARD,
             prompt="Выбери ответ.",
             time_limit_seconds=90,
+            started_at=timezone.now(),
             visible_payload={
                 "options": [
                     {

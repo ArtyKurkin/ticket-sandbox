@@ -1,0 +1,178 @@
+{% extends "assessment/_base.html" %}
+
+{% block content %}
+<div class="assessment-shell">
+
+  <section class="assessment-hero">
+    <div class="assessment-eyebrow">
+      <i data-lucide="graduation-cap"></i>
+
+      <span>
+        Оценка знаний ·
+        {{ profile.get_level_display }}
+      </span>
+    </div>
+
+    <h1>Тестирование</h1>
+
+    <p>
+      Здесь находятся назначенные тебе тесты.
+      Если тест уже начат, его можно продолжить
+      с текущей попытки.
+    </p>
+  </section>
+
+  {% if assignment_cards %}
+    <div class="assessment-list">
+
+      {% for item in assignment_cards %}
+        <article class="assessment-card">
+
+          <div class="assessment-card-header">
+            <div>
+              <div class="assessment-card-kicker">
+                {{ item.blueprint.get_level_display }}
+              </div>
+
+              <h2>
+                {{ item.campaign.name }}
+              </h2>
+
+              {% if item.campaign.description %}
+                <p class="assessment-description">
+                  {{ item.campaign.description }}
+                </p>
+              {% endif %}
+            </div>
+
+            <span
+              class="
+                assessment-badge
+                is-{{ item.state.tone }}
+              "
+            >
+              {{ item.state.label }}
+            </span>
+          </div>
+
+          <div class="assessment-meta">
+            <div class="assessment-meta-item">
+              <i data-lucide="list-checks"></i>
+
+              <div>
+                <span>Вопросов</span>
+                <strong>
+                  {{ item.blueprint.question_count }}
+                </strong>
+              </div>
+            </div>
+
+            <div class="assessment-meta-item">
+              <i data-lucide="target"></i>
+
+              <div>
+                <span>Уровень</span>
+                <strong>
+                  {{ item.blueprint.get_level_display }}
+                </strong>
+              </div>
+            </div>
+
+            <div class="assessment-meta-item">
+              <i data-lucide="rotate-ccw"></i>
+
+              <div>
+                <span>Попытки</span>
+                <strong>
+                  {{ item.attempts_used }}
+                  /
+                  {{ item.assignment.attempt_limit }}
+                </strong>
+              </div>
+            </div>
+
+            {% if item.campaign.closes_at %}
+              <div class="assessment-meta-item">
+                <i data-lucide="calendar-clock"></i>
+
+                <div>
+                  <span>Пройти до</span>
+                  <strong>
+                    {{ item.campaign.closes_at|date:"d.m.Y H:i" }}
+                  </strong>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="assessment-card-footer">
+            <div class="assessment-state-text">
+              {{ item.state.description }}
+            </div>
+
+            {% if item.state.code == "available" %}
+              <form
+                method="post"
+                action="
+                  {% url 'assessment:start_assignment' item.assignment.id %}
+                "
+              >
+                {% csrf_token %}
+
+                <button
+                  type="submit"
+                  class="assessment-button"
+                >
+                  <span>
+                    {% if item.attempts_used %}
+                      Начать новую попытку
+                    {% else %}
+                      Начать тест
+                    {% endif %}
+                  </span>
+
+                  <i data-lucide="arrow-right"></i>
+                </button>
+              </form>
+
+            {% elif item.state.code == "in_progress" %}
+              <a
+                href="
+                  {% url 'assessment:attempt_overview' item.state.attempt.id %}
+                "
+                class="assessment-button"
+              >
+                <span>Продолжить</span>
+                <i data-lucide="arrow-right"></i>
+              </a>
+
+            {% elif item.state.code == "completed" %}
+              <div class="assessment-complete-note">
+                <i data-lucide="circle-check"></i>
+                Тест пройден
+              </div>
+            {% endif %}
+          </div>
+
+        </article>
+      {% endfor %}
+
+    </div>
+
+  {% else %}
+    <div class="assessment-empty">
+      <div class="assessment-empty-icon">
+        <i data-lucide="clipboard-check"></i>
+      </div>
+
+      <h2>Назначенных тестов пока нет</h2>
+
+      <p>
+        Когда появится новое тестирование,
+        оно будет отображаться здесь.
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  Оценка знаний
+{% endblock %}
+
+{% block logo_href %}
+  {% url 'assessment:dashboard' %}
+{% endblock %}
+
+{% block logo_text %}
+  оценка<span>&gt;знаний</span>
+{% endblock %}
+
+{% block extra_head %}
+  {{ block.super }}
+
+  <link
+    rel="stylesheet"
+    href="{% static 'assessment/css/assessment.css' %}"
+  >
+{% endblock %}

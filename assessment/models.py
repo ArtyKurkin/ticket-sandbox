@@ -808,6 +808,12 @@ class ExamQuestionSnapshot(models.Model):
         verbose_name="Время на ответ",
     )
 
+    started_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Вопрос открыт",
+    )
+
     explanation = models.TextField(
         blank=True,
         verbose_name="Объяснение для наставника",
@@ -879,6 +885,16 @@ class ExamAnswer(models.Model):
     is_correct = models.BooleanField(
         default=False,
         verbose_name="Полностью правильный",
+    )
+
+    timed_out = models.BooleanField(
+        default=False,
+        verbose_name="Время истекло",
+    )
+
+    response_time_seconds = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Время ответа, секунд",
     )
 
     answered_at = models.DateTimeField(

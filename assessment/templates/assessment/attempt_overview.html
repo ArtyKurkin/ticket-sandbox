@@ -1,0 +1,125 @@
+{% extends "assessment/_base.html" %}
+
+{% block title %}
+  {{ attempt.campaign_name }}
+{% endblock %}
+
+{% block content %}
+<div class="assessment-shell">
+
+  <a
+    href="{% url 'assessment:dashboard' %}"
+    class="assessment-back"
+  >
+    <i data-lucide="arrow-left"></i>
+    Все тесты
+  </a>
+
+  <section class="assessment-attempt-card">
+
+    <div class="assessment-eyebrow">
+      <i data-lucide="clipboard-list"></i>
+
+      <span>
+        {{ attempt.get_level_display }}
+        · попытка {{ attempt.attempt_number }}
+      </span>
+    </div>
+
+    <h1>
+      {{ attempt.campaign_name }}
+    </h1>
+
+    {% if attempt.status == "in_progress" %}
+      <p>
+        Попытка создана и вопросы уже зафиксированы.
+        Изменения в банке вопросов на этот тест
+        больше не повлияют.
+      </p>
+
+      <div class="assessment-progress-block">
+        <div class="assessment-progress-header">
+          <span>Прогресс</span>
+
+          <strong>
+            {{ answered_count }}
+            из
+            {{ question_count }}
+          </strong>
+        </div>
+
+        <div class="assessment-progress-track">
+          <div
+            class="assessment-progress-value"
+            style="
+              width:
+              {% widthratio answered_count question_count 100 %}%;
+            "
+          ></div>
+        </div>
+      </div>
+
+      <div class="assessment-info-box">
+        <i data-lucide="info"></i>
+
+        <div>
+          <strong>
+            Перед началом
+          </strong>
+
+          <p>
+            Вопросы проходят последовательно.
+            После отправки ответа вернуться назад
+            нельзя.
+          </p>
+        </div>
+      </div>
+
+      <div class="assessment-attempt-action">
+        <a
+            href="{% url 'assessment:attempt_question' attempt.id %}"
+            class="assessment-button assessment-button-large"
+        >
+            {% if answered_count %}
+            Продолжить тест
+            {% else %}
+            Перейти к вопросам
+            {% endif %}
+
+            <i data-lucide="arrow-right"></i>
+        </a>
+      </div>
+
+    {% elif attempt.status == "completed" %}
+      <div class="assessment-finished">
+        <i data-lucide="circle-check-big"></i>
+
+        <div>
+          <strong>Тест завершён</strong>
+
+          <p>
+            Ответы сохранены.
+            Результат доступен наставнику.
+          </p>
+        </div>
+      </div>
+
+    {% elif attempt.status == "invalidated" %}
+      <div class="assessment-invalidated">
+        <i data-lucide="circle-x"></i>
+
+        <div>
+          <strong>Попытка аннулирована</strong>
+
+          {% if attempt.invalidation_reason %}
+            <p>
+              {{ attempt.invalidation_reason }}
+            </p>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+  </section>
+</div>
+{% endblock %}

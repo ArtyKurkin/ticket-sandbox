@@ -4,12 +4,27 @@ from django.contrib.auth.decorators import (
 from django.http import JsonResponse
 from django.shortcuts import redirect
 
+from assessment.models import ExamAssignment
+
 
 @login_required
 def home(request):
     if request.user.is_staff:
         return redirect(
             "traineediary:dashboard",
+        )
+
+    has_assessment = (
+        ExamAssignment.objects.filter(
+            employee__user=request.user,
+            employee__is_active=True,
+            is_active=True,
+        ).exists()
+    )
+
+    if has_assessment:
+        return redirect(
+            "assessment:dashboard",
         )
 
     return redirect(

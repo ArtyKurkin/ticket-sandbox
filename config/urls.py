@@ -30,6 +30,13 @@ urlpatterns = [
     path("", include("sandbox.urls")),
 
     path("diary/", include("traineediary.urls", namespace="traineediary")),
+    path(
+        "assessment/",
+        include(
+            "assessment.urls",
+            namespace="assessment",
+        ),
+    ),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
