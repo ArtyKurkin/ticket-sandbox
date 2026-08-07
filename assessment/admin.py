@@ -14,7 +14,9 @@ from .question_validation import (
 
 from .models import (
     AnswerOption,
+    AssessmentCampaign,
     BlueprintSkillQuota,
+    ExamAssignment,
     ExamBlueprint,
     MatchingPair,
     OrderingItem,
@@ -743,3 +745,143 @@ class ExamBlueprintAdmin(admin.ModelAdmin):
     )
     def question_count_display(self, obj):
         return obj.question_count
+
+
+class ExamAssignmentInline(admin.TabularInline):
+    model = ExamAssignment
+    extra = 0
+
+    fields = (
+        "employee",
+        "attempt_limit",
+        "is_active",
+        "assigned_by",
+        "assigned_at",
+    )
+
+    readonly_fields = (
+        "assigned_at",
+    )
+
+    autocomplete_fields = (
+        "employee",
+        "assigned_by",
+    )
+
+
+@admin.register(AssessmentCampaign)
+class AssessmentCampaignAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "blueprint",
+        "level_display",
+        "opens_at",
+        "closes_at",
+        "assignment_count_display",
+        "is_active",
+    )
+
+    list_editable = (
+        "is_active",
+    )
+
+    list_filter = (
+        "is_active",
+        "blueprint__level",
+        "blueprint",
+    )
+
+    search_fields = (
+        "name",
+        "slug",
+        "description",
+    )
+
+    prepopulated_fields = {
+        "slug": (
+            "name",
+        ),
+    }
+
+    autocomplete_fields = (
+        "blueprint",
+        "created_by",
+    )
+
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+    )
+
+    inlines = (
+        ExamAssignmentInline,
+    )
+
+    @admin.display(
+        description="Уровень",
+        ordering="blueprint__level",
+    )
+    def level_display(self, obj):
+        return obj.blueprint.get_level_display()
+
+    @admin.display(
+        description="Назначено",
+    )
+    def assignment_count_display(self, obj):
+        return obj.assignments.count()
+
+
+@admin.register(ExamAssignment)
+class ExamAssignmentAdmin(admin.ModelAdmin):
+    list_display = (
+        "employee",
+        "campaign",
+        "level_display",
+        "attempt_limit",
+        "is_active",
+        "assigned_at",
+    )
+
+    list_editable = (
+        "attempt_limit",
+        "is_active",
+    )
+
+    list_filter = (
+        "is_active",
+        "campaign",
+        "campaign__blueprint__level",
+    )
+
+    search_fields = (
+        "employee__user__username",
+        "employee__user__first_name",
+        "employee__user__last_name",
+        "employee__user__email",
+        "campaign__name",
+    )
+
+    autocomplete_fields = (
+        "campaign",
+        "employee",
+        "assigned_by",
+    )
+
+    list_select_related = (
+        "campaign",
+        "campaign__blueprint",
+        "employee",
+        "employee__user",
+    )
+
+    readonly_fields = (
+        "assigned_at",
+        "updated_at",
+    )
+
+    @admin.display(
+        description="Уровень",
+        ordering="campaign__blueprint__level",
+    )
+    def level_display(self, obj):
+        return obj.campaign.blueprint.get_level_display()

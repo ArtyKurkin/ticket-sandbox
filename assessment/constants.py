@@ -40,3 +40,9 @@ class QuestionStatus(models.TextChoices):
     DRAFT = "draft", "Черновик"
     ACTIVE = "active", "Активен"
     ARCHIVED = "archived", "Архив"
+
+
+class ExamAttemptStatus(models.TextChoices):
+    IN_PROGRESS = "in_progress", "В процессе"
+    COMPLETED = "completed", "Завершена"
+    INVALIDATED = "invalidated", "Аннулирована"

@@ -1,12 +1,14 @@
 from django.conf import settings
 from django.db import models
 
+from django.core.exceptions import ValidationError
 from django.core.validators import (
     MaxValueValidator,
     MinValueValidator,
 )
 
 from .constants import (
+    ExamAttemptStatus,
     QuestionDifficulty,
     QuestionStatus,
     QuestionType,
@@ -389,6 +391,468 @@ class BlueprintSkillQuota(models.Model):
             f"{self.blueprint.name}: "
             f"{self.skill} — "
             f"{self.question_count}"
+        )
+
+
+class AssessmentCampaign(models.Model):
+    name = models.CharField(
+        max_length=180,
+        verbose_name="Название",
+    )
+
+    slug = models.SlugField(
+        max_length=150,
+        unique=True,
+        verbose_name="Slug",
+    )
+
+    blueprint = models.ForeignKey(
+        ExamBlueprint,
+        on_delete=models.PROTECT,
+        related_name="campaigns",
+        verbose_name="Шаблон теста",
+    )
+
+    description = models.TextField(
+        blank=True,
+        verbose_name="Описание",
+    )
+
+    opens_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Доступен с",
+    )
+
+    closes_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Доступен до",
+    )
+
+    is_active = models.BooleanField(
+        default=False,
+        verbose_name="Активна",
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_assessment_campaigns",
+        verbose_name="Создал",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Создана",
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Обновлена",
+    )
+
+    class Meta:
+        ordering = (
+            "-created_at",
+            "name",
+        )
+
+        verbose_name = "Кампания оценки"
+        verbose_name_plural = "Кампании оценки"
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+
+        if (
+            self.opens_at
+            and self.closes_at
+            and self.closes_at <= self.opens_at
+        ):
+            raise ValidationError(
+                {
+                    "closes_at": (
+                        "Дата окончания должна быть "
+                        "позже даты начала."
+                    ),
+                }
+            )
+
+
+class ExamAssignment(models.Model):
+    campaign = models.ForeignKey(
+        AssessmentCampaign,
+        on_delete=models.PROTECT,
+        related_name="assignments",
+        verbose_name="Кампания",
+    )
+
+    employee = models.ForeignKey(
+        SupportProfile,
+        on_delete=models.PROTECT,
+        related_name="exam_assignments",
+        verbose_name="Сотрудник",
+    )
+
+    attempt_limit = models.PositiveSmallIntegerField(
+        default=1,
+        validators=(
+            MinValueValidator(1),
+            MaxValueValidator(10),
+        ),
+        verbose_name="Доступно попыток",
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Назначение активно",
+    )
+
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_exam_assignments",
+        verbose_name="Назначил",
+    )
+
+    assigned_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Назначено",
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Обновлено",
+    )
+
+    class Meta:
+        ordering = (
+            "-assigned_at",
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    "campaign",
+                    "employee",
+                ),
+                name=(
+                    "assessment_unique_employee_"
+                    "per_campaign"
+                ),
+            ),
+        )
+
+        verbose_name = "Назначение теста"
+        verbose_name_plural = "Назначения тестов"
+
+    def __str__(self):
+        employee_name = (
+            self.employee.user.get_full_name()
+            or self.employee.user.username
+        )
+
+        return (
+            f"{self.campaign.name} — "
+            f"{employee_name}"
+        )
+
+    def clean(self):
+        super().clean()
+
+        if not self.campaign_id or not self.employee_id:
+            return
+
+        campaign_level = (
+            self.campaign.blueprint.level
+        )
+
+        if self.employee.level != campaign_level:
+            raise ValidationError(
+                {
+                    "employee": (
+                        "Уровень сотрудника не совпадает "
+                        "с уровнем шаблона теста."
+                    ),
+                }
+            )
+
+        if (
+            self._state.adding
+            and not self.employee.is_active
+        ):
+            raise ValidationError(
+                {
+                    "employee": (
+                        "Нельзя назначить тест "
+                        "неактивному сотруднику."
+                    ),
+                }
+            )
+
+
+class ExamAttempt(models.Model):
+    assignment = models.ForeignKey(
+        ExamAssignment,
+        on_delete=models.PROTECT,
+        related_name="attempts",
+        verbose_name="Назначение",
+    )
+
+    attempt_number = models.PositiveSmallIntegerField(
+        verbose_name="Номер попытки",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=ExamAttemptStatus.choices,
+        default=ExamAttemptStatus.IN_PROGRESS,
+        verbose_name="Статус",
+    )
+
+    selection_seed = models.CharField(
+        max_length=64,
+        verbose_name="Seed выбора вопросов",
+    )
+
+    campaign_name = models.CharField(
+        max_length=180,
+        verbose_name="Название кампании",
+    )
+
+    blueprint_name = models.CharField(
+        max_length=150,
+        verbose_name="Название шаблона",
+    )
+
+    level = models.CharField(
+        max_length=16,
+        choices=SupportLevel.choices,
+        verbose_name="Уровень",
+    )
+
+    pass_percentage = models.PositiveSmallIntegerField(
+        verbose_name="Проходной результат, %",
+    )
+
+    allow_back_navigation = models.BooleanField(
+        verbose_name="Разрешён возврат к вопросам",
+    )
+
+    shuffle_questions = models.BooleanField(
+        verbose_name="Вопросы перемешаны",
+    )
+
+    shuffle_answer_options = models.BooleanField(
+        verbose_name="Варианты ответов перемешаны",
+    )
+
+    started_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Начата",
+    )
+
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Завершена",
+    )
+
+    invalidated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Аннулирована",
+    )
+
+    invalidated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="invalidated_exam_attempts",
+        verbose_name="Аннулировал",
+    )
+
+    invalidation_reason = models.TextField(
+        blank=True,
+        verbose_name="Причина аннулирования",
+    )
+
+    class Meta:
+        ordering = (
+            "-started_at",
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    "assignment",
+                    "attempt_number",
+                ),
+                name=(
+                    "assessment_unique_attempt_number_"
+                    "per_assignment"
+                ),
+            ),
+        )
+
+        verbose_name = "Попытка теста"
+        verbose_name_plural = "Попытки тестов"
+
+    def __str__(self):
+        employee = self.assignment.employee.user
+
+        employee_name = (
+            employee.get_full_name()
+            or employee.username
+        )
+
+        return (
+            f"{employee_name} — "
+            f"{self.campaign_name} — "
+            f"попытка {self.attempt_number}"
+        )
+
+
+class ExamQuestionSnapshot(models.Model):
+    attempt = models.ForeignKey(
+        ExamAttempt,
+        on_delete=models.CASCADE,
+        related_name="question_snapshots",
+        verbose_name="Попытка",
+    )
+
+    source_question = models.ForeignKey(
+        "Question",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="exam_snapshots",
+        verbose_name="Исходный вопрос",
+    )
+
+    position = models.PositiveSmallIntegerField(
+        verbose_name="Позиция в тесте",
+    )
+
+    topic_name = models.CharField(
+        max_length=100,
+        verbose_name="Тематика",
+    )
+
+    topic_slug = models.SlugField(
+        max_length=100,
+    )
+
+    skill_name = models.CharField(
+        max_length=150,
+        verbose_name="Навык",
+    )
+
+    skill_slug = models.SlugField(
+        max_length=100,
+    )
+
+    family_name = models.CharField(
+        max_length=150,
+        verbose_name="Семейство",
+    )
+
+    family_slug = models.SlugField(
+        max_length=100,
+    )
+
+    question_title = models.CharField(
+        max_length=180,
+        verbose_name="Внутреннее название вопроса",
+    )
+
+    question_slug = models.SlugField(
+        max_length=120,
+    )
+
+    question_type = models.CharField(
+        max_length=32,
+        choices=QuestionType.choices,
+        verbose_name="Тип вопроса",
+    )
+
+    difficulty = models.CharField(
+        max_length=16,
+        choices=QuestionDifficulty.choices,
+        verbose_name="Сложность",
+    )
+
+    scenario = models.TextField(
+        blank=True,
+        verbose_name="Ситуация",
+    )
+
+    diagnostic_data = models.TextField(
+        blank=True,
+        verbose_name="Логи и данные",
+    )
+
+    prompt = models.TextField(
+        verbose_name="Вопрос",
+    )
+
+    time_limit_seconds = models.PositiveSmallIntegerField(
+        verbose_name="Время на ответ",
+    )
+
+    explanation = models.TextField(
+        blank=True,
+        verbose_name="Объяснение для наставника",
+    )
+
+    visible_payload = models.JSONField(
+        default=dict,
+        verbose_name="Данные для показа сотруднику",
+    )
+
+    grading_payload = models.JSONField(
+        default=dict,
+        verbose_name="Данные для проверки ответа",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Создан",
+    )
+
+    class Meta:
+        ordering = (
+            "position",
+        )
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    "attempt",
+                    "position",
+                ),
+                name=(
+                    "assessment_unique_question_position_"
+                    "per_attempt"
+                ),
+            ),
+        )
+
+        verbose_name = "Снимок вопроса"
+        verbose_name_plural = "Снимки вопросов"
+
+    def __str__(self):
+        return (
+            f"Вопрос {self.position}: "
+            f"{self.question_title}"
         )
 
 
