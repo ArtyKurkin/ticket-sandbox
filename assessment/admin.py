@@ -15,9 +15,13 @@ from .question_validation import (
 from .models import (
     AnswerOption,
     AssessmentCampaign,
+    AssessmentResult,
     BlueprintSkillQuota,
+    ExamAnswer,
     ExamAssignment,
+    ExamAttempt,
     ExamBlueprint,
+    ExamQuestionSnapshot,
     MatchingPair,
     OrderingItem,
     Question,
@@ -885,3 +889,123 @@ class ExamAssignmentAdmin(admin.ModelAdmin):
     )
     def level_display(self, obj):
         return obj.campaign.blueprint.get_level_display()
+
+
+@admin.register(ExamAttempt)
+class ExamAttemptAdmin(admin.ModelAdmin):
+    list_display = (
+        "employee_display",
+        "campaign_name",
+        "attempt_number",
+        "status",
+        "score_display",
+        "started_at",
+        "completed_at",
+    )
+
+    list_filter = (
+        "status",
+        "level",
+        "campaign_name",
+    )
+
+    search_fields = (
+        "assignment__employee__user__username",
+        "assignment__employee__user__first_name",
+        "assignment__employee__user__last_name",
+        "campaign_name",
+        "blueprint_name",
+    )
+
+    list_select_related = (
+        "assignment",
+        "assignment__employee",
+        "assignment__employee__user",
+    )
+
+    readonly_fields = (
+        "started_at",
+        "completed_at",
+    )
+
+    @admin.display(
+        description="Сотрудник",
+    )
+    def employee_display(self, obj):
+        user = obj.assignment.employee.user
+
+        return (
+            user.get_full_name()
+            or user.username
+        )
+
+    @admin.display(
+        description="Результат",
+    )
+    def score_display(self, obj):
+        try:
+            return (
+                f"{obj.result.score_percentage}%"
+            )
+        except AssessmentResult.DoesNotExist:
+            return "—"
+
+
+@admin.register(AssessmentResult)
+class AssessmentResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "employee_display",
+        "campaign_display",
+        "score_percentage",
+        "passed",
+        "total_questions",
+        "fully_correct_questions",
+        "created_at",
+    )
+
+    list_filter = (
+        "passed",
+        "attempt__level",
+        "attempt__campaign_name",
+    )
+
+    search_fields = (
+        "attempt__assignment__employee__user__username",
+        "attempt__assignment__employee__user__first_name",
+        "attempt__assignment__employee__user__last_name",
+        "attempt__campaign_name",
+    )
+
+    readonly_fields = (
+        "attempt",
+        "score_percentage",
+        "passed",
+        "total_questions",
+        "fully_correct_questions",
+        "topic_breakdown",
+        "skill_breakdown",
+        "created_at",
+        "updated_at",
+    )
+
+    @admin.display(
+        description="Сотрудник",
+    )
+    def employee_display(self, obj):
+        user = (
+            obj.attempt
+            .assignment
+            .employee
+            .user
+        )
+
+        return (
+            user.get_full_name()
+            or user.username
+        )
+
+    @admin.display(
+        description="Кампания",
+    )
+    def campaign_display(self, obj):
+        return obj.attempt.campaign_name

@@ -856,6 +856,114 @@ class ExamQuestionSnapshot(models.Model):
         )
 
 
+class ExamAnswer(models.Model):
+    snapshot = models.OneToOneField(
+        ExamQuestionSnapshot,
+        on_delete=models.CASCADE,
+        related_name="answer",
+        verbose_name="Вопрос",
+    )
+
+    response_payload = models.JSONField(
+        default=dict,
+        verbose_name="Ответ сотрудника",
+    )
+
+    score_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        verbose_name="Результат, %",
+    )
+
+    is_correct = models.BooleanField(
+        default=False,
+        verbose_name="Полностью правильный",
+    )
+
+    answered_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Отвечен",
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Обновлён",
+    )
+
+    class Meta:
+        ordering = (
+            "snapshot__position",
+        )
+
+        verbose_name = "Ответ на вопрос"
+        verbose_name_plural = "Ответы на вопросы"
+
+    def __str__(self):
+        return (
+            f"{self.snapshot} — "
+            f"{self.score_percentage}%"
+        )
+
+
+class AssessmentResult(models.Model):
+    attempt = models.OneToOneField(
+        ExamAttempt,
+        on_delete=models.CASCADE,
+        related_name="result",
+        verbose_name="Попытка",
+    )
+
+    score_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        verbose_name="Итоговый результат, %",
+    )
+
+    passed = models.BooleanField(
+        verbose_name="Порог пройден",
+    )
+
+    total_questions = models.PositiveSmallIntegerField(
+        verbose_name="Всего вопросов",
+    )
+
+    fully_correct_questions = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Полностью правильных ответов",
+    )
+
+    topic_breakdown = models.JSONField(
+        default=dict,
+        verbose_name="Результаты по темам",
+    )
+
+    skill_breakdown = models.JSONField(
+        default=dict,
+        verbose_name="Результаты по навыкам",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Создан",
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Обновлён",
+    )
+
+    class Meta:
+        verbose_name = "Результат тестирования"
+        verbose_name_plural = "Результаты тестирования"
+
+    def __str__(self):
+        return (
+            f"{self.attempt} — "
+            f"{self.score_percentage}%"
+        )
+
+
 class Question(models.Model):
     family = models.ForeignKey(
         QuestionFamily,
