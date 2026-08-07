@@ -9,24 +9,47 @@
     </div>
 
     <div class="assessment-mentor-nav-links">
-      <a
-        href="{% url 'assessment:mentor_question_list' %}"
-        class="assessment-mentor-nav-link is-active"
-      >
-        <i data-lucide="library"></i>
-        Банк вопросов
-      </a>
 
-      <span class="assessment-mentor-nav-link is-disabled">
-        <i data-lucide="users"></i>
-        Тестирования
-      </span>
+        <a
+            href="{% url 'assessment:mentor_question_list' %}"
+            class="
+            assessment-mentor-nav-link
+            {% if request.resolver_match.url_name == 'mentor_question_list' or request.resolver_match.url_name == 'mentor_question_create' or request.resolver_match.url_name == 'mentor_question_edit' %}
+                is-active
+            {% endif %}
+            "
+        >
+            <i data-lucide="library"></i>
+            Банк вопросов
+        </a>
 
-      <span class="assessment-mentor-nav-link is-disabled">
-        <i data-lucide="bar-chart-3"></i>
-        Результаты
-      </span>
-    </div>
+
+        <a
+            href="{% url 'assessment:mentor_family_list' %}"
+            class="
+            assessment-mentor-nav-link
+            {% if request.resolver_match.url_name == 'mentor_family_list' or request.resolver_match.url_name == 'mentor_family_create' or request.resolver_match.url_name == 'mentor_family_edit' %}
+                is-active
+            {% endif %}
+            "
+        >
+            <i data-lucide="layers-3"></i>
+            Семейства
+        </a>
+
+
+        <span class="assessment-mentor-nav-link is-disabled">
+            <i data-lucide="users"></i>
+            Тестирования
+        </span>
+
+
+        <span class="assessment-mentor-nav-link is-disabled">
+            <i data-lucide="bar-chart-3"></i>
+            Результаты
+        </span>
+
+        </div>
   </nav>
 
   <main class="assessment-mentor-content">

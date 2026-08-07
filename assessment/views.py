@@ -7,7 +7,7 @@ from django.contrib.admin.views.decorators import (
     staff_member_required,
 )
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import (
     PermissionDenied,
@@ -35,6 +35,8 @@ from .models import (
     SelectableLine,
     SupportProfile,
     Question,
+    QuestionFamily,
+    Skill,
     Topic,
 )
 from .services.attempts import start_exam_attempt
@@ -53,6 +55,7 @@ from .forms import (
     MatchingPairEditorFormSet,
     OrderingItemEditorFormSet,
     QuestionEditorForm,
+    QuestionFamilyEditorForm,
     SelectableLineEditorFormSet,
 )
 
@@ -961,4 +964,165 @@ def mentor_question_edit(
     return _mentor_question_editor(
         request,
         question=question,
+    )
+
+
+@staff_member_required
+def mentor_family_list(request):
+    families = (
+        QuestionFamily.objects
+        .select_related(
+            "skill",
+            "skill__topic",
+        )
+        .annotate(
+            question_count=Count(
+                "questions"
+            )
+        )
+        .order_by(
+            "skill__topic__order",
+            "skill__order",
+            "order",
+            "name",
+        )
+    )
+
+    query = request.GET.get(
+        "q",
+        "",
+    ).strip()
+
+    topic_slug = request.GET.get(
+        "topic",
+        "",
+    ).strip()
+
+    status = request.GET.get(
+        "status",
+        "",
+    ).strip()
+
+    if query:
+        families = families.filter(
+            Q(name__icontains=query)
+            | Q(
+                assessment_goal__icontains=query
+            )
+            | Q(
+                skill__name__icontains=query
+            )
+        )
+
+    if topic_slug:
+        families = families.filter(
+            skill__topic__slug=topic_slug,
+        )
+
+    if status == "active":
+        families = families.filter(
+            is_active=True,
+        )
+
+    elif status == "inactive":
+        families = families.filter(
+            is_active=False,
+        )
+
+    topics = (
+        Topic.objects
+        .filter(is_active=True)
+        .order_by(
+            "order",
+            "name",
+        )
+    )
+
+    return render(
+        request,
+        "assessment/mentor/family_list.html",
+        {
+            "families": families,
+            "family_count": families.count(),
+            "topics": topics,
+            "filters": {
+                "q": query,
+                "topic": topic_slug,
+                "status": status,
+            },
+        },
+    )
+
+
+def _mentor_family_editor(
+    request,
+    *,
+    family,
+):
+    form = QuestionFamilyEditorForm(
+        request.POST or None,
+        instance=family,
+    )
+
+    if (
+        request.method == "POST"
+        and form.is_valid()
+    ):
+        family = form.save(
+            commit=False
+        )
+
+        if not family.slug:
+            family.slug = (
+                "family-"
+                + uuid.uuid4().hex[:12]
+            )
+
+        family.save()
+
+        messages.success(
+            request,
+            "Семейство сохранено.",
+        )
+
+        return redirect(
+            "assessment:mentor_family_edit",
+            family_id=family.pk,
+        )
+
+    return render(
+        request,
+        "assessment/mentor/family_form.html",
+        {
+            "family": family,
+            "form": form,
+        },
+    )
+
+
+@staff_member_required
+def mentor_family_create(request):
+    return _mentor_family_editor(
+        request,
+        family=QuestionFamily(),
+    )
+
+
+@staff_member_required
+def mentor_family_edit(
+    request,
+    family_id,
+):
+    family = get_object_or_404(
+        QuestionFamily.objects
+        .select_related(
+            "skill",
+            "skill__topic",
+        ),
+        pk=family_id,
+    )
+
+    return _mentor_family_editor(
+        request,
+        family=family,
     )

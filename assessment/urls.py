@@ -52,4 +52,21 @@ urlpatterns = [
         views.mentor_question_edit,
         name="mentor_question_edit",
     ),
+    path(
+        "mentor/families/",
+        views.mentor_family_list,
+        name="mentor_family_list",
+    ),
+
+    path(
+        "mentor/families/new/",
+        views.mentor_family_create,
+        name="mentor_family_create",
+    ),
+
+    path(
+        "mentor/families/<int:family_id>/edit/",
+        views.mentor_family_edit,
+        name="mentor_family_edit",
+    ),
 ]

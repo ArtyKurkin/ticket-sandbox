@@ -1,0 +1,140 @@
+{% extends "assessment/mentor/_base.html" %}
+
+{% block title %}
+  {% if family.pk %}
+    {{ family.name }}
+  {% else %}
+    Новое семейство
+  {% endif %}
+{% endblock %}
+
+
+{% block mentor_content %}
+
+<a
+  href="{% url 'assessment:mentor_family_list' %}"
+  class="assessment-back"
+>
+  <i data-lucide="arrow-left"></i>
+  Семейства
+</a>
+
+
+<header class="assessment-page-header">
+  <div>
+
+    <div class="assessment-eyebrow">
+      <i data-lucide="layers-3"></i>
+
+      {% if family.pk %}
+        Редактирование
+      {% else %}
+        Новое семейство
+      {% endif %}
+    </div>
+
+    <h1>
+      {% if family.pk %}
+        {{ family.name }}
+      {% else %}
+        Создание семейства
+      {% endif %}
+    </h1>
+
+    <p>
+      Семейство описывает одну проверяемую
+      диагностическую ситуацию.
+    </p>
+
+  </div>
+</header>
+
+
+<form
+  method="post"
+  class="assessment-family-form"
+>
+  {% csrf_token %}
+
+  <section class="assessment-editor-section">
+
+    <div class="assessment-field">
+      <label for="{{ form.skill.id_for_label }}">
+        Навык
+      </label>
+
+      {{ form.skill }}
+      {{ form.skill.errors }}
+    </div>
+
+
+    <div class="assessment-field">
+      <label for="{{ form.name.id_for_label }}">
+        Название семейства
+      </label>
+
+      {{ form.name }}
+
+      <div class="assessment-field-help">
+        Например:
+        «Высокий load из-за I/O».
+      </div>
+
+      {{ form.name.errors }}
+    </div>
+
+
+    <div class="assessment-field">
+      <label for="{{ form.assessment_goal.id_for_label }}">
+        Что проверяем
+      </label>
+
+      {{ form.assessment_goal }}
+
+      <div class="assessment-field-help">
+        Коротко опиши навык или диагностическое
+        решение, которое должен показать сотрудник.
+      </div>
+
+      {{ form.assessment_goal.errors }}
+    </div>
+
+
+    <div class="assessment-family-active">
+      {{ form.is_active }}
+
+      <label for="{{ form.is_active.id_for_label }}">
+        Семейство активно
+      </label>
+    </div>
+
+  </section>
+
+
+  <div class="assessment-editor-footer">
+
+    <a
+      href="{% url 'assessment:mentor_family_list' %}"
+      class="assessment-secondary-button"
+    >
+      Отмена
+    </a>
+
+    <button
+      type="submit"
+      class="assessment-button assessment-button-large"
+    >
+      <i data-lucide="save"></i>
+
+      {% if family.pk %}
+        Сохранить изменения
+      {% else %}
+        Создать семейство
+      {% endif %}
+    </button>
+
+  </div>
+
+</form>
+
+{% endblock %}

@@ -1,0 +1,228 @@
+{% extends "assessment/mentor/_base.html" %}
+
+{% block title %}
+  Семейства вопросов
+{% endblock %}
+
+{% block mentor_content %}
+
+<header class="assessment-page-header">
+
+  <div>
+    <div class="assessment-eyebrow">
+      <i data-lucide="layers-3"></i>
+      Семейства
+    </div>
+
+    <h1>
+      Семейства вопросов
+    </h1>
+
+    <p>
+      Семейство объединяет разные варианты
+      одной диагностической ситуации.
+    </p>
+  </div>
+
+  <div class="assessment-page-header-actions">
+    <a
+      href="{% url 'assessment:mentor_family_create' %}"
+      class="assessment-button"
+    >
+      <i data-lucide="plus"></i>
+      Новое семейство
+    </a>
+  </div>
+
+</header>
+
+
+<form
+  method="get"
+  class="assessment-family-filters"
+>
+
+  <div class="assessment-search-field">
+    <i data-lucide="search"></i>
+
+    <input
+      type="search"
+      name="q"
+      value="{{ filters.q }}"
+      placeholder="Поиск по семействам"
+    >
+  </div>
+
+
+  <select
+    name="topic"
+    class="assessment-filter-select"
+  >
+    <option value="">
+      Тематика
+    </option>
+
+    {% for topic in topics %}
+      <option
+        value="{{ topic.slug }}"
+        {% if filters.topic == topic.slug %}
+          selected
+        {% endif %}
+      >
+        {{ topic.name }}
+      </option>
+    {% endfor %}
+  </select>
+
+
+  <select
+    name="status"
+    class="assessment-filter-select"
+  >
+    <option value="">
+      Статус
+    </option>
+
+    <option
+      value="active"
+      {% if filters.status == "active" %}
+        selected
+      {% endif %}
+    >
+      Активные
+    </option>
+
+    <option
+      value="inactive"
+      {% if filters.status == "inactive" %}
+        selected
+      {% endif %}
+    >
+      Неактивные
+    </option>
+  </select>
+
+
+  <button
+    type="submit"
+    class="assessment-filter-button"
+  >
+    Применить
+  </button>
+
+</form>
+
+
+<div class="assessment-list-summary">
+  <strong>{{ family_count }}</strong>
+  семейств
+</div>
+
+
+{% if families %}
+
+  <div class="assessment-family-list">
+
+    {% for family in families %}
+
+      <article class="assessment-family-card">
+
+        <div class="assessment-family-main">
+
+          <div class="assessment-bank-path">
+            <span>
+              {{ family.skill.topic.name }}
+            </span>
+
+            <i data-lucide="chevron-right"></i>
+
+            <span>
+              {{ family.skill.name }}
+            </span>
+          </div>
+
+
+          <h2>
+            {{ family.name }}
+          </h2>
+
+
+          {% if family.assessment_goal %}
+            <p>
+              {{ family.assessment_goal }}
+            </p>
+          {% endif %}
+
+        </div>
+
+
+        <div class="assessment-family-side">
+
+          <div class="assessment-family-stats">
+            <div>
+              <span>Вопросов</span>
+              <strong>
+                {{ family.question_count }}
+              </strong>
+            </div>
+
+            {% if family.is_active %}
+              <span
+                class="
+                  assessment-mini-badge
+                  is-success
+                "
+              >
+                Активно
+              </span>
+            {% else %}
+              <span
+                class="
+                  assessment-mini-badge
+                  is-neutral
+                "
+              >
+                Неактивно
+              </span>
+            {% endif %}
+          </div>
+
+
+          <a
+            href="{% url 'assessment:mentor_family_edit' family.id %}"
+            class="assessment-secondary-button"
+          >
+            Редактировать
+            <i data-lucide="arrow-right"></i>
+          </a>
+
+        </div>
+
+      </article>
+
+    {% endfor %}
+
+  </div>
+
+{% else %}
+
+  <div class="assessment-empty">
+
+    <div class="assessment-empty-icon">
+      <i data-lucide="layers-3"></i>
+    </div>
+
+    <h2>
+      Семейств пока нет
+    </h2>
+
+    <p>
+      Создай первое семейство,
+      чтобы затем добавлять в него вопросы.
+    </p>
+
+  </div>
+
+{% endif %}
+
+{% endblock %}

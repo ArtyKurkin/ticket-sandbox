@@ -14,7 +14,9 @@ from assessment.models import (
     MatchingPair,
     OrderingItem,
     Question,
+    QuestionFamily,
     SelectableLine,
+    Skill,
 )
 from assessment.question_validation import (
     validate_answer_configuration,
@@ -446,3 +448,67 @@ SelectableLineEditorFormSet = (
         can_delete=True,
     )
 )
+
+
+class SkillChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return (
+            f"{obj.topic.name} → "
+            f"{obj.name}"
+        )
+
+
+class QuestionFamilyEditorForm(forms.ModelForm):
+    skill = SkillChoiceField(
+        queryset=Skill.objects.none(),
+        label="Навык",
+    )
+
+    class Meta:
+        model = QuestionFamily
+
+        fields = (
+            "skill",
+            "name",
+            "assessment_goal",
+            "is_active",
+        )
+
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "placeholder": (
+                        "Например: высокий load из-за I/O"
+                    ),
+                }
+            ),
+            "assessment_goal": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "placeholder": (
+                        "Что именно должен уметь "
+                        "определить сотрудник?"
+                    ),
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        self.fields["skill"].queryset = (
+            Skill.objects
+            .filter(
+                is_active=True,
+                topic__is_active=True,
+            )
+            .select_related("topic")
+            .order_by(
+                "topic__order",
+                "order",
+                "name",
+            )
+        )
