@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.forms import (
     BaseInlineFormSet,
@@ -26,7 +27,31 @@ from assessment.question_validation import (
 )
 
 
+class SkillChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return (
+            f"{obj.topic.name} → "
+            f"{obj.name}"
+        )
+
+
+class QuestionFamilyChoiceField(
+    forms.ModelChoiceField
+):
+    def label_from_instance(self, obj):
+        return (
+            f"{obj.skill.topic.name} → "
+            f"{obj.skill.name} → "
+            f"{obj.name}"
+        )
+
+
 class QuestionEditorForm(forms.ModelForm):
+    family = QuestionFamilyChoiceField(
+        queryset=QuestionFamily.objects.none(),
+        label="Семейство вопросов",
+    )
+
     class Meta:
         model = Question
 
@@ -83,6 +108,71 @@ class QuestionEditorForm(forms.ModelForm):
                 }
             ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        families = (
+            QuestionFamily.objects
+            .filter(
+                is_active=True,
+                skill__is_active=True,
+                skill__topic__is_active=True,
+            )
+            .select_related(
+                "skill",
+                "skill__topic",
+            )
+            .order_by(
+                "skill__topic__order",
+                "skill__order",
+                "order",
+                "name",
+            )
+        )
+
+        # Если редактируем старый вопрос,
+        # его текущее семейство должно остаться
+        # доступным даже после отключения.
+        if (
+            self.instance
+            and self.instance.pk
+            and self.instance.family_id
+        ):
+            families = (
+                QuestionFamily.objects
+                .filter(
+                    Q(
+                        is_active=True,
+                        skill__is_active=True,
+                        skill__topic__is_active=True,
+                    )
+                    | Q(
+                        pk=self.instance.family_id
+                    )
+                )
+                .select_related(
+                    "skill",
+                    "skill__topic",
+                )
+                .distinct()
+                .order_by(
+                    "skill__topic__order",
+                    "skill__order",
+                    "order",
+                    "name",
+                )
+            )
+
+        self.fields["family"].queryset = (
+            families
+        )
+        self.fields[
+            "family"
+        ].empty_label = "Выбери семейство"
 
 
 class AnswerOptionFormSet(
@@ -394,7 +484,7 @@ AnswerOptionEditorFormSet = (
             "is_correct",
             "order",
         ),
-        extra=4,
+        extra=2,
         can_delete=True,
     )
 )
@@ -411,7 +501,7 @@ MatchingPairEditorFormSet = (
             "right_text",
             "order",
         ),
-        extra=4,
+        extra=2,
         can_delete=True,
     )
 )
@@ -427,7 +517,7 @@ OrderingItemEditorFormSet = (
             "text",
             "order",
         ),
-        extra=4,
+        extra=3,
         can_delete=True,
     )
 )
@@ -444,18 +534,10 @@ SelectableLineEditorFormSet = (
             "is_correct",
             "order",
         ),
-        extra=6,
+        extra=2,
         can_delete=True,
     )
 )
-
-
-class SkillChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        return (
-            f"{obj.topic.name} → "
-            f"{obj.name}"
-        )
 
 
 class QuestionFamilyEditorForm(forms.ModelForm):

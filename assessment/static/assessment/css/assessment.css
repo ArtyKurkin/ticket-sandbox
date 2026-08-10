@@ -2073,6 +2073,122 @@ body {
   line-height: 1.5;
 }
 
+.assessment-config-heading {
+  justify-content: space-between;
+}
+
+.assessment-config-heading > div {
+  min-width: 0;
+}
+
+.assessment-add-row-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 auto;
+
+  gap: 6px;
+
+  min-height: 34px;
+
+  padding: 7px 10px;
+
+  background: #ffffff;
+  color: var(--assessment-primary);
+
+  border:
+    1px solid #c9d4f6;
+
+  border-radius: 8px;
+
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.assessment-add-row-button:hover {
+  background:
+    var(--assessment-primary-soft);
+
+  border-color: #aebef0;
+}
+
+.assessment-add-row-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+
+.assessment-remove-row-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
+
+  min-height: 32px;
+
+  padding: 6px 8px;
+
+  background: transparent;
+  color: var(--assessment-muted);
+
+  border: 0;
+  border-radius: 7px;
+
+  font: inherit;
+  font-size: 10px;
+  font-weight: 650;
+
+  cursor: pointer;
+}
+
+.assessment-remove-row-button:hover {
+  background:
+    var(--assessment-danger-bg);
+
+  color:
+    var(--assessment-danger);
+}
+
+.assessment-remove-row-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+
+.assessment-delete-field {
+  display: none;
+}
+
+
+.assessment-editor-row.is-deleted {
+  opacity: 0.48;
+
+  background: #f8f9fb;
+
+  border-style: dashed;
+}
+
+.assessment-editor-row.is-deleted
+.assessment-row-main,
+.assessment-editor-row.is-deleted
+.assessment-correct-toggle,
+.assessment-editor-row.is-deleted
+> div:not(.assessment-delete-field) {
+  opacity: 0.6;
+}
+
+.assessment-editor-row.is-deleted
+.assessment-remove-row-button {
+  opacity: 1;
+
+  color: var(--assessment-primary);
+}
+
 
 /* Fields */
 

@@ -14,6 +14,9 @@ from assessment.models import (
     Skill,
     Topic,
 )
+from assessment.forms import (
+    QuestionEditorForm,
+)
 
 
 class MentorQuestionEditorTests(TestCase):
@@ -141,4 +144,110 @@ class MentorQuestionEditorTests(TestCase):
                 is_correct=True
             ).count(),
             1,
+        )
+
+    def test_family_choice_contains_full_path(self):
+        family = QuestionFamily.objects.create(
+            skill=self.skill,
+            name="Высокий load из-за I/O",
+            slug="test-editor-io-family",
+            assessment_goal="Проверить I/O wait.",
+        )
+
+        form = QuestionEditorForm()
+
+        choices = dict(
+            form.fields["family"].choices
+        )
+
+        self.assertEqual(
+            choices[family.pk],
+            (
+                "Тема редактора → "
+                "Навык редактора → "
+                "Высокий load из-за I/O"
+            ),
+        )
+
+    def test_inactive_family_is_hidden_for_new_question(
+        self,
+    ):
+        family = QuestionFamily.objects.create(
+            skill=self.skill,
+            name="Старое семейство",
+            slug="test-editor-inactive-family",
+            assessment_goal="Старая проверка.",
+            is_active=False,
+        )
+
+        form = QuestionEditorForm()
+
+        self.assertNotIn(
+            family,
+            form.fields["family"].queryset,
+        )
+
+    def test_existing_question_keeps_inactive_family_available(
+        self,
+    ):
+        family = QuestionFamily.objects.create(
+            skill=self.skill,
+            name="Отключённое семейство",
+            slug="test-editor-existing-family",
+            assessment_goal="Старая проверка.",
+            is_active=False,
+        )
+
+        question = Question.objects.create(
+            family=family,
+            title="Старый вопрос",
+            slug="test-existing-inactive-family-question",
+            level=SupportLevel.L1,
+            difficulty=QuestionDifficulty.HARD,
+            answer_type=QuestionType.SINGLE_CHOICE,
+            status=QuestionStatus.DRAFT,
+            prompt="Старый вопрос.",
+        )
+
+        form = QuestionEditorForm(
+            instance=question
+        )
+
+        self.assertIn(
+            family,
+            form.fields["family"].queryset,
+        )
+
+    def test_create_page_has_dynamic_answer_controls(
+        self,
+    ):
+        response = self.client.get(
+            reverse(
+                "assessment:mentor_question_create"
+            )
+        )
+
+        self.assertContains(
+            response,
+            "Добавить вариант",
+        )
+
+        self.assertContains(
+            response,
+            "Добавить пару",
+        )
+
+        self.assertContains(
+            response,
+            "Добавить шаг",
+        )
+
+        self.assertContains(
+            response,
+            "Добавить строку",
+        )
+
+        self.assertContains(
+            response,
+            "data-formset",
         )

@@ -229,206 +229,470 @@
     </div>
 
 
-    {# ===== Choice ===== #}
+{# ===== Choice ===== #}
 
-    <div
-      class="assessment-config-editor"
-      data-answer-editor="single_choice,multiple_choice"
-    >
-      {{ formsets.options.management_form }}
+<div
+  class="assessment-config-editor"
+  data-answer-editor="single_choice,multiple_choice"
+  data-formset
+  data-formset-prefix="options"
+>
+  {{ formsets.options.management_form }}
 
-      <div class="assessment-config-heading">
-        <strong>Варианты ответа</strong>
+  <div class="assessment-config-heading">
+    <div>
+      <strong>Варианты ответа</strong>
 
-        <span>
-          Отметь правильный вариант.
-        </span>
-      </div>
-
-      <div class="assessment-editor-rows">
-
-        {% for option_form in formsets.options %}
-          <div class="assessment-editor-row">
-            {{ option_form.id }}
-
-            <div class="assessment-row-main">
-              {{ option_form.text }}
-            </div>
-
-            <label class="assessment-correct-toggle">
-              {{ option_form.is_correct }}
-              Правильный
-            </label>
-
-            {{ option_form.order }}
-
-            {% if option_form.instance.pk %}
-              <label class="assessment-delete-toggle">
-                {{ option_form.DELETE }}
-                Удалить
-              </label>
-            {% endif %}
-          </div>
-
-          {% if option_form.errors %}
-            <div class="assessment-row-errors">
-              {{ option_form.errors }}
-            </div>
-          {% endif %}
-        {% endfor %}
-
-      </div>
-
-      {{ formsets.options.non_form_errors }}
+      <span>
+        Отметь правильный вариант.
+      </span>
     </div>
 
-
-    {# ===== Matching ===== #}
-
-    <div
-      class="assessment-config-editor"
-      data-answer-editor="matching"
+    <button
+      type="button"
+      class="assessment-add-row-button"
+      data-add-form
     >
-      {{ formsets.matching.management_form }}
+      <i data-lucide="plus"></i>
+      Добавить вариант
+    </button>
+  </div>
 
-      <div class="assessment-config-heading">
-        <strong>Сопоставление</strong>
 
-        <span>
-          Что чему соответствует.
-        </span>
+  <div
+    class="assessment-editor-rows"
+    data-formset-rows
+  >
+
+    {% for option_form in formsets.options %}
+
+      <div
+        class="assessment-editor-row"
+        data-form-row
+      >
+        {{ option_form.id }}
+        {{ option_form.order }}
+
+        <div class="assessment-row-main">
+          {{ option_form.text }}
+        </div>
+
+        <label class="assessment-correct-toggle">
+          {{ option_form.is_correct }}
+          Правильный
+        </label>
+
+        <button
+          type="button"
+          class="assessment-remove-row-button"
+          data-remove-form
+        >
+          <i data-lucide="trash-2"></i>
+          <span>Удалить</span>
+        </button>
+
+        <div class="assessment-delete-field">
+          {{ option_form.DELETE }}
+        </div>
       </div>
 
-      <div class="assessment-editor-rows">
+      {% if option_form.errors %}
+        <div class="assessment-row-errors">
+          {{ option_form.errors }}
+        </div>
+      {% endif %}
 
-        {% for pair_form in formsets.matching %}
-          <div class="assessment-editor-row is-pair">
-            {{ pair_form.id }}
+    {% endfor %}
 
-            <div>
-              <span class="assessment-row-label">
-                Слева
-              </span>
-              {{ pair_form.left_text }}
-            </div>
+  </div>
 
-            <i data-lucide="arrow-right"></i>
 
-            <div>
-              <span class="assessment-row-label">
-                Справа
-              </span>
-              {{ pair_form.right_text }}
-            </div>
+  <template data-empty-form>
+    <div
+      class="assessment-editor-row"
+      data-form-row
+    >
+      {{ formsets.options.empty_form.id }}
+      {{ formsets.options.empty_form.order }}
 
-            {{ pair_form.order }}
-
-            {% if pair_form.instance.pk %}
-              <label class="assessment-delete-toggle">
-                {{ pair_form.DELETE }}
-                Удалить
-              </label>
-            {% endif %}
-          </div>
-        {% endfor %}
-
+      <div class="assessment-row-main">
+        {{ formsets.options.empty_form.text }}
       </div>
 
-      {{ formsets.matching.non_form_errors }}
+      <label class="assessment-correct-toggle">
+        {{ formsets.options.empty_form.is_correct }}
+        Правильный
+      </label>
+
+      <button
+        type="button"
+        class="assessment-remove-row-button"
+        data-remove-form
+      >
+        <i data-lucide="trash-2"></i>
+        <span>Удалить</span>
+      </button>
+
+      <div class="assessment-delete-field">
+        {{ formsets.options.empty_form.DELETE }}
+      </div>
+    </div>
+  </template>
+
+  {{ formsets.options.non_form_errors }}
+</div>
+
+
+{# ===== Matching ===== #}
+
+<div
+  class="assessment-config-editor"
+  data-answer-editor="matching"
+  data-formset
+  data-formset-prefix="matching"
+>
+  {{ formsets.matching.management_form }}
+
+  <div class="assessment-config-heading">
+    <div>
+      <strong>Сопоставление</strong>
+
+      <span>
+        Что чему соответствует.
+      </span>
     </div>
 
-
-    {# ===== Ordering ===== #}
-
-    <div
-      class="assessment-config-editor"
-      data-answer-editor="ordering"
+    <button
+      type="button"
+      class="assessment-add-row-button"
+      data-add-form
     >
-      {{ formsets.ordering.management_form }}
+      <i data-lucide="plus"></i>
+      Добавить пару
+    </button>
+  </div>
 
-      <div class="assessment-config-heading">
-        <strong>Правильная последовательность</strong>
 
-        <span>
-          Расположи строки сразу
-          в правильном порядке.
+  <div
+    class="assessment-editor-rows"
+    data-formset-rows
+  >
+
+    {% for pair_form in formsets.matching %}
+
+      <div
+        class="assessment-editor-row is-pair"
+        data-form-row
+      >
+        {{ pair_form.id }}
+        {{ pair_form.order }}
+
+        <div>
+          <span class="assessment-row-label">
+            Слева
+          </span>
+
+          {{ pair_form.left_text }}
+        </div>
+
+        <i data-lucide="arrow-right"></i>
+
+        <div>
+          <span class="assessment-row-label">
+            Справа
+          </span>
+
+          {{ pair_form.right_text }}
+        </div>
+
+        <button
+          type="button"
+          class="assessment-remove-row-button"
+          data-remove-form
+        >
+          <i data-lucide="trash-2"></i>
+          <span>Удалить</span>
+        </button>
+
+        <div class="assessment-delete-field">
+          {{ pair_form.DELETE }}
+        </div>
+      </div>
+
+      {% if pair_form.errors %}
+        <div class="assessment-row-errors">
+          {{ pair_form.errors }}
+        </div>
+      {% endif %}
+
+    {% endfor %}
+
+  </div>
+
+
+  <template data-empty-form>
+    <div
+      class="assessment-editor-row is-pair"
+      data-form-row
+    >
+      {{ formsets.matching.empty_form.id }}
+      {{ formsets.matching.empty_form.order }}
+
+      <div>
+        <span class="assessment-row-label">
+          Слева
         </span>
+
+        {{ formsets.matching.empty_form.left_text }}
       </div>
 
-      <div class="assessment-editor-rows">
+      <i data-lucide="arrow-right"></i>
 
-        {% for item_form in formsets.ordering %}
-          <div class="assessment-editor-row">
-            {{ item_form.id }}
+      <div>
+        <span class="assessment-row-label">
+          Справа
+        </span>
 
-            <div class="assessment-row-main">
-              {{ item_form.text }}
-            </div>
-
-            {{ item_form.order }}
-
-            {% if item_form.instance.pk %}
-              <label class="assessment-delete-toggle">
-                {{ item_form.DELETE }}
-                Удалить
-              </label>
-            {% endif %}
-          </div>
-        {% endfor %}
-
+        {{ formsets.matching.empty_form.right_text }}
       </div>
 
-      {{ formsets.ordering.non_form_errors }}
+      <button
+        type="button"
+        class="assessment-remove-row-button"
+        data-remove-form
+      >
+        <i data-lucide="trash-2"></i>
+        <span>Удалить</span>
+      </button>
+
+      <div class="assessment-delete-field">
+        {{ formsets.matching.empty_form.DELETE }}
+      </div>
+    </div>
+  </template>
+
+  {{ formsets.matching.non_form_errors }}
+</div>
+
+
+{# ===== Ordering ===== #}
+
+<div
+  class="assessment-config-editor"
+  data-answer-editor="ordering"
+  data-formset
+  data-formset-prefix="ordering"
+>
+  {{ formsets.ordering.management_form }}
+
+  <div class="assessment-config-heading">
+    <div>
+      <strong>Правильная последовательность</strong>
+
+      <span>
+        Расположи шаги сразу
+        в правильном порядке.
+      </span>
     </div>
 
-
-    {# ===== Lines ===== #}
-
-    <div
-      class="assessment-config-editor"
-      data-answer-editor="line_selection"
+    <button
+      type="button"
+      class="assessment-add-row-button"
+      data-add-form
     >
-      {{ formsets.lines.management_form }}
+      <i data-lucide="plus"></i>
+      Добавить шаг
+    </button>
+  </div>
 
-      <div class="assessment-config-heading">
-        <strong>Строки</strong>
 
-        <span>
-          Отметь строки, которые сотрудник
-          должен выбрать.
-        </span>
+  <div
+    class="assessment-editor-rows"
+    data-formset-rows
+  >
+
+    {% for item_form in formsets.ordering %}
+
+      <div
+        class="assessment-editor-row"
+        data-form-row
+      >
+        {{ item_form.id }}
+        {{ item_form.order }}
+
+        <div class="assessment-row-main">
+          {{ item_form.text }}
+        </div>
+
+        <button
+          type="button"
+          class="assessment-remove-row-button"
+          data-remove-form
+        >
+          <i data-lucide="trash-2"></i>
+          <span>Удалить</span>
+        </button>
+
+        <div class="assessment-delete-field">
+          {{ item_form.DELETE }}
+        </div>
       </div>
 
-      <div class="assessment-editor-rows">
+      {% if item_form.errors %}
+        <div class="assessment-row-errors">
+          {{ item_form.errors }}
+        </div>
+      {% endif %}
 
-        {% for line_form in formsets.lines %}
-          <div class="assessment-editor-row">
-            {{ line_form.id }}
+    {% endfor %}
 
-            <div class="assessment-row-main">
-              {{ line_form.text }}
-            </div>
+  </div>
 
-            <label class="assessment-correct-toggle">
-              {{ line_form.is_correct }}
-              Правильная
-            </label>
 
-            {{ line_form.order }}
+  <template data-empty-form>
+    <div
+      class="assessment-editor-row"
+      data-form-row
+    >
+      {{ formsets.ordering.empty_form.id }}
+      {{ formsets.ordering.empty_form.order }}
 
-            {% if line_form.instance.pk %}
-              <label class="assessment-delete-toggle">
-                {{ line_form.DELETE }}
-                Удалить
-              </label>
-            {% endif %}
-          </div>
-        {% endfor %}
-
+      <div class="assessment-row-main">
+        {{ formsets.ordering.empty_form.text }}
       </div>
 
-      {{ formsets.lines.non_form_errors }}
+      <button
+        type="button"
+        class="assessment-remove-row-button"
+        data-remove-form
+      >
+        <i data-lucide="trash-2"></i>
+        <span>Удалить</span>
+      </button>
+
+      <div class="assessment-delete-field">
+        {{ formsets.ordering.empty_form.DELETE }}
+      </div>
     </div>
+  </template>
+
+  {{ formsets.ordering.non_form_errors }}
+</div>
+
+
+{# ===== Lines ===== #}
+
+<div
+  class="assessment-config-editor"
+  data-answer-editor="line_selection"
+  data-formset
+  data-formset-prefix="lines"
+>
+  {{ formsets.lines.management_form }}
+
+  <div class="assessment-config-heading">
+    <div>
+      <strong>Строки</strong>
+
+      <span>
+        Отметь строки, которые сотрудник
+        должен выбрать.
+      </span>
+    </div>
+
+    <button
+      type="button"
+      class="assessment-add-row-button"
+      data-add-form
+    >
+      <i data-lucide="plus"></i>
+      Добавить строку
+    </button>
+  </div>
+
+
+  <div
+    class="assessment-editor-rows"
+    data-formset-rows
+  >
+
+    {% for line_form in formsets.lines %}
+
+      <div
+        class="assessment-editor-row"
+        data-form-row
+      >
+        {{ line_form.id }}
+        {{ line_form.order }}
+
+        <div class="assessment-row-main">
+          {{ line_form.text }}
+        </div>
+
+        <label class="assessment-correct-toggle">
+          {{ line_form.is_correct }}
+          Правильная
+        </label>
+
+        <button
+          type="button"
+          class="assessment-remove-row-button"
+          data-remove-form
+        >
+          <i data-lucide="trash-2"></i>
+          <span>Удалить</span>
+        </button>
+
+        <div class="assessment-delete-field">
+          {{ line_form.DELETE }}
+        </div>
+      </div>
+
+      {% if line_form.errors %}
+        <div class="assessment-row-errors">
+          {{ line_form.errors }}
+        </div>
+      {% endif %}
+
+    {% endfor %}
+
+  </div>
+
+
+  <template data-empty-form>
+    <div
+      class="assessment-editor-row"
+      data-form-row
+    >
+      {{ formsets.lines.empty_form.id }}
+      {{ formsets.lines.empty_form.order }}
+
+      <div class="assessment-row-main">
+        {{ formsets.lines.empty_form.text }}
+      </div>
+
+      <label class="assessment-correct-toggle">
+        {{ formsets.lines.empty_form.is_correct }}
+        Правильная
+      </label>
+
+      <button
+        type="button"
+        class="assessment-remove-row-button"
+        data-remove-form
+      >
+        <i data-lucide="trash-2"></i>
+        <span>Удалить</span>
+      </button>
+
+      <div class="assessment-delete-field">
+        {{ formsets.lines.empty_form.DELETE }}
+      </div>
+    </div>
+  </template>
+
+  {{ formsets.lines.non_form_errors }}
+</div>
 
   </section>
 

@@ -1,60 +1,325 @@
 document.addEventListener(
   "DOMContentLoaded",
   () => {
-    const editor = document.querySelector(
-      "[data-question-editor]"
-    );
-
-    if (!editor) {
-      return;
-    }
-
-    const typeSelect = editor.querySelector(
-      "[name='answer_type']"
-    );
-
-    const sections = [
-      ...editor.querySelectorAll(
-        "[data-answer-editor]"
-      ),
-    ];
-
-    if (!typeSelect) {
-      return;
-    }
-
-    const updateEditors = () => {
-      const selected = typeSelect.value;
-
-      sections.forEach((section) => {
-        const supportedTypes = (
-          section.dataset.answerEditor
-            .split(",")
-        );
-
-        const active = (
-          supportedTypes.includes(
-            selected
-          )
-        );
-
-        section.hidden = !active;
-
-        section
-          .querySelectorAll(
-            "input:not([type='hidden']), textarea, select"
-          )
-          .forEach((field) => {
-            field.disabled = !active;
-          });
-      });
-    };
-
-    typeSelect.addEventListener(
-      "change",
-      updateEditors
-    );
-
-    updateEditors();
+    initQuestionEditor();
+    initDynamicFormsets();
   }
 );
+
+
+function initQuestionEditor() {
+  const editor = document.querySelector(
+    "[data-question-editor]"
+  );
+
+  if (!editor) {
+    return;
+  }
+
+  const typeSelect = editor.querySelector(
+    "[name='answer_type']"
+  );
+
+  const sections = [
+    ...editor.querySelectorAll(
+      "[data-answer-editor]"
+    ),
+  ];
+
+  if (!typeSelect) {
+    return;
+  }
+
+
+  const updateEditors = () => {
+    const selected = typeSelect.value;
+
+    sections.forEach((section) => {
+      const supportedTypes = (
+        section.dataset.answerEditor
+          .split(",")
+      );
+
+      const active = (
+        supportedTypes.includes(
+          selected
+        )
+      );
+
+      section.hidden = !active;
+
+      section
+        .querySelectorAll(
+          "input:not([type='hidden']), textarea, select"
+        )
+        .forEach((field) => {
+          field.disabled = !active;
+        });
+    });
+  };
+
+
+  typeSelect.addEventListener(
+    "change",
+    updateEditors
+  );
+
+  updateEditors();
+}
+
+
+function initDynamicFormsets() {
+  document
+    .querySelectorAll("[data-formset]")
+    .forEach((formset) => {
+      initDynamicFormset(formset);
+    });
+}
+
+
+function initDynamicFormset(formset) {
+  const prefix = (
+    formset.dataset.formsetPrefix
+  );
+
+  const rowsContainer = (
+    formset.querySelector(
+      "[data-formset-rows]"
+    )
+  );
+
+  const template = (
+    formset.querySelector(
+      "template[data-empty-form]"
+    )
+  );
+
+  const addButton = (
+    formset.querySelector(
+      "[data-add-form]"
+    )
+  );
+
+  const totalForms = (
+    formset.querySelector(
+      `input[name="${prefix}-TOTAL_FORMS"]`
+    )
+  );
+
+  if (
+    !prefix
+    || !rowsContainer
+    || !template
+    || !addButton
+    || !totalForms
+  ) {
+    return;
+  }
+
+
+  const updateOrders = () => {
+    let position = 1;
+
+    rowsContainer
+      .querySelectorAll("[data-form-row]")
+      .forEach((row) => {
+        const deleteInput = (
+          row.querySelector(
+            'input[name$="-DELETE"]'
+          )
+        );
+
+        if (
+          deleteInput
+          && deleteInput.checked
+        ) {
+          return;
+        }
+
+        const orderInput = (
+          row.querySelector(
+            'input[name$="-order"]'
+          )
+        );
+
+        if (orderInput) {
+          orderInput.value = (
+            position * 10
+          );
+        }
+
+        position += 1;
+      });
+  };
+
+
+  const updateDeleteButton = (
+    row,
+    deleted
+  ) => {
+    row.classList.toggle(
+      "is-deleted",
+      deleted
+    );
+
+    const button = row.querySelector(
+      "[data-remove-form]"
+    );
+
+    if (!button) {
+      return;
+    }
+
+    const label = button.querySelector(
+      "span"
+    );
+
+    if (label) {
+      label.textContent = (
+        deleted
+          ? "Вернуть"
+          : "Удалить"
+      );
+    }
+  };
+
+
+  rowsContainer
+    .querySelectorAll("[data-form-row]")
+    .forEach((row) => {
+      const deleteInput = (
+        row.querySelector(
+          'input[name$="-DELETE"]'
+        )
+      );
+
+      if (
+        deleteInput
+        && deleteInput.checked
+      ) {
+        updateDeleteButton(
+          row,
+          true
+        );
+      }
+    });
+
+
+  addButton.addEventListener(
+    "click",
+    () => {
+      const index = Number(
+        totalForms.value
+      );
+
+      if (!Number.isFinite(index)) {
+        return;
+      }
+
+      const html = (
+        template.innerHTML.replaceAll(
+          "__prefix__",
+          String(index)
+        )
+      );
+
+      rowsContainer.insertAdjacentHTML(
+        "beforeend",
+        html
+      );
+
+      totalForms.value = String(
+        index + 1
+      );
+
+      updateOrders();
+
+      if (
+        window.lucide
+        && window.lucide.createIcons
+      ) {
+        window.lucide.createIcons();
+      }
+
+      const rows = (
+        rowsContainer.querySelectorAll(
+          "[data-form-row]"
+        )
+      );
+
+      const lastRow = rows[
+        rows.length - 1
+      ];
+
+      const firstField = (
+        lastRow?.querySelector(
+          "input[type='text'], textarea, select"
+        )
+      );
+
+      if (firstField) {
+        firstField.focus();
+      }
+    }
+  );
+
+
+  rowsContainer.addEventListener(
+    "click",
+    (event) => {
+      const button = (
+        event.target.closest(
+          "[data-remove-form]"
+        )
+      );
+
+      if (!button) {
+        return;
+      }
+
+      const row = button.closest(
+        "[data-form-row]"
+      );
+
+      if (!row) {
+        return;
+      }
+
+      const deleteInput = (
+        row.querySelector(
+          'input[name$="-DELETE"]'
+        )
+      );
+
+      if (!deleteInput) {
+        return;
+      }
+
+      deleteInput.checked = (
+        !deleteInput.checked
+      );
+
+      updateDeleteButton(
+        row,
+        deleteInput.checked
+      );
+
+      updateOrders();
+    }
+  );
+
+
+  const parentForm = formset.closest(
+    "form"
+  );
+
+  if (parentForm) {
+    parentForm.addEventListener(
+      "submit",
+      updateOrders
+    );
+  }
+
+
+  updateOrders();
+}
