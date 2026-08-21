@@ -2189,6 +2189,23 @@ body {
   color: var(--assessment-primary);
 }
 
+.assessment-editor-row input[type="text"] {
+  width: 100%;
+
+  background: #ffffff;
+  color: var(--assessment-text);
+
+  -webkit-text-fill-color: var(--assessment-text);
+
+  opacity: 1;
+}
+
+.assessment-editor-row input[type="text"]::placeholder {
+  color: #98a2b3;
+  -webkit-text-fill-color: #98a2b3;
+  opacity: 1;
+}
+
 
 /* Fields */
 

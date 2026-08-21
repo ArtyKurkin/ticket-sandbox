@@ -67,7 +67,6 @@ class QuestionEditorForm(forms.ModelForm):
             "time_limit_seconds",
             "explanation",
             "status",
-            "order",
         )
 
         widgets = {
