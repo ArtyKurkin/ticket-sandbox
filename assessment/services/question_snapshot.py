@@ -27,6 +27,16 @@ def _build_question_random(seed, question_id):
     )
 
 
+def _build_diagnostic_blocks(question):
+    return [
+        {
+            "type": block.block_type,
+            "content": block.content,
+        }
+        for block in question.diagnostic_blocks.all()
+    ]
+
+
 def _build_common_snapshot_data(question):
     family = question.family
     skill = family.skill
@@ -46,6 +56,9 @@ def _build_common_snapshot_data(question):
         "difficulty": question.difficulty,
         "scenario": question.scenario,
         "diagnostic_data": question.diagnostic_data,
+        "diagnostic_blocks": (
+            _build_diagnostic_blocks(question)
+        ),
         "prompt": question.prompt,
         "time_limit_seconds": (
             question.time_limit_seconds
@@ -336,3 +349,4 @@ def build_question_snapshot_data(
     raise ValidationError(
         "Неизвестный тип вопроса."
     )
+

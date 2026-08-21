@@ -8,6 +8,7 @@ from django.core.validators import (
 )
 
 from .constants import (
+    DiagnosticBlockType,
     ExamAttemptStatus,
     QuestionDifficulty,
     QuestionStatus,
@@ -800,6 +801,11 @@ class ExamQuestionSnapshot(models.Model):
         verbose_name="Логи и данные",
     )
 
+    diagnostic_blocks = models.JSONField(
+        default=list,
+        blank=True,
+    )
+
     prompt = models.TextField(
         verbose_name="Вопрос",
     )
@@ -1111,6 +1117,45 @@ class Question(models.Model):
 
     def __str__(self):
         return f"{self.family} → {self.title}"
+
+
+class QuestionDiagnosticBlock(models.Model):
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name="diagnostic_blocks",
+    )
+
+    block_type = models.CharField(
+        max_length=10,
+        choices=DiagnosticBlockType.choices,
+    )
+
+    content = models.TextField()
+
+    order = models.PositiveIntegerField(
+        default=0,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = (
+            "order",
+            "id",
+        )
+
+    def __str__(self):
+        return (
+            f"{self.question} — "
+            f"{self.get_block_type_display()}"
+        )
 
 
 class AnswerOption(models.Model):

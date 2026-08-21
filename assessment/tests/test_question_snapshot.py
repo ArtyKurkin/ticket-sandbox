@@ -1,6 +1,7 @@
 from django.test import TestCase
 
 from assessment.constants import (
+    DiagnosticBlockType,
     QuestionStatus,
     QuestionType,
     SupportLevel,
@@ -10,6 +11,7 @@ from assessment.models import (
     MatchingPair,
     OrderingItem,
     Question,
+    QuestionDiagnosticBlock,
     QuestionFamily,
     SelectableLine,
     Skill,
@@ -212,5 +214,65 @@ class QuestionSnapshotTests(TestCase):
                 "line 1",
                 "line 2 error",
                 "line 3",
+            ],
+        )
+
+    def test_snapshot_contains_diagnostic_blocks(self):
+        question = self.create_question(
+            slug="snapshot-diagnostic-blocks",
+            answer_type=QuestionType.SINGLE_CHOICE,
+        )
+
+        AnswerOption.objects.create(
+            question=question,
+            text="Правильно",
+            is_correct=True,
+            order=10,
+        )
+
+        AnswerOption.objects.create(
+            question=question,
+            text="Неправильно",
+            is_correct=False,
+            order=20,
+        )
+
+        QuestionDiagnosticBlock.objects.create(
+            question=question,
+            block_type=DiagnosticBlockType.TEXT,
+            content="В журнале nginx:",
+            order=10,
+        )
+
+        QuestionDiagnosticBlock.objects.create(
+            question=question,
+            block_type=DiagnosticBlockType.CODE,
+            content=(
+                "upstream timed out "
+                "while reading response header"
+            ),
+            order=20,
+        )
+
+        data = build_question_snapshot_data(
+            question,
+            seed="test-seed",
+            shuffle_answer_options=False,
+        )
+
+        self.assertEqual(
+            data["diagnostic_blocks"],
+            [
+                {
+                    "type": DiagnosticBlockType.TEXT,
+                    "content": "В журнале nginx:",
+                },
+                {
+                    "type": DiagnosticBlockType.CODE,
+                    "content": (
+                        "upstream timed out "
+                        "while reading response header"
+                    ),
+                },
             ],
         )
