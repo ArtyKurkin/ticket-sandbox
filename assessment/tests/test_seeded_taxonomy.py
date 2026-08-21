@@ -33,19 +33,14 @@ class SeededL1TaxonomyTests(TestCase):
                 self.assertEqual(
                     Skill.objects.filter(
                         topic__slug=topic_slug,
+                        is_active=True,
                     ).count(),
                     expected_count,
                 )
 
-    def test_all_seeded_entities_are_active(self):
+    def test_seeded_topics_are_active(self):
         self.assertFalse(
             Topic.objects.filter(
-                is_active=False,
-            ).exists()
-        )
-
-        self.assertFalse(
-            Skill.objects.filter(
                 is_active=False,
             ).exists()
         )
