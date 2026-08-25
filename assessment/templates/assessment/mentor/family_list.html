@@ -1,4 +1,5 @@
 {% extends "assessment/mentor/_base.html" %}
+{% load russian %}
 
 {% block title %}
   Семейства вопросов
@@ -115,7 +116,7 @@
 
 <div class="assessment-list-summary">
   <strong>{{ family_count }}</strong>
-  семейств
+  {{ family_count|ru_plural:"семейство,семейства,семейств" }}
 </div>
 
 

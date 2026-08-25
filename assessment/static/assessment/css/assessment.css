@@ -2987,3 +2987,58 @@ textarea {
   white-space: pre;
   tab-size: 4;
 }
+
+
+/* ============================================================
+   Flash messages
+   ============================================================ */
+
+.messages {
+  margin-bottom: 24px;
+}
+
+.flash-message {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 16px 18px;
+
+  border: 1px solid transparent;
+  border-radius: 14px;
+
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.flash-message svg {
+  flex: 0 0 auto;
+
+  width: 20px;
+  height: 20px;
+}
+
+.flash-message-success {
+  background: var(--assessment-success-bg);
+  color: var(--assessment-success);
+
+  border-color: #a7dfc2;
+}
+
+.flash-message-success span,
+.flash-message-success svg {
+  color: inherit;
+}
+
+.flash-message-error {
+  background: var(--assessment-danger-bg);
+  color: var(--assessment-danger);
+  border-color: #f3b7b2;
+}
+
+.flash-message-error span,
+.flash-message-error svg {
+  color: inherit;
+}
