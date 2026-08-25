@@ -177,18 +177,134 @@
 
 
     <div class="assessment-field">
-      <label for="{{ form.diagnostic_data.id_for_label }}">
-        Логи / конфигурация / вывод команд
+      <label>
+        Диагностические данные
       </label>
 
-      {{ form.diagnostic_data }}
-
       <div class="assessment-field-help">
-        Поле необязательное. Переносы строк
-        сохраняются.
+        Разделяй пояснения и выводы команд
+        на отдельные блоки. Они будут показаны
+        сотруднику в этом же порядке.
       </div>
 
-      {{ form.diagnostic_data.errors }}
+      <div
+        class="assessment-diagnostic-editor"
+        data-diagnostic-formset
+        data-formset-prefix="diagnostics"
+      >
+        {{ formsets.diagnostics.management_form }}
+
+        <div
+          class="assessment-diagnostic-rows"
+          data-diagnostic-rows
+        >
+          {% for block_form in formsets.diagnostics %}
+
+            <div
+              class="assessment-diagnostic-row"
+              data-diagnostic-row
+            >
+              {{ block_form.id }}
+              {{ block_form.block_type }}
+              {{ block_form.order }}
+
+              <div class="assessment-diagnostic-row-header">
+                <span
+                  class="assessment-diagnostic-type"
+                  data-diagnostic-type-label
+                >
+                  Блок
+                </span>
+
+                <button
+                  type="button"
+                  class="assessment-remove-row-button"
+                  data-remove-diagnostic
+                >
+                  <i data-lucide="trash-2"></i>
+                  <span>Удалить</span>
+                </button>
+              </div>
+
+              <div class="assessment-diagnostic-content">
+                {{ block_form.content }}
+              </div>
+
+              <div class="assessment-delete-field">
+                {{ block_form.DELETE }}
+              </div>
+
+              {% if block_form.content.errors %}
+                <div class="assessment-row-errors">
+                  {{ block_form.content.errors }}
+                </div>
+              {% endif %}
+            </div>
+
+          {% endfor %}
+        </div>
+
+        <div class="assessment-diagnostic-actions">
+
+          <button
+            type="button"
+            class="assessment-add-row-button"
+            data-add-diagnostic="text"
+          >
+            <i data-lucide="plus"></i>
+            Добавить текст
+          </button>
+
+          <button
+            type="button"
+            class="assessment-add-row-button"
+            data-add-diagnostic="code"
+          >
+            <i data-lucide="terminal"></i>
+            Добавить код / лог
+          </button>
+
+        </div>
+
+        <template data-diagnostic-empty-form>
+          <div
+            class="assessment-diagnostic-row"
+            data-diagnostic-row
+          >
+            {{ formsets.diagnostics.empty_form.id }}
+            {{ formsets.diagnostics.empty_form.block_type }}
+            {{ formsets.diagnostics.empty_form.order }}
+
+            <div class="assessment-diagnostic-row-header">
+              <span
+                class="assessment-diagnostic-type"
+                data-diagnostic-type-label
+              >
+                Блок
+              </span>
+
+              <button
+                type="button"
+                class="assessment-remove-row-button"
+                data-remove-diagnostic
+              >
+                <i data-lucide="trash-2"></i>
+                <span>Удалить</span>
+              </button>
+            </div>
+
+            <div class="assessment-diagnostic-content">
+              {{ formsets.diagnostics.empty_form.content }}
+            </div>
+
+            <div class="assessment-delete-field">
+              {{ formsets.diagnostics.empty_form.DELETE }}
+            </div>
+          </div>
+        </template>
+
+        {{ formsets.diagnostics.non_form_errors }}
+      </div>
     </div>
 
 

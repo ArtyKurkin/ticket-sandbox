@@ -55,6 +55,7 @@ from .forms import (
     MatchingPairEditorFormSet,
     OrderingItemEditorFormSet,
     QuestionEditorForm,
+    QuestionDiagnosticBlockEditorFormSet,
     QuestionFamilyEditorForm,
     SelectableLineEditorFormSet,
 )
@@ -761,6 +762,16 @@ def _build_question_formsets(
         else None
     )
 
+    diagnostic_data = (
+        post_data
+        if (
+            post_data is not None
+            and "diagnostics-TOTAL_FORMS"
+            in post_data
+        )
+        else None
+    )
+
     return {
         "options": (
             AnswerOptionEditorFormSet(
@@ -788,6 +799,13 @@ def _build_question_formsets(
                 lines_data,
                 instance=question,
                 prefix="lines",
+            )
+        ),
+        "diagnostics": (
+            QuestionDiagnosticBlockEditorFormSet(
+                diagnostic_data,
+                instance=question,
+                prefix="diagnostics",
             )
         ),
     }
@@ -896,12 +914,24 @@ def _mentor_question_editor(
                 )
             )
 
-            formset_valid = (
+            diagnostic_formset = (
+                formsets["diagnostics"]
+            )
+
+            answer_formset_valid = (
                 active_formset is not None
                 and active_formset.is_valid()
             )
 
-            if formset_valid:
+            diagnostic_formset_valid = (
+                not diagnostic_formset.is_bound
+                or diagnostic_formset.is_valid()
+            )
+
+            if (
+                answer_formset_valid
+                and diagnostic_formset_valid
+            ):
                 with transaction.atomic():
                     candidate.save()
 
@@ -910,6 +940,13 @@ def _mentor_question_editor(
                     )
 
                     active_formset.save()
+
+                    if diagnostic_formset.is_bound:
+                        diagnostic_formset.instance = (
+                            candidate
+                        )
+
+                        diagnostic_formset.save()
 
                     _delete_unused_question_configuration(
                         candidate

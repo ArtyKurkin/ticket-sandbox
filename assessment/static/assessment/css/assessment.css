@@ -2739,3 +2739,251 @@ input[type="text"] {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ============================================================
+   Diagnostic blocks editor
+   ============================================================ */
+
+.assessment-diagnostic-editor {
+  margin-top: 10px;
+}
+
+
+.assessment-diagnostic-rows {
+  display: grid;
+  gap: 10px;
+}
+
+
+.assessment-diagnostic-row {
+  padding: 12px;
+
+  background: #ffffff;
+
+  border:
+    1px solid var(--assessment-border);
+
+  border-radius: 12px;
+
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease;
+}
+
+
+.assessment-diagnostic-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-bottom: 8px;
+}
+
+
+.assessment-diagnostic-type {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 24px;
+
+  padding: 3px 8px;
+
+  color: var(--assessment-text-soft);
+  background: #f2f4f7;
+
+  border-radius: 6px;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
+.assessment-diagnostic-content textarea {
+  display: block;
+
+  width: 100%;
+  min-height: 88px;
+
+  box-sizing: border-box;
+
+  padding: 11px 12px;
+
+  background: #ffffff;
+  color: var(--assessment-text);
+
+  border:
+    1px solid var(--assessment-border-strong);
+
+  border-radius: 9px;
+
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+
+  resize: vertical;
+}
+
+
+.assessment-diagnostic-row.is-code {
+  background: #101828;
+
+  border-color: #344054;
+}
+
+
+.assessment-diagnostic-row.is-code
+.assessment-diagnostic-type {
+  color: #d0d5dd;
+  background: #344054;
+}
+
+
+.assessment-diagnostic-row.is-code
+.assessment-diagnostic-content textarea {
+  min-height: 130px;
+
+  background: #0c111d;
+  color: #f2f4f7;
+  -webkit-text-fill-color: #f2f4f7;
+
+  border-color: #475467;
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    monospace;
+
+  font-size: 12px;
+  line-height: 1.6;
+
+  tab-size: 4;
+}
+
+
+.assessment-diagnostic-row.is-code
+.assessment-diagnostic-content textarea::placeholder {
+  color: #98a2b3;
+  -webkit-text-fill-color: #98a2b3;
+}
+
+
+.assessment-diagnostic-row.is-code
+.assessment-remove-row-button {
+  color: #d0d5dd;
+}
+
+
+.assessment-diagnostic-row.is-code
+.assessment-remove-row-button:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+
+.assessment-diagnostic-actions {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 8px;
+
+  margin-top: 10px;
+}
+
+
+.assessment-diagnostic-row.is-deleted {
+  opacity: 0.45;
+
+  border-style: dashed;
+}
+
+
+.assessment-diagnostic-row.is-deleted
+textarea {
+  pointer-events: none;
+}
+
+
+/* ============================================================
+   Question diagnostic blocks
+   ============================================================ */
+
+.assessment-diagnostic-blocks {
+  display: grid;
+  gap: 12px;
+
+  margin: 22px 0;
+}
+
+
+.assessment-diagnostic-text {
+  color: var(--assessment-text);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+
+.assessment-diagnostic-code {
+  overflow: hidden;
+
+  background: #101828;
+
+  border: 1px solid #344054;
+  border-radius: 12px;
+}
+
+
+.assessment-diagnostic-code-header {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 10px 14px;
+
+  color: #d0d5dd;
+  background: #1d2939;
+
+  border-bottom: 1px solid #344054;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+.assessment-diagnostic-code-header svg {
+  width: 15px;
+  height: 15px;
+}
+
+
+.assessment-diagnostic-code pre {
+  overflow-x: auto;
+
+  margin: 0;
+  padding: 16px;
+
+  color: #f2f4f7;
+  background: transparent;
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    monospace;
+
+  font-size: 13px;
+  line-height: 1.65;
+
+  white-space: pre;
+  tab-size: 4;
+}

@@ -108,6 +108,7 @@ class QuestionFlowTests(TestCase):
                 "systemctl status nginx\n"
                 "failed"
             ),
+            diagnostic_blocks=[],
             prompt=prompt,
             time_limit_seconds=90,
             visible_payload={
@@ -162,6 +163,124 @@ class QuestionFlowTests(TestCase):
         self.assertContains(
             response,
             "systemctl status nginx",
+        )
+
+    def test_question_renders_diagnostic_blocks(
+        self,
+    ):
+        self.first.diagnostic_data = (
+            "СТАРЫЕ ДАННЫЕ НЕ ПОКАЗЫВАТЬ"
+        )
+
+        self.first.diagnostic_blocks = [
+            {
+                "type": "text",
+                "content": (
+                    "В журнале nginx "
+                    "во время проблемы:"
+                ),
+            },
+            {
+                "type": "code",
+                "content": (
+                    "2026/08/21 14:03:18 "
+                    "upstream timed out"
+                ),
+            },
+            {
+                "type": "text",
+                "content": "Параметры пула:",
+            },
+            {
+                "type": "code",
+                "content": (
+                    "pm = dynamic\n"
+                    "pm.max_children = 5"
+                ),
+            },
+        ]
+
+        self.first.save(
+            update_fields=[
+                "diagnostic_data",
+                "diagnostic_blocks",
+            ]
+        )
+
+        response = self.client.get(
+            reverse(
+                "assessment:attempt_question",
+                args=[self.attempt.pk],
+            )
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertContains(
+            response,
+            "В журнале nginx",
+        )
+
+        self.assertContains(
+            response,
+            "upstream timed out",
+        )
+
+        self.assertContains(
+            response,
+            "Параметры пула:",
+        )
+
+        self.assertContains(
+            response,
+            "pm.max_children = 5",
+        )
+
+        self.assertNotContains(
+            response,
+            "СТАРЫЕ ДАННЫЕ НЕ ПОКАЗЫВАТЬ",
+        )
+
+    def test_question_falls_back_to_legacy_diagnostic_data(
+        self,
+    ):
+        self.first.diagnostic_blocks = []
+
+        self.first.diagnostic_data = (
+            "legacy diagnostic output\n"
+            "nginx failed"
+        )
+
+        self.first.save(
+            update_fields=[
+                "diagnostic_blocks",
+                "diagnostic_data",
+            ]
+        )
+
+        response = self.client.get(
+            reverse(
+                "assessment:attempt_question",
+                args=[self.attempt.pk],
+            )
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertContains(
+            response,
+            "legacy diagnostic output",
+        )
+
+        self.assertContains(
+            response,
+            "nginx failed",
         )
 
     def test_answer_moves_to_next_question(

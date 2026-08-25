@@ -251,3 +251,27 @@ class MentorQuestionEditorTests(TestCase):
             response,
             "data-formset",
         )
+
+    def test_create_page_has_diagnostic_block_controls(
+        self,
+    ):
+        response = self.client.get(
+            reverse(
+                "assessment:mentor_question_create"
+            )
+        )
+
+        self.assertContains(
+            response,
+            "Добавить текст",
+        )
+
+        self.assertContains(
+            response,
+            "Добавить код / лог",
+        )
+
+        self.assertContains(
+            response,
+            "diagnostics-TOTAL_FORMS",
+        )

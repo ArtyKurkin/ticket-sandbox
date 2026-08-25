@@ -15,6 +15,7 @@ from assessment.models import (
     MatchingPair,
     OrderingItem,
     Question,
+    QuestionDiagnosticBlock,
     QuestionFamily,
     SelectableLine,
     Skill,
@@ -61,7 +62,6 @@ class QuestionEditorForm(forms.ModelForm):
             "level",
             "difficulty",
             "scenario",
-            "diagnostic_data",
             "prompt",
             "answer_type",
             "time_limit_seconds",
@@ -76,15 +76,6 @@ class QuestionEditorForm(forms.ModelForm):
                     "placeholder": (
                         "Опиши ситуацию, которую "
                         "видит сотрудник."
-                    ),
-                }
-            ),
-            "diagnostic_data": forms.Textarea(
-                attrs={
-                    "rows": 10,
-                    "class": "assessment-editor-code",
-                    "placeholder": (
-                        "Логи, конфиг, вывод команд..."
                     ),
                 }
             ),
@@ -401,6 +392,33 @@ class AnswerOptionEditorForm(forms.ModelForm):
         }
 
 
+class QuestionDiagnosticBlockEditorForm(
+    forms.ModelForm
+):
+    class Meta:
+        model = QuestionDiagnosticBlock
+
+        fields = (
+            "block_type",
+            "content",
+            "order",
+        )
+
+        widgets = {
+            "block_type": forms.HiddenInput(),
+            "content": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "placeholder": (
+                        "Добавь текст или "
+                        "диагностические данные"
+                    ),
+                }
+            ),
+            "order": forms.HiddenInput(),
+        }
+
+
 class MatchingPairEditorForm(forms.ModelForm):
     class Meta:
         model = MatchingPair
@@ -472,6 +490,52 @@ class SelectableLineEditorForm(forms.ModelForm):
         }
 
 
+class BaseQuestionDiagnosticBlockFormSet(
+    forms.BaseInlineFormSet
+):
+    def clean(self):
+        super().clean()
+
+        if any(self.errors):
+            return
+
+        for form in self.forms:
+            if not hasattr(
+                form,
+                "cleaned_data",
+            ):
+                continue
+
+            if form.cleaned_data.get(
+                "DELETE"
+            ):
+                continue
+
+            content = (
+                form.cleaned_data.get(
+                    "content",
+                    ""
+                ).strip()
+            )
+
+            block_type = (
+                form.cleaned_data.get(
+                    "block_type"
+                )
+            )
+
+            # Полностью пустая extra-форма
+            # нас не интересует.
+            if not content and not block_type:
+                continue
+
+            if not content:
+                form.add_error(
+                    "content",
+                    "Блок не может быть пустым.",
+                )
+
+
 AnswerOptionEditorFormSet = (
     inlineformset_factory(
         Question,
@@ -483,7 +547,7 @@ AnswerOptionEditorFormSet = (
             "is_correct",
             "order",
         ),
-        extra=2,
+        extra=0,
         can_delete=True,
     )
 )
@@ -500,7 +564,26 @@ MatchingPairEditorFormSet = (
             "right_text",
             "order",
         ),
-        extra=2,
+        extra=0,
+        can_delete=True,
+    )
+)
+
+
+QuestionDiagnosticBlockEditorFormSet = (
+    forms.inlineformset_factory(
+        Question,
+        QuestionDiagnosticBlock,
+        form=QuestionDiagnosticBlockEditorForm,
+        formset=(
+            BaseQuestionDiagnosticBlockFormSet
+        ),
+        fields=(
+            "block_type",
+            "content",
+            "order",
+        ),
+        extra=0,
         can_delete=True,
     )
 )
@@ -516,7 +599,7 @@ OrderingItemEditorFormSet = (
             "text",
             "order",
         ),
-        extra=3,
+        extra=0,
         can_delete=True,
     )
 )
@@ -533,7 +616,7 @@ SelectableLineEditorFormSet = (
             "is_correct",
             "order",
         ),
-        extra=2,
+        extra=0,
         can_delete=True,
     )
 )

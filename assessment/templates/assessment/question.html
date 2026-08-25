@@ -58,16 +58,48 @@
     {% endif %}
 
 
-    {% if snapshot.diagnostic_data %}
-      <div class="assessment-diagnostic">
-        <div class="assessment-diagnostic-header">
-          <i data-lucide="terminal-square"></i>
-          <span>Данные диагностики</span>
-        </div>
+    {% if snapshot.diagnostic_blocks %}
 
-        <pre>{{ snapshot.diagnostic_data }}</pre>
-      </div>
-    {% endif %}
+      <div class="assessment-diagnostic-blocks">
+
+        {% for block in snapshot.diagnostic_blocks %}
+
+          {% if block.type == "text" %}
+
+            <div class="assessment-diagnostic-text">
+              {{ block.content|linebreaksbr }}
+            </div>
+
+          {% elif block.type == "code" %}
+
+            <div class="assessment-diagnostic-code">
+              <div class="assessment-diagnostic-code-header">
+                <i data-lucide="terminal-square"></i>
+                <span>Код / лог</span>
+              </div>
+
+              <pre>{{ block.content }}</pre>
+            </div>
+
+          {% endif %}
+
+    {% endfor %}
+
+  </div>
+
+
+{% elif snapshot.diagnostic_data %}
+
+  <div class="assessment-diagnostic">
+    <div class="assessment-diagnostic-header">
+      <i data-lucide="terminal-square"></i>
+      <span>Данные диагностики</span>
+    </div>
+
+    <pre>{{ snapshot.diagnostic_data }}</pre>
+  </div>
+
+{% endif %}
 
 
     <h1 class="assessment-question-prompt">
