@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.test import TestCase
 
 from assessment.constants import (
@@ -274,5 +276,72 @@ class QuestionSnapshotTests(TestCase):
                         "while reading response header"
                     ),
                 },
+            ],
+        )
+
+    def test_choice_options_are_shuffled_before_snapshot(
+        self,
+    ):
+        question = self.create_question(
+            slug="snapshot-shuffled-options",
+            answer_type=QuestionType.SINGLE_CHOICE,
+        )
+
+        AnswerOption.objects.create(
+            question=question,
+            text="Правильный",
+            is_correct=True,
+            order=10,
+        )
+
+        AnswerOption.objects.create(
+            question=question,
+            text="Вариант B",
+            is_correct=False,
+            order=20,
+        )
+
+        AnswerOption.objects.create(
+            question=question,
+            text="Вариант C",
+            is_correct=False,
+            order=30,
+        )
+
+        class ReverseRandom:
+            def shuffle(self, items):
+                items.reverse()
+
+        with patch(
+            "assessment.services.question_snapshot."
+            "_build_question_random",
+            return_value=ReverseRandom(),
+        ):
+            data = build_question_snapshot_data(
+                question,
+                seed="shuffle-test",
+                shuffle_answer_options=True,
+            )
+
+        self.assertEqual(
+            [
+                option["text"]
+                for option in data[
+                    "visible_payload"
+                ]["options"]
+            ],
+            [
+                "Вариант C",
+                "Вариант B",
+                "Правильный",
+            ],
+        )
+
+        self.assertEqual(
+            data["grading_payload"][
+                "correct_keys"
+            ],
+            [
+                "option-3",
             ],
         )
