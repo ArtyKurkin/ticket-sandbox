@@ -42,6 +42,10 @@ class DockerServiceSecurityTests(SimpleTestCase):
         self.assertEqual(run_kwargs["mem_limit"], "768m")
         self.assertEqual(run_kwargs["pids_limit"], 256)
         self.assertEqual(
+            run_kwargs["environment"],
+            {"TZ": "MSK-3"},
+        )
+        self.assertEqual(
             run_kwargs["security_opt"],
             ["no-new-privileges:true"],
         )

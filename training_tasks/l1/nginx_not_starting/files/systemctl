@@ -9,6 +9,9 @@ case "$1" in
     restart)
         service "$SERVICE" restart
         ;;
+    reload)
+        service "$SERVICE" reload
+        ;;
     start)
         service "$SERVICE" start
         ;;

@@ -65,6 +65,7 @@ def create_task_container(queue_slug: str, task_slug: str, attempt_id: int):
         name=container_name,
         detach=True,
         tty=True,
+        environment={"TZ": settings.TASK_CONTAINER_TZ},
         mem_limit="768m",
         pids_limit=256,
         security_opt=[

@@ -127,7 +127,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = os.getenv("TIME_ZONE", "Europe/Moscow")
+
+TASK_CONTAINER_TZ = os.getenv("TASK_CONTAINER_TZ", "MSK-3")
 
 USE_I18N = True
 
