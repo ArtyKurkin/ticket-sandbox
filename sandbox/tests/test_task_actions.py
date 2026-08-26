@@ -869,6 +869,111 @@ class TaskFlowTests(SandboxTestCase):
         self.assertIsNone(self.attempt.mentor_reviewed_by)
         self.assertIsNone(self.attempt.mentor_reviewed_at)
 
+    @patch("sandbox.services.environments.remove_task_container")
+    @patch("sandbox.services.environments.remove_terminal_container")
+    def test_check_task_after_technical_pass_cleans_environment(
+        self,
+        remove_terminal_container_mock,
+        remove_task_container_mock,
+    ):
+        self.attempt.task.requires_manual_review = True
+        self.attempt.task.save(
+            update_fields=["requires_manual_review"]
+        )
+
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.check_status = TaskAttempt.CheckStatus.PASSED
+        self.attempt.technical_passed_at = timezone.now()
+
+        self.attempt.container_id = "container-id"
+        self.attempt.container_name = "task-container"
+        self.attempt.shell_command = "/bin/bash"
+
+        self.attempt.terminal_container_name = "terminal-container"
+        self.attempt.terminal_url = (
+            f"/terminal/{self.attempt.id}/24000/"
+        )
+        self.attempt.terminal_port = 24000
+
+        self.attempt.environment_status = (
+            TaskAttempt.EnvironmentStatus.READY
+        )
+        self.attempt.environment_started_at = timezone.now()
+
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "technical_passed_at",
+                "container_id",
+                "container_name",
+                "shell_command",
+                "terminal_container_name",
+                "terminal_url",
+                "terminal_port",
+                "environment_status",
+                "environment_started_at",
+            ]
+        )
+
+        self.assertTrue(self.attempt.can_access_terminal)
+
+        response = self.client.post(
+            reverse(
+                "sandbox:check_task",
+                args=[self.attempt.id],
+            ),
+            data={
+                "client_answer": (
+                    "Здравствуйте, проблема исправлена."
+                ),
+                "trainee_report": (
+                    "Проверил nginx, нашел ошибку "
+                    "в конфигурации и исправил ее."
+                ),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        self.attempt.refresh_from_db()
+
+        self.assertEqual(
+            self.attempt.status,
+            TaskAttempt.Status.ON_REVIEW,
+        )
+
+        remove_terminal_container_mock.assert_called_once_with(
+            "terminal-container"
+        )
+        remove_task_container_mock.assert_called_once_with(
+            "task-container"
+        )
+
+        self.assertEqual(self.attempt.container_id, "")
+        self.assertEqual(self.attempt.container_name, "")
+        self.assertEqual(self.attempt.shell_command, "")
+
+        self.assertEqual(
+            self.attempt.terminal_container_name,
+            "",
+        )
+        self.assertEqual(self.attempt.terminal_url, "")
+        self.assertIsNone(self.attempt.terminal_port)
+
+        self.assertEqual(
+            self.attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.IDLE,
+        )
+        self.assertIsNone(
+            self.attempt.environment_started_at
+        )
+        self.assertIsNone(
+            self.attempt.environment_finished_at
+        )
+
+        self.assertFalse(self.attempt.can_access_terminal)
+
     def test_check_task_on_review_does_not_overwrite_answer(self):
         self.attempt.task.requires_manual_review = True
         self.attempt.task.save(update_fields=["requires_manual_review"])

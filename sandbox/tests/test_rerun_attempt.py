@@ -130,6 +130,62 @@ class RerunAttemptTests(TestCase):
         self.assertTrue(attempt.is_current)
         self.assertEqual(attempt.status, TaskAttempt.Status.IN_PROGRESS)
 
+    def test_rerun_is_blocked_after_technical_pass_before_answer_submission(self):
+        attempt = TaskAttempt.objects.create(
+            user=self.user,
+            task=self.task,
+            status=TaskAttempt.Status.IN_PROGRESS,
+            attempt_number=1,
+            is_current=True,
+            technical_passed_at=timezone.now(),
+            container_name="task-container",
+            terminal_container_name="terminal-container",
+            terminal_url="/terminal/24000/",
+            terminal_port=24000,
+        )
+
+        self.assertTrue(attempt.technical_locked)
+        self.assertFalse(attempt.can_rerun)
+
+        response = self.client.post(
+            reverse(
+                "sandbox:rerun_task",
+                args=[attempt.id],
+            )
+        )
+
+        self.assertRedirects(
+            response,
+            reverse(
+                "sandbox:task_detail",
+                args=[attempt.id],
+            ),
+        )
+
+        self.assertEqual(
+            TaskAttempt.objects.filter(
+                user=self.user,
+                task=self.task,
+            ).count(),
+            1,
+        )
+
+        attempt.refresh_from_db()
+
+        self.assertTrue(attempt.is_current)
+        self.assertEqual(
+            attempt.status,
+            TaskAttempt.Status.IN_PROGRESS,
+        )
+        self.assertEqual(
+            attempt.container_name,
+            "task-container",
+        )
+        self.assertEqual(
+            attempt.terminal_container_name,
+            "terminal-container",
+        )
+
     def test_rerun_is_blocked_for_not_current_attempt(self):
         old_attempt = TaskAttempt.objects.create(
             user=self.user,

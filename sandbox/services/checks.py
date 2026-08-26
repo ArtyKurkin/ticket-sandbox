@@ -148,56 +148,65 @@ def run_attempt_check(
         attempt.check_status = TaskAttempt.CheckStatus.PASSED
         attempt.check_finished_at = check_finished_at
 
-        terminal_removed = ""
-
-        if attempt.terminal_container_name:
-            _, terminal_removed = remove_terminal_container(
-                attempt.terminal_container_name,
-            )
-
-        _, remove_output = remove_task_container(
-            container_name=attempt.container_name,
-        )
-
         attempt.last_check_output = output
 
-        terminal_logger.info(
-            "task_check_cleanup_done user_id=%s attempt_id=%s task_slug=%s queue_slug=%s terminal_removed=%s remove_output=%s",
-            user_id,
-            attempt.id,
-            attempt.task.slug,
-            attempt.task.queue.slug,
-            terminal_removed,
-            remove_output,
-        )
-
-        attempt.container_id = ""
-        attempt.container_name = ""
-        attempt.shell_command = ""
-
-        attempt.terminal_container_name = ""
-        attempt.terminal_url = ""
-        attempt.terminal_port = None
-
         if attempt.task.requires_manual_review and attempt.is_credit_attempt:
+            # Для зачетной попытки оставляем окружение доступным,
+            # пока стажер готовит текст ответа наставнику.
             attempt.status = TaskAttempt.Status.IN_PROGRESS
             attempt.finished_at = None
+
             success_message = (
                 "Техническая проверка пройдена. "
-                "Теперь подготовь ответ клиенту и внутренний комментарий."
+                "Теперь подготовь ответ клиенту и внутренний комментарий. "
+                "Терминал останется доступен до отправки ответа наставнику."
             )
+
         else:
+            terminal_removed = ""
+
+            if attempt.terminal_container_name:
+                _, terminal_removed = remove_terminal_container(
+                    attempt.terminal_container_name,
+                )
+
+            _, remove_output = remove_task_container(
+                container_name=attempt.container_name,
+            )
+
+            terminal_logger.info(
+                "task_check_cleanup_done "
+                "user_id=%s attempt_id=%s task_slug=%s queue_slug=%s "
+                "terminal_removed=%s remove_output=%s",
+                user_id,
+                attempt.id,
+                attempt.task.slug,
+                attempt.task.queue.slug,
+                terminal_removed,
+                remove_output,
+            )
+
+            attempt.container_id = ""
+            attempt.container_name = ""
+            attempt.shell_command = ""
+
+            attempt.terminal_container_name = ""
+            attempt.terminal_url = ""
+            attempt.terminal_port = None
+
             attempt.status = TaskAttempt.Status.PASSED
             attempt.finished_at = check_finished_at
 
             if attempt.is_extra_attempt:
                 success_message = (
                     "Дополнительная попытка технически пройдена. "
-                    "Она не влияет на зачет и не отправляется наставнику на ручную проверку."
+                    "Она не влияет на зачет и не отправляется наставнику "
+                    "на ручную проверку."
                 )
             else:
                 success_message = (
-                    "Задание принято. Техническая проверка пройдена успешно."
+                    "Задание принято. "
+                    "Техническая проверка пройдена успешно."
                 )
 
         attempt.save(

@@ -32,6 +32,110 @@ ENVIRONMENT_RESTARTING_OUTPUT = (
 )
 
 
+def cleanup_attempt_environment(attempt):
+    """
+    Best-effort cleanup Docker-окружения попытки.
+
+    Ошибка Docker API не должна мешать отправке текстового ответа наставнику.
+    Поля конкретного контейнера очищаются только после успешного удаления
+    или если Docker сообщил, что контейнер уже отсутствует.
+    """
+    update_fields = []
+
+    if attempt.terminal_container_name:
+        try:
+            remove_terminal_container(
+                attempt.terminal_container_name
+            )
+        except Exception as error:
+            capture_exception(error)
+
+            environment_logger.exception(
+                "task_terminal_cleanup_error "
+                "attempt_id=%s terminal_container_name=%s",
+                attempt.id,
+                attempt.terminal_container_name,
+            )
+        else:
+            attempt.terminal_container_name = ""
+            attempt.terminal_url = ""
+            attempt.terminal_port = None
+
+            update_fields.extend([
+                "terminal_container_name",
+                "terminal_url",
+                "terminal_port",
+            ])
+
+    elif attempt.terminal_url or attempt.terminal_port is not None:
+        attempt.terminal_url = ""
+        attempt.terminal_port = None
+
+        update_fields.extend([
+            "terminal_url",
+            "terminal_port",
+        ])
+
+    if attempt.container_name:
+        try:
+            remove_task_container(
+                attempt.container_name
+            )
+        except Exception as error:
+            capture_exception(error)
+
+            environment_logger.exception(
+                "task_container_cleanup_error "
+                "attempt_id=%s container_name=%s",
+                attempt.id,
+                attempt.container_name,
+            )
+        else:
+            attempt.container_id = ""
+            attempt.container_name = ""
+            attempt.shell_command = ""
+
+            update_fields.extend([
+                "container_id",
+                "container_name",
+                "shell_command",
+            ])
+
+    elif attempt.container_id or attempt.shell_command:
+        attempt.container_id = ""
+        attempt.shell_command = ""
+
+        update_fields.extend([
+            "container_id",
+            "shell_command",
+        ])
+
+    cleanup_complete = (
+        not attempt.container_name
+        and not attempt.terminal_container_name
+    )
+
+    if cleanup_complete:
+        attempt.environment_status = (
+            TaskAttempt.EnvironmentStatus.IDLE
+        )
+        attempt.environment_started_at = None
+        attempt.environment_finished_at = None
+
+        update_fields.extend([
+            "environment_status",
+            "environment_started_at",
+            "environment_finished_at",
+        ])
+
+    if update_fields:
+        attempt.save(
+            update_fields=list(dict.fromkeys(update_fields))
+        )
+
+    return cleanup_complete
+
+
 def mark_environment_starting(attempt):
     now = timezone.now()
 

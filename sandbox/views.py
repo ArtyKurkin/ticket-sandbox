@@ -22,6 +22,7 @@ from .services.terminal_gateway import (
 )
 from .services.checks import start_attempt_check_in_background
 from .services.environments import (
+    cleanup_attempt_environment,
     start_environment_in_background,
     start_environment_restart_in_background,
     try_mark_environment_restarting,
@@ -338,6 +339,21 @@ def rerun_task(request, attempt_id):
             attempt_id=attempt.id,
         )
 
+    if not attempt.can_rerun:
+        messages.info(
+            request,
+            (
+                "Сначала заверши текущий зачетный проход. "
+                "Дополнительную попытку можно создать "
+                "после полного завершения задания."
+            )
+        )
+
+        return redirect(
+            "sandbox:task_detail",
+            attempt_id=attempt.id,
+        )
+
     if not attempt.is_available:
         messages.error(request, "Этот тикет пока недоступен.")
         return redirect("sandbox:dashboard")
@@ -462,6 +478,8 @@ def check_task(request, attempt_id):
                 "mentor_feedback_seen_at",
             ]
         )
+
+        cleanup_attempt_environment(attempt)
 
         transaction.on_commit(
             lambda: notify_manual_review_required(attempt)
@@ -793,10 +811,10 @@ def terminal_auth(request, attempt_id=None, port=None):
         )
         return HttpResponse(status=403)
 
-    if attempt.technical_locked:
+    if not attempt.can_access_terminal:
         log_terminal_auth_denied(
             request,
-            reason="technically_locked",
+            reason="terminal_not_available",
             attempt_id=attempt_id,
             port=port,
         )

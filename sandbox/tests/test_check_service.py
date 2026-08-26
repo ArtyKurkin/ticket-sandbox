@@ -171,20 +171,24 @@ class CheckServiceTests(SandboxTestCase):
         self.task.save(update_fields=["requires_manual_review"])
 
         self.attempt.terminal_container_name = "terminal-container"
-        self.attempt.save(update_fields=["terminal_container_name"])
+        self.attempt.terminal_url = "/terminal/24000/"
+        self.attempt.terminal_port = 24000
+        self.attempt.save(
+            update_fields=[
+                "terminal_container_name",
+                "terminal_url",
+                "terminal_port",
+            ]
+        )
 
         check_task_container_mock.return_value = (
             0,
             "OK: техническая часть выполнена",
         )
-        remove_terminal_container_mock.return_value = (
-            True,
-            "Терминал удален.",
-        )
-        remove_task_container_mock.return_value = (
-            True,
-            "Контейнер удален.",
-        )
+
+        # Проверяем предусловия именно этого сценария.
+        self.assertTrue(self.task.requires_manual_review)
+        self.assertTrue(self.attempt.is_credit_attempt)
 
         result = run_attempt_check(
             attempt=self.attempt,
@@ -194,17 +198,45 @@ class CheckServiceTests(SandboxTestCase):
         self.attempt.refresh_from_db()
 
         self.assertTrue(result.is_success)
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.IN_PROGRESS)
+
+        self.assertEqual(
+            self.attempt.status,
+            TaskAttempt.Status.IN_PROGRESS,
+        )
         self.assertEqual(
             self.attempt.check_status,
             TaskAttempt.CheckStatus.PASSED,
         )
+
+        self.assertTrue(self.attempt.technical_locked)
         self.assertIsNotNone(self.attempt.technical_passed_at)
         self.assertIsNone(self.attempt.finished_at)
+
         self.assertEqual(self.attempt.client_answer, "")
         self.assertEqual(self.attempt.trainee_report, "")
-        self.assertEqual(self.attempt.container_name, "")
-        self.assertEqual(self.attempt.terminal_container_name, "")
+
+        self.assertEqual(
+            self.attempt.container_name,
+            "task-container",
+        )
+        self.assertEqual(
+            self.attempt.terminal_container_name,
+            "terminal-container",
+        )
+        self.assertEqual(
+            self.attempt.terminal_url,
+            "/terminal/24000/",
+        )
+        self.assertEqual(
+            self.attempt.terminal_port,
+            24000,
+        )
+
+        self.assertTrue(self.attempt.can_access_terminal)
+        self.assertFalse(self.attempt.can_restart_environment)
+
+        remove_terminal_container_mock.assert_not_called()
+        remove_task_container_mock.assert_not_called()
 
     @patch("sandbox.services.checks.check_task_container")
     def test_run_attempt_check_marks_attempt_failed_on_check_failure(

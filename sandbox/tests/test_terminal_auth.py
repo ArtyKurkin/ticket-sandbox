@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from sandbox.models import Queue, Task, TaskAttempt, TraineeProfile
 
@@ -215,6 +216,35 @@ class TerminalAuthTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+    def test_terminal_auth_allows_technically_passed_manual_review_attempt(self):
+        self.task.requires_manual_review = True
+        self.task.save(update_fields=["requires_manual_review"])
+
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.check_status = TaskAttempt.CheckStatus.PASSED
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "check_status",
+                "technical_passed_at",
+            ]
+        )
+
+        self.client.login(
+            username="terminal_user",
+            password="password",
+        )
+
+        self.assertTrue(self.attempt.technical_locked)
+        self.assertTrue(self.attempt.can_access_terminal)
+
+        response = self.client.get(
+            self.terminal_auth_url()
+        )
+
+        self.assertEqual(response.status_code, 204)
 
     def test_terminal_auth_from_original_uri_allows_attempt_owner(self):
         self.client.login(

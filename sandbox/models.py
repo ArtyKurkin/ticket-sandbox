@@ -414,6 +414,44 @@ class TaskAttempt(models.Model):
         return not self.technical_locked
 
     @property
+    def can_access_terminal(self):
+        """
+        Терминал доступен во время технической работы и после успешной
+        автопроверки, пока стажер готовит ответ наставнику.
+
+        После отправки ответа на ручную проверку доступ закрывается,
+        даже если Docker-окружение по какой-то причине еще не удалено.
+        """
+        if not self.is_current:
+            return False
+
+        if not (
+            self.container_name
+            and self.terminal_container_name
+            and self.terminal_url
+            and self.terminal_port is not None
+        ):
+            return False
+
+        if not self.technical_locked:
+            return True
+
+        return (
+            self.technical_passed
+            and self.task.requires_manual_review
+            and self.is_credit_attempt
+            and self.status == self.Status.IN_PROGRESS
+        )
+
+    @property
+    def can_rerun(self):
+        return (
+            self.is_current
+            and self.technical_locked
+            and self.status == self.Status.PASSED
+        )
+
+    @property
     def can_go_next(self):
         return self.is_technically_completed
 

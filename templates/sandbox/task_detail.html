@@ -522,7 +522,7 @@
             Техническая часть выполнена
           </div>
 
-          {% if attempt.is_current %}
+          {% if attempt.can_rerun %}
             <form
               method="post"
               action="{% url 'sandbox:rerun_task' attempt.id %}"
@@ -557,6 +557,10 @@
           {% else %}
             <p class="muted-text">
               Окружение заблокировано от случайного перезапуска, чтобы не сбросить прогресс.
+
+              {% if attempt.can_access_terminal %}
+                Терминал останется доступен до отправки ответа наставнику.
+              {% endif %}
             </p>
           {% endif %}
 
@@ -710,7 +714,7 @@
       </div>
     {% endif %}
 
-    {% if attempt.is_current and attempt.terminal_url and not attempt.technical_locked %}
+    {% if attempt.can_access_terminal %}
       <div id="terminal-card" class="card terminal-card">
         <div class="terminal-header">
           <div class="card-title-bar card-title-bar-compact">
