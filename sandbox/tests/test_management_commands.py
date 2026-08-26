@@ -772,6 +772,174 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
         self.assertEqual(attempt.terminal_url, "http://localhost:24003")
         self.assertEqual(attempt.terminal_port, 24003)
 
+    @patch(
+        "sandbox.management.commands.cleanup_task_containers."
+        "remove_terminal_container"
+    )
+    @patch(
+        "sandbox.management.commands.cleanup_task_containers."
+        "remove_task_container"
+    )
+    def test_cleanup_removes_old_environment_after_technical_pass(
+        self,
+        remove_task_container_mock,
+        remove_terminal_container_mock,
+    ):
+        self.task.requires_manual_review = True
+        self.task.save(
+            update_fields=["requires_manual_review"]
+        )
+
+        passed_at = timezone.now() - timedelta(hours=73)
+
+        attempt = TaskAttempt.objects.create(
+            user=self.user,
+            task=self.task,
+            status=TaskAttempt.Status.IN_PROGRESS,
+            attempt_number=1,
+            is_current=True,
+            started_at=timezone.now() - timedelta(hours=100),
+            technical_passed_at=passed_at,
+            check_status=TaskAttempt.CheckStatus.PASSED,
+            check_started_at=passed_at - timedelta(seconds=5),
+            check_finished_at=passed_at,
+            container_id="passed-container-id",
+            container_name="passed-task-container",
+            shell_command="docker exec -it passed-task-container bash",
+            terminal_container_name="passed-terminal-container",
+            terminal_url="/terminal/24003/",
+            terminal_port=24003,
+            environment_status=TaskAttempt.EnvironmentStatus.READY,
+            environment_started_at=timezone.now() - timedelta(hours=100),
+        )
+
+        remove_task_container_mock.return_value = (
+            True,
+            "Контейнер удален.",
+        )
+        remove_terminal_container_mock.return_value = (
+            True,
+            "Контейнер терминала удален.",
+        )
+
+        stdout = StringIO()
+
+        call_command(
+            "cleanup_task_containers",
+            stdout=stdout,
+        )
+
+        remove_task_container_mock.assert_called_once_with(
+            "passed-task-container"
+        )
+        remove_terminal_container_mock.assert_called_once_with(
+            "passed-terminal-container"
+        )
+
+        attempt.refresh_from_db()
+
+        # Docker-окружение удалено.
+        self.assertEqual(attempt.container_id, "")
+        self.assertEqual(attempt.container_name, "")
+        self.assertEqual(attempt.shell_command, "")
+
+        self.assertEqual(
+            attempt.terminal_container_name,
+            "",
+        )
+        self.assertEqual(attempt.terminal_url, "")
+        self.assertIsNone(attempt.terminal_port)
+
+        self.assertEqual(
+            attempt.environment_status,
+            TaskAttempt.EnvironmentStatus.IDLE,
+        )
+        self.assertIsNone(attempt.environment_started_at)
+        self.assertIsNone(attempt.environment_finished_at)
+
+        # Но результат технической проверки сохранен.
+        self.assertEqual(
+            attempt.status,
+            TaskAttempt.Status.IN_PROGRESS,
+        )
+        self.assertEqual(
+            attempt.check_status,
+            TaskAttempt.CheckStatus.PASSED,
+        )
+        self.assertEqual(
+            attempt.technical_passed_at,
+            passed_at,
+        )
+        self.assertEqual(
+            attempt.check_finished_at,
+            passed_at,
+        )
+        self.assertIsNone(attempt.finished_at)
+
+        self.assertTrue(attempt.technical_locked)
+        self.assertFalse(attempt.can_access_terminal)
+
+        self.assertIn(
+            f"Cleanup passed attempt #{attempt.id}",
+            stdout.getvalue(),
+        )
+        self.assertIn(
+            "preserved_technical=1",
+            stdout.getvalue(),
+        )
+
+    @patch(
+        "sandbox.management.commands.cleanup_task_containers."
+        "remove_terminal_container"
+    )
+    @patch(
+        "sandbox.management.commands.cleanup_task_containers."
+        "remove_task_container"
+    )
+    def test_cleanup_keeps_recent_environment_after_technical_pass(
+        self,
+        remove_task_container_mock,
+        remove_terminal_container_mock,
+    ):
+        self.task.requires_manual_review = True
+        self.task.save(
+            update_fields=["requires_manual_review"]
+        )
+
+        attempt = TaskAttempt.objects.create(
+            user=self.user,
+            task=self.task,
+            status=TaskAttempt.Status.IN_PROGRESS,
+            attempt_number=1,
+            is_current=True,
+            started_at=timezone.now() - timedelta(hours=100),
+            technical_passed_at=timezone.now() - timedelta(hours=71),
+            check_status=TaskAttempt.CheckStatus.PASSED,
+            container_name="recent-passed-container",
+            terminal_container_name="recent-passed-terminal",
+            terminal_url="/terminal/24004/",
+            terminal_port=24004,
+        )
+
+        call_command("cleanup_task_containers")
+
+        remove_task_container_mock.assert_not_called()
+        remove_terminal_container_mock.assert_not_called()
+
+        attempt.refresh_from_db()
+
+        self.assertEqual(
+            attempt.container_name,
+            "recent-passed-container",
+        )
+        self.assertEqual(
+            attempt.terminal_container_name,
+            "recent-passed-terminal",
+        )
+
+        self.assertTrue(attempt.technical_locked)
+        self.assertTrue(attempt.can_access_terminal)
+
     @patch("sandbox.management.commands.cleanup_task_containers.remove_terminal_container")
     @patch("sandbox.management.commands.cleanup_task_containers.remove_task_container")
     def test_cleanup_task_containers_dry_run_does_not_remove_or_update_attempts(
