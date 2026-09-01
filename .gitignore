@@ -25,3 +25,5 @@ venv/
 *.zip
 
 .vscode/
+
+backups/

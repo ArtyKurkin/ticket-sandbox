@@ -63,6 +63,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -148,7 +149,7 @@ STATICFILES_DIRS = [
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_STORAGE_BACKEND = (
-    "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
     if not DEBUG
     else "django.contrib.staticfiles.storage.StaticFilesStorage"
 )

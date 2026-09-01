@@ -1,7 +1,9 @@
+name: training-platform
+
 services:
   db:
     image: postgres:16
-    container_name: ticket-sandbox-db
+    container_name: training-platform-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ticket_sandbox
@@ -15,7 +17,7 @@ services:
   web:
     build:
       context: .
-    container_name: ticket-sandbox-web
+    container_name: training-platform-web
     restart: unless-stopped
     env_file:
       - .env
@@ -29,3 +31,5 @@ services:
 
 volumes:
   postgres_data:
+    external: true
+    name: ticket-sandbox_postgres_data
