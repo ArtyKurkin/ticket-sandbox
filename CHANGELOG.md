@@ -1961,3 +1961,112 @@ python manage.py test sandbox traineediary assessment
 - После наполнения технического банка перейти к отдельному блоку вопросов по внутренним регламентам.
 
 - Подготовить пилотное прохождение полноценного L1 assessment на сотрудниках и по результатам скорректировать сложность, тайминги и формулировки.
+
+
+## Неделя 18 — Подготовка Training Platform к контейнерному развёртыванию
+
+### Переименование и развитие проекта
+
+- Проект постепенно выходит за рамки первоначального Ticket Sandbox и рассматривается как единая Training Platform.
+- В составе платформы уже используются:
+  - Ticket Sandbox — практические задания и работа с учебными окружениями;
+  - Trainee Diary / Dashboard — сопровождение адаптации и метрики стажёров;
+  - Assessment — модуль оценки знаний сотрудников.
+- В дальнейшем планируется добавить личный кабинет стажёра.
+- Локальная директория проекта переименована из `ticket-sandbox` в `training-platform`.
+- Django-приложения `sandbox`, `traineediary` и `assessment` не переименовывались, чтобы не затрагивать migrations, imports и существующую структуру.
+
+### Подготовка Docker-образа Django
+
+- Добавлен отдельный `Dockerfile` для Django-приложения.
+- В качестве базового образа используется `python:3.13-slim`.
+- В контейнер вынесен production-запуск через Gunicorn.
+- Gunicorn внутри контейнера слушает `0.0.0.0:8000`, чтобы приложение было доступно другим контейнерам через Docker network.
+- Добавлен `.dockerignore`.
+- Из Docker build context исключены `.env`, `.git`, локальный `.venv`, логи, `staticfiles`, служебные Python-файлы и локальный мусор.
+- Проверено, что Django успешно собирается в Docker image и проходит `manage.py check` внутри контейнера.
+
+### Docker Compose
+
+- Текущий `docker-compose.yml`, ранее использовавшийся только для PostgreSQL, расширен сервисом `web`.
+- Django и PostgreSQL теперь могут запускаться совместно через Docker Compose.
+- Для подключения Django к PostgreSQL внутри Docker используется hostname сервиса `db`, а не `localhost`.
+- Проверено реальное подключение Django-контейнера к PostgreSQL через `showmigrations` и Django ORM.
+- Compose project переименован в `training-platform`.
+- Локальный PostgreSQL-контейнер переименован в `training-platform-db`.
+- Существующий volume `ticket-sandbox_postgres_data` временно сохранён как external volume, чтобы не переносить локальные данные только ради переименования.
+- Перед изменениями структуры PostgreSQL сделан резервный dump локальной БД.
+
+### Статические файлы
+
+- После переноса Django под Gunicorn выявлено, что CSS и JS больше не раздаются автоматически.
+- Добавлен WhiteNoise `6.12.0`.
+- В production-режиме используется `CompressedManifestStaticFilesStorage`.
+- `collectstatic` перенесён в Docker build.
+- Docker image теперь сразу содержит готовые static-файлы.
+- Проверена генерация обычных, hashed и gzip-версий static-файлов.
+- Интерфейс платформы снова корректно отображается при работе Django из контейнера.
+
+### Доступ Django-контейнера к Docker daemon
+
+- В `training-platform-web` добавлен доступ к `/var/run/docker.sock`.
+- Проверена работа Python Docker SDK из Django-контейнера.
+- Проверено, что существующий `get_docker_client()` работает внутри контейнера.
+- Из Django-контейнера успешно выполнен базовый цикл с учебным task-контейнером: создание, запуск, выполнение `check.sh`, удаление.
+- Подтверждено, что основная логика Ticket Sandbox может работать после контейнеризации самого Django.
+
+### Новая схема терминалов
+
+- Начата переработка terminal/ttyd-схемы для полностью контейнерного окружения.
+- Сохранена обратная совместимость с текущим production.
+- Добавлен параметр:
+  - `TERMINAL_NETWORK_MODE=host_port` — текущая production-схема;
+  - `TERMINAL_NETWORK_MODE=docker_network` — новая контейнерная схема.
+- По умолчанию используется `host_port`, поэтому текущий боевой сервер продолжает работать по старой логике.
+- Для локального Docker Compose включён `docker_network`.
+
+### Совместимость terminal gateway
+
+- `terminal_gateway.py` доработан для поддержки двух режимов.
+- В старом режиме URL сохраняется в формате `/terminal/<attempt_id>/<port>/`.
+- В новом режиме URL формируется без host-порта: `/terminal/<attempt_id>/`.
+- `parse_terminal_uri()` умеет разбирать оба варианта.
+- `terminal_auth()` адаптирован под оба режима:
+  - в `host_port` проверяется совпадение `terminal_port`;
+  - в `docker_network` порт больше не участвует в авторизации.
+- Поле `terminal_port` уже допускает `NULL`, поэтому отдельная миграция БД не потребовалась.
+- Старые terminal-auth тесты продолжают проходить.
+
+### Внутренняя Docker-сеть
+
+- Добавлена отдельная сеть `training-platform-runtime`.
+- `web` и `db` подключены к этой сети.
+- В Docker-режиме ttyd-контейнер больше не публикует порт `7681` на случайный host-порт из диапазона `20000–30000`.
+- Вместо этого ttyd подключается напрямую к `training-platform-runtime`.
+- Проверено, что terminal-контейнер не имеет опубликованных наружу host-портов и доступен из `training-platform-web` по Docker DNS.
+- Проверен HTTP-доступ `web -> ttyd` через внутреннюю Docker-сеть — получен `200 OK`.
+
+### Проверки
+
+- Перед началом инфраструктурной переработки полный набор проекта: `548 tests`, результат `OK`.
+- После изменений terminal/network-логики targeted-набор: `31 tests`, результат `OK`.
+- `python manage.py check` проходит успешно.
+- Docker image успешно собирается.
+- `collectstatic` успешно выполняется на этапе Docker build.
+- `training-platform-runtime` успешно создаётся через Compose.
+- Проверены связки:
+  - Django container -> PostgreSQL;
+  - Django container -> Docker daemon;
+  - Django container -> task container;
+  - Django container -> ttyd container по внутренней Docker-сети.
+
+### Текущее состояние
+
+- Боевой сервер пока не изменяется.
+- Все инфраструктурные изменения выполняются локально в отдельной ветке `infra/docker-production`.
+- Production продолжает работать по старой схеме: host nginx, systemd, Gunicorn и host-port terminal gateway.
+- Новая контейнерная схема готовится отдельно и будет проверена до переноса реальных данных.
+- Следующий этап:
+  - добавить отдельный nginx gateway-контейнер;
+  - проксировать `/terminal/<attempt_id>/` во внутренний ttyd-контейнер;
+  - проверить полноценный end-to-end запуск учебного задания через браузер без диапазона `20000–30000`.
