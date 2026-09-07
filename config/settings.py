@@ -132,6 +132,16 @@ TIME_ZONE = os.getenv("TIME_ZONE", "Europe/Moscow")
 
 TASK_CONTAINER_TZ = os.getenv("TASK_CONTAINER_TZ", "MSK-3")
 
+TERMINAL_NETWORK_MODE = os.getenv(
+    "TERMINAL_NETWORK_MODE",
+    "host_port",
+)
+
+TERMINAL_DOCKER_NETWORK = os.getenv(
+    "TERMINAL_DOCKER_NETWORK",
+    "training-platform-runtime",
+)
+
 USE_I18N = True
 
 USE_TZ = True

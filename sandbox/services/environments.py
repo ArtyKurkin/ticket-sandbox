@@ -18,6 +18,7 @@ from sandbox.services.terminal_gateway import (
     build_terminal_base_path,
     build_terminal_url,
     terminal_gateway_enabled,
+    terminal_uses_docker_network,
 )
 
 environment_logger = logging.getLogger("sandbox.terminal")
@@ -267,7 +268,11 @@ def run_environment_start(attempt):
         attempt_id=attempt.id,
     )
 
-    terminal_port = get_free_port()
+    terminal_port = (
+        None
+        if terminal_uses_docker_network()
+        else get_free_port()
+    )
 
     terminal_container = create_terminal_container(
         queue_slug=attempt.task.queue.slug,
@@ -351,7 +356,11 @@ def run_environment_restart(attempt):
         attempt_id=attempt.id,
     )
 
-    terminal_port = get_free_port()
+    terminal_port = (
+        None
+        if terminal_uses_docker_network()
+        else get_free_port()
+    )
 
     terminal_container = create_terminal_container(
         queue_slug=attempt.task.queue.slug,

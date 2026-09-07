@@ -6,6 +6,8 @@ import socket
 
 from django.conf import settings
 
+from sandbox.services.terminal_gateway import terminal_uses_docker_network
+
 
 def get_free_port(start: int = 20000, end: int = 30000):
     for _ in range(100):
@@ -137,17 +139,23 @@ def create_terminal_container(
     task_slug: str,
     attempt_id: int,
     target_container_name: str,
-    port: int,
+    port: int | None,
     base_path: str = "",
 ):
     client = get_docker_client()
 
-    terminal_container_name = f"ticket-sandbox-terminal-{queue_slug}-{task_slug}-{attempt_id}"
+    terminal_container_name = (
+        f"ticket-sandbox-terminal-{queue_slug}-{task_slug}-{attempt_id}"
+    )
+
     socket_path = get_docker_socket_path()
 
     try:
-        old_container = client.containers.get(terminal_container_name)
+        old_container = client.containers.get(
+            terminal_container_name
+        )
         old_container.remove(force=True)
+
     except docker.errors.NotFound:
         pass
 
@@ -156,46 +164,57 @@ def create_terminal_container(
     if base_path:
         base_path_option = f"--base-path {base_path} "
 
-    container = client.containers.run(
-        image="ticket-sandbox-ttyd",
-        name=terminal_container_name,
-        command=(
+    run_kwargs = {
+        "image": "ticket-sandbox-ttyd",
+        "name": terminal_container_name,
+        "command": (
             "ttyd -W "
             f"{base_path_option}"
             "sh -c "
             f"'docker exec -it {target_container_name} bash'"
         ),
-        volumes={
+        "volumes": {
             socket_path: {
                 "bind": "/var/run/docker.sock",
                 "mode": "rw",
             }
         },
-        ports={
-            "7681/tcp": ("127.0.0.1", port),
-        },
-        detach=True,
-        mem_limit="256m",
-        pids_limit=128,
-        security_opt=[
+        "detach": True,
+        "mem_limit": "256m",
+        "pids_limit": 128,
+        "security_opt": [
             "no-new-privileges:true",
         ],
-        cap_drop=[
+        "cap_drop": [
             "ALL",
         ],
-        tmpfs={
+        "tmpfs": {
             "/tmp": "rw,nosuid,size=64m",
         },
-        labels={
+        "labels": {
             "ticket-sandbox.type": "terminal",
             "ticket-sandbox.queue": queue_slug,
             "ticket-sandbox.task": task_slug,
             "ticket-sandbox.attempt": str(attempt_id),
         },
-    )
+    }
+
+    if terminal_uses_docker_network():
+        run_kwargs["network"] = settings.TERMINAL_DOCKER_NETWORK
+
+    else:
+        if port is None:
+            raise ValueError(
+                "Для режима host_port необходимо указать порт терминала"
+            )
+
+        run_kwargs["ports"] = {
+            "7681/tcp": ("127.0.0.1", port),
+        }
+
+    container = client.containers.run(**run_kwargs)
 
     return container
-
 
 def remove_terminal_container(container_name: str):
     client = get_docker_client()
