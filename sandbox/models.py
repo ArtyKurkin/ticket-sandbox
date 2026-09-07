@@ -425,11 +425,13 @@ class TaskAttempt(models.Model):
         if not self.is_current:
             return False
 
+        if self.environment_status != self.EnvironmentStatus.READY:
+            return False
+
         if not (
             self.container_name
             and self.terminal_container_name
             and self.terminal_url
-            and self.terminal_port is not None
         ):
             return False
 

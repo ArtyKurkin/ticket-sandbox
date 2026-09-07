@@ -921,6 +921,11 @@ class CleanupTaskContainersCommandTests(SandboxTestCase):
             terminal_port=24004,
         )
 
+        attempt.environment_status = (
+            TaskAttempt.EnvironmentStatus.READY
+        )
+        attempt.save(update_fields=["environment_status"])
+
         call_command("cleanup_task_containers")
 
         remove_task_container_mock.assert_not_called()

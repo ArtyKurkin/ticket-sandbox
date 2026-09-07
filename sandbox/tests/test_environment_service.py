@@ -184,7 +184,15 @@ class EnvironmentServiceTests(SandboxTestCase):
         get_free_port_mock.return_value = 25001
 
         mark_environment_starting(self.attempt)
-        run_environment_start(self.attempt)
+        with patch(
+            "sandbox.services.environments.wait_for_terminal_ready"
+        ) as wait_for_terminal_ready_mock:
+            run_environment_start(self.attempt)
+
+            wait_for_terminal_ready_mock.assert_called_once_with(
+                terminal_container_name="terminal-container-name",
+                port=25001,
+            )
 
         self.attempt.refresh_from_db()
 
@@ -332,7 +340,15 @@ class EnvironmentServiceTests(SandboxTestCase):
         get_free_port_mock.return_value = 25001
 
         mark_environment_restarting(self.attempt)
-        run_environment_restart(self.attempt)
+        with patch(
+            "sandbox.services.environments.wait_for_terminal_ready"
+        ) as wait_for_terminal_ready_mock:
+            run_environment_restart(self.attempt)
+
+            wait_for_terminal_ready_mock.assert_called_once_with(
+                terminal_container_name="new-terminal-container",
+                port=25001,
+            )
 
         self.attempt.refresh_from_db()
 

@@ -13,6 +13,7 @@ from sandbox.services.docker_service import (
     get_free_port,
     remove_task_container,
     remove_terminal_container,
+    wait_for_terminal_ready,
 )
 from sandbox.services.terminal_gateway import (
     build_terminal_base_path,
@@ -286,6 +287,11 @@ def run_environment_start(attempt):
         ),
     )
 
+    wait_for_terminal_ready(
+        terminal_container_name=terminal_container.name,
+        port=terminal_port,
+    )
+
     attempt.status = TaskAttempt.Status.IN_PROGRESS
     attempt.started_at = timezone.now()
 
@@ -372,6 +378,11 @@ def run_environment_restart(attempt):
             attempt_id=attempt.id,
             port=terminal_port,
         ),
+    )
+
+    wait_for_terminal_ready(
+        terminal_container_name=terminal_container.name,
+        port=terminal_port,
     )
 
     attempt.status = TaskAttempt.Status.IN_PROGRESS

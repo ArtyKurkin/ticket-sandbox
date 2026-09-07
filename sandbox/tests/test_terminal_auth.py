@@ -58,6 +58,7 @@ class TerminalAuthTests(TestCase):
             container_name="ticket-sandbox-l1-terminal-task-1",
             terminal_container_name="ticket-sandbox-terminal-l1-terminal-task-1",
             terminal_port=24000,
+            environment_status=TaskAttempt.EnvironmentStatus.READY,
         )
 
         self.attempt.terminal_url = f"/terminal/{self.attempt.id}/24000/"
@@ -271,3 +272,18 @@ class TerminalAuthTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+    def test_terminal_auth_denies_restarting_environment(self):
+        self.client.force_login(self.user)
+
+        self.attempt.environment_status = (
+            TaskAttempt.EnvironmentStatus.RESTARTING
+        )
+        self.attempt.save(update_fields=["environment_status"])
+
+        response = self.client.get(
+            self.terminal_auth_url()
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(self.attempt.can_access_terminal)

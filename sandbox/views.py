@@ -860,11 +860,11 @@ def terminal_auth(request, attempt_id=None, port=None):
             port,
         )
 
-        response = HttpResponse(status=204)
+    response = HttpResponse(status=204)
 
-        if docker_network_mode:
-            response["X-Terminal-Upstream"] = (
-                f"{attempt.terminal_container_name}:7681"
-            )
+    if docker_network_mode:
+        response["X-Terminal-Upstream"] = (
+            f"{attempt.terminal_container_name}:7681"
+        )
 
-        return response
+    return response

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import time
 import docker
 import random
 import socket
@@ -38,6 +39,42 @@ def get_docker_socket_path():
         return str(mac_socket)
 
     return "/var/run/docker.sock"
+
+
+def wait_for_terminal_ready(
+    terminal_container_name: str,
+    port: int | None = None,
+    timeout_seconds: float = 10.0,
+):
+    deadline = time.monotonic() + timeout_seconds
+
+    if terminal_uses_docker_network():
+        host = terminal_container_name
+        target_port = 7681
+    else:
+        if port is None:
+            raise ValueError(
+                "Для режима host_port необходимо указать порт терминала"
+            )
+
+        host = "127.0.0.1"
+        target_port = port
+
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection(
+                (host, target_port),
+                timeout=1,
+            ):
+                return
+
+        except OSError:
+            time.sleep(0.2)
+
+    raise RuntimeError(
+        f"Терминал {terminal_container_name} "
+        f"не стал доступен за {timeout_seconds} секунд"
+    )
 
 
 def create_task_container(queue_slug: str, task_slug: str, attempt_id: int):
