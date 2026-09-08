@@ -6,13 +6,19 @@ services:
     container_name: training-platform-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ticket_sandbox
-      POSTGRES_USER: ticket_sandbox_user
-      POSTGRES_PASSWORD: ticket_sandbox_password
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
     networks:
       - platform
 
@@ -21,21 +27,27 @@ services:
       context: .
     container_name: training-platform-web
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       DB_HOST: db
       DB_PORT: "5432"
-      DEBUG: "True"
       TERMINAL_GATEWAY_ENABLED: "true"
       TERMINAL_NETWORK_MODE: docker_network
       TERMINAL_DOCKER_NETWORK: training-platform-runtime
-    ports:
-      - "8000:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; r=urllib.request.Request('http://127.0.0.1:8000/healthz/', headers={'X-Forwarded-Proto':'https'}); urllib.request.urlopen(r, timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - platform
 
@@ -43,19 +55,24 @@ services:
     image: nginx:1.28-alpine
     container_name: training-platform-gateway
     restart: unless-stopped
-    ports:
-      - "8081:80"
     volumes:
       - ./deploy/nginx/docker/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - web
+      web:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "wget -q --header='X-Forwarded-Proto: https' -O /dev/null http://127.0.0.1/healthz/ || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - platform
 
 volumes:
   postgres_data:
-    external: true
-    name: ticket-sandbox_postgres_data
 
 networks:
   platform:
