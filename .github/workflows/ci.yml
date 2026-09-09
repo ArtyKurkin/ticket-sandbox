@@ -23,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Install dependencies
         run: |
@@ -106,11 +106,13 @@ jobs:
             fi
           }
 
-          run_as_app_user() {
+          run_compose_step() {
             local title="$1"
             local command="$2"
 
-            run_remote_step "${title}" "set -e; runuser -u ticket-sandbox -- bash -lc 'set -e; cd /opt/ticket-sandbox; set -a; . /opt/ticket-sandbox/.env; set +a; . .venv/bin/activate; ${command}'"
+            run_remote_step \
+              "${title}" \
+              "set -e; runuser -u ticket-sandbox -- bash -lc 'set -e; cd /opt/training-platform-compose/app; ${command}'"
           }
 
           run_local_step() {
@@ -128,49 +130,53 @@ jobs:
             fi
           }
 
-          run_as_app_user \
-            "Pull latest code" \
-            "GIT_SSH_COMMAND=\"ssh -i /root/.ssh/ticket_sandbox_deploy -o IdentitiesOnly=yes\" git pull --ff-only"
+          run_compose_step \
+            "Fetch latest code" \
+            "git fetch origin main && git reset --hard ${{ github.sha }}"
 
-          run_as_app_user \
-            "Install dependencies" \
-            "python -m pip install -r requirements.txt && python -m pip check"
+          run_compose_step \
+            "Validate Docker Compose config" \
+            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml config --quiet"
 
-          run_as_app_user \
+          run_compose_step \
+            "Build application image" \
+            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml build web"
+
+          run_compose_step \
+            "Start database" \
+            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --wait --wait-timeout 60 db"
+
+          run_compose_step \
             "Run migrations" \
-            "python manage.py migrate --noinput"
+            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps web python manage.py migrate --noinput"
 
-          run_as_app_user \
+          run_compose_step \
             "Sync training tasks in strict mode" \
-            "python manage.py sync_training_tasks --strict"
+            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps web python manage.py sync_training_tasks --strict"
 
-          run_as_app_user \
+          run_compose_step \
             "Build task images" \
-            "python manage.py build_task_images"
+            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps web python manage.py build_task_images"
 
-          run_as_app_user \
-            "Collect static files" \
-            "python manage.py collectstatic --noinput"
+          run_compose_step \
+            "Start application" \
+            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --wait --wait-timeout 60 web gateway"
 
-          run_remote_step \
-            "Restart ticket-sandbox service" \
-            "set -e; systemctl restart ticket-sandbox"
-
-          run_remote_step \
-            "Check ticket-sandbox service status" \
-            "set -e; systemctl status ticket-sandbox --no-pager"
-
-          run_local_step \
-            "Check staging homepage" \
-            "curl -fsSI '${{ secrets.STAGING_URL }}/' > /dev/null"
+          run_compose_step \
+            "Show Docker Compose status" \
+            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps"
 
           run_local_step \
             "Check staging healthz" \
-            "curl -fsSI '${{ secrets.STAGING_URL }}/healthz/' > /dev/null"
+            "curl --retry 10 --retry-delay 3 --retry-connrefused -fsS '${{ secrets.STAGING_URL }}/healthz/' > /dev/null"
+
+          run_local_step \
+            "Check staging homepage" \
+            "curl --retry 5 --retry-delay 2 --retry-connrefused -fsSI '${{ secrets.STAGING_URL }}/' > /dev/null"
 
           run_local_step \
             "Check staging admin login" \
-            "curl -fsSI '${{ secrets.STAGING_URL }}/admin/login/' > /dev/null"
+            "curl --retry 5 --retry-delay 2 --retry-connrefused -fsSI '${{ secrets.STAGING_URL }}/admin/login/' > /dev/null"
 
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Staging deploy finished successfully." >> "$GITHUB_STEP_SUMMARY"

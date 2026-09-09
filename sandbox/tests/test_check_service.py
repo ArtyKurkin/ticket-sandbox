@@ -190,6 +190,11 @@ class CheckServiceTests(SandboxTestCase):
         self.assertTrue(self.task.requires_manual_review)
         self.assertTrue(self.attempt.is_credit_attempt)
 
+        self.attempt.environment_status = (
+            TaskAttempt.EnvironmentStatus.READY
+        )
+        self.attempt.save(update_fields=["environment_status"])
+
         result = run_attempt_check(
             attempt=self.attempt,
             user_id=self.user.id,

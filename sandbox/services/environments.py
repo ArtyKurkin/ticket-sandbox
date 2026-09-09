@@ -13,11 +13,13 @@ from sandbox.services.docker_service import (
     get_free_port,
     remove_task_container,
     remove_terminal_container,
+    wait_for_terminal_ready,
 )
 from sandbox.services.terminal_gateway import (
     build_terminal_base_path,
     build_terminal_url,
     terminal_gateway_enabled,
+    terminal_uses_docker_network,
 )
 
 environment_logger = logging.getLogger("sandbox.terminal")
@@ -267,7 +269,11 @@ def run_environment_start(attempt):
         attempt_id=attempt.id,
     )
 
-    terminal_port = get_free_port()
+    terminal_port = (
+        None
+        if terminal_uses_docker_network()
+        else get_free_port()
+    )
 
     terminal_container = create_terminal_container(
         queue_slug=attempt.task.queue.slug,
@@ -279,6 +285,11 @@ def run_environment_start(attempt):
             attempt_id=attempt.id,
             port=terminal_port,
         ),
+    )
+
+    wait_for_terminal_ready(
+        terminal_container_name=terminal_container.name,
+        port=terminal_port,
     )
 
     attempt.status = TaskAttempt.Status.IN_PROGRESS
@@ -351,7 +362,11 @@ def run_environment_restart(attempt):
         attempt_id=attempt.id,
     )
 
-    terminal_port = get_free_port()
+    terminal_port = (
+        None
+        if terminal_uses_docker_network()
+        else get_free_port()
+    )
 
     terminal_container = create_terminal_container(
         queue_slug=attempt.task.queue.slug,
@@ -363,6 +378,11 @@ def run_environment_restart(attempt):
             attempt_id=attempt.id,
             port=terminal_port,
         ),
+    )
+
+    wait_for_terminal_ready(
+        terminal_container_name=terminal_container.name,
+        port=terminal_port,
     )
 
     attempt.status = TaskAttempt.Status.IN_PROGRESS

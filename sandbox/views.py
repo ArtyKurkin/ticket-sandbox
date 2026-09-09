@@ -18,6 +18,7 @@ from .services.notifications import (
 )
 from .services.terminal_gateway import (
     log_terminal_auth_denied,
+    terminal_uses_docker_network,
     parse_terminal_uri,
 )
 from .services.checks import start_attempt_check_in_background
@@ -732,15 +733,25 @@ def save_mentor_feedback(request, attempt_id):
 
 @require_GET
 def terminal_auth(request, attempt_id=None, port=None):
-    if attempt_id is None or port is None:
+    docker_network_mode = terminal_uses_docker_network()
+
+    if attempt_id is None:
         attempt_id, port = parse_terminal_uri(
             request.META.get("HTTP_X_ORIGINAL_URI", "")
         )
 
-    if attempt_id is None or port is None:
+    if attempt_id is None:
         log_terminal_auth_denied(
             request,
             reason="invalid_original_uri",
+        )
+        return HttpResponse(status=403)
+
+    if not docker_network_mode and port is None:
+        log_terminal_auth_denied(
+            request,
+            reason="invalid_original_uri",
+            attempt_id=attempt_id,
         )
         return HttpResponse(status=403)
 
@@ -783,7 +794,10 @@ def terminal_auth(request, attempt_id=None, port=None):
         )
         return HttpResponse(status=403)
 
-    if attempt.terminal_port != port:
+    if (
+        not docker_network_mode
+        and attempt.terminal_port != port
+    ):
         log_terminal_auth_denied(
             request,
             reason="wrong_port",
@@ -831,7 +845,13 @@ def terminal_auth(request, attempt_id=None, port=None):
 
     if user_is_mentor and not user_is_owner:
         terminal_logger.warning(
-            "mentor_terminal_access mentor_user_id=%s trainee_user_id=%s attempt_id=%s task_slug=%s queue_slug=%s port=%s",
+            "mentor_terminal_access "
+            "mentor_user_id=%s "
+            "trainee_user_id=%s "
+            "attempt_id=%s "
+            "task_slug=%s "
+            "queue_slug=%s "
+            "port=%s",
             request.user.id,
             attempt.user_id,
             attempt.id,
@@ -840,4 +860,11 @@ def terminal_auth(request, attempt_id=None, port=None):
             port,
         )
 
-    return HttpResponse(status=204)
+    response = HttpResponse(status=204)
+
+    if docker_network_mode:
+        response["X-Terminal-Upstream"] = (
+            f"{attempt.terminal_container_name}:7681"
+        )
+
+    return response

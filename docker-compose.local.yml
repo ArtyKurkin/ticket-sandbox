@@ -1,0 +1,23 @@
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  web:
+    env_file:
+      - .env
+
+    environment:
+      DEBUG: "True"
+
+    ports:
+      - "8000:8000"
+
+  gateway:
+    ports:
+      - "8081:80"
+
+volumes:
+  postgres_data:
+    external: true
+    name: ticket-sandbox_postgres_data

@@ -63,6 +63,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -131,6 +132,16 @@ TIME_ZONE = os.getenv("TIME_ZONE", "Europe/Moscow")
 
 TASK_CONTAINER_TZ = os.getenv("TASK_CONTAINER_TZ", "MSK-3")
 
+TERMINAL_NETWORK_MODE = os.getenv(
+    "TERMINAL_NETWORK_MODE",
+    "host_port",
+)
+
+TERMINAL_DOCKER_NETWORK = os.getenv(
+    "TERMINAL_DOCKER_NETWORK",
+    "training-platform-runtime",
+)
+
 USE_I18N = True
 
 USE_TZ = True
@@ -148,7 +159,7 @@ STATICFILES_DIRS = [
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_STORAGE_BACKEND = (
-    "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
     if not DEBUG
     else "django.contrib.staticfiles.storage.StaticFilesStorage"
 )

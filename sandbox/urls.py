@@ -48,6 +48,11 @@ urlpatterns = [
         name="terminal_auth",
     ),
     path(
+        "terminal-auth/<int:attempt_id>/",
+        views.terminal_auth,
+        name="terminal_auth_docker_network",
+    ),
+    path(
         "terminal-auth/",
         views.terminal_auth,
         name="terminal_auth_from_original_uri",
