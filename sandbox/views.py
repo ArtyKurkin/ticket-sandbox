@@ -517,12 +517,12 @@ def check_task(request, attempt_id):
         )
         return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
-    check_thread = start_attempt_check_in_background(
+    check_job = start_attempt_check_in_background(
         attempt=attempt,
         user_id=request.user.id,
     )
 
-    if check_thread is None:
+    if check_job is None:
         messages.info(
             request,
             "Автопроверка уже выполняется. Дождись результата."
