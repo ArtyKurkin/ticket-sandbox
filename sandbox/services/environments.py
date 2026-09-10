@@ -1,5 +1,4 @@
 import logging
-import threading
 
 from sentry_sdk import capture_exception
 
@@ -511,12 +510,9 @@ def mark_environment_restart_error(attempt, error):
 
 
 def start_environment_in_background(attempt_id):
-    thread = threading.Thread(
-        target=_run_environment_start_background,
-        args=(attempt_id,),
-        daemon=True,
-    )
-    thread.start()
+    from sandbox.tasks import start_environment_task
+
+    return start_environment_task.delay(attempt_id)
 
 
 def _run_environment_start_background(attempt_id):
@@ -569,12 +565,9 @@ def _mark_background_environment_start_error(attempt_id, error):
 
 
 def start_environment_restart_in_background(attempt_id):
-    thread = threading.Thread(
-        target=_run_environment_restart_background,
-        args=(attempt_id,),
-        daemon=True,
-    )
-    thread.start()
+    from sandbox.tasks import restart_environment_task
+
+    return restart_environment_task.delay(attempt_id)
 
 
 def _run_environment_restart_background(attempt_id):

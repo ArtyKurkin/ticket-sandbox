@@ -13,6 +13,8 @@ from sandbox.services.environments import (
     mark_environment_starting,
     run_environment_restart,
     run_environment_start,
+    start_environment_restart_in_background,
+    start_environment_in_background,
     try_mark_environment_restarting,
     try_mark_environment_starting,
     _run_environment_restart_background,
@@ -479,3 +481,21 @@ class EnvironmentServiceTests(SandboxTestCase):
             "Не удалось перезапустить окружение из-за ошибки Docker API.",
             self.attempt.last_check_output,
         )
+
+    @patch("sandbox.tasks.start_environment_task.delay")
+    def test_start_environment_in_background_uses_celery(
+        self,
+        delay_mock,
+    ):
+        start_environment_in_background(self.attempt.id)
+
+        delay_mock.assert_called_once_with(self.attempt.id)
+
+    @patch("sandbox.tasks.restart_environment_task.delay")
+    def test_start_environment_restart_in_background_uses_celery(
+        self,
+        delay_mock,
+    ):
+        start_environment_restart_in_background(self.attempt.id)
+
+        delay_mock.assert_called_once_with(self.attempt.id)
