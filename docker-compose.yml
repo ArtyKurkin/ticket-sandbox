@@ -22,6 +22,28 @@ services:
     networks:
       - platform
 
+  redis:
+    image: redis:7-alpine
+    container_name: training-platform-redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - platform
+
   web:
     build:
       context: .
@@ -33,10 +55,13 @@ services:
       TERMINAL_GATEWAY_ENABLED: "true"
       TERMINAL_NETWORK_MODE: docker_network
       TERMINAL_DOCKER_NETWORK: training-platform-runtime
+      CELERY_BROKER_URL: redis://redis:6379/0
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test:
@@ -48,6 +73,35 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - platform
+
+  worker:
+    build:
+      context: .
+    container_name: training-platform-worker
+    restart: unless-stopped
+    command:
+      - celery
+      - -A
+      - config
+      - worker
+      - --loglevel=INFO
+      - --concurrency=2
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      CELERY_BROKER_URL: redis://redis:6379/0
+      TERMINAL_GATEWAY_ENABLED: "true"
+      TERMINAL_NETWORK_MODE: docker_network
+      TERMINAL_DOCKER_NETWORK: training-platform-runtime
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - platform
 
@@ -73,6 +127,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   platform:

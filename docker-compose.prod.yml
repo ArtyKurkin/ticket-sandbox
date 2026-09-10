@@ -11,6 +11,18 @@ services:
       TERMINAL_NETWORK_MODE: docker_network
       TERMINAL_DOCKER_NETWORK: training-platform-runtime
 
+  worker:
+    env_file:
+      - .env.prod
+    environment:
+      DEBUG: "False"
+      DB_HOST: db
+      DB_PORT: "5432"
+      CELERY_BROKER_URL: redis://redis:6379/0
+      TERMINAL_GATEWAY_ENABLED: "true"
+      TERMINAL_NETWORK_MODE: docker_network
+      TERMINAL_DOCKER_NETWORK: training-platform-runtime
+
   gateway:
     ports:
       - "127.0.0.1:8080:80"

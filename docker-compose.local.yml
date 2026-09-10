@@ -3,6 +3,10 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    ports:
+      - "6379:6379"
+
   web:
     env_file:
       - .env
@@ -12,6 +16,12 @@ services:
 
     ports:
       - "8000:8000"
+
+  worker:
+    env_file:
+      - .env
+    environment:
+      DEBUG: "True"
 
   gateway:
     ports:
