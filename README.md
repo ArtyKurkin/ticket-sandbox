@@ -10,10 +10,10 @@ Training Platform — внутренняя платформа обучения �
 
 Все приложения используют общую Django-авторизацию и одну PostgreSQL-базу.
 
-README — короткая входная точка в проект. Более подробная техническая документация вынесена отдельно:
+README — короткая входная точка в проект. Более подробная техническая документация:
 
-- `ARCHITECTURE.md` — архитектура Django, Docker, terminal gateway, lifecycle окружений и автопроверок;
-- `CONTRIBUTING.md` — правила разработки, добавления заданий, тестов и ревью;
+- `ARCHITECTURE.md` — архитектура Django, Docker, terminal gateway, Celery lifecycle и автопроверок;
+- `CONTRIBUTING.md` — правила разработки, добавления заданий, тестов;
 - `STAGING_CHECKLIST.md` — ручная проверка staging после деплоя;
 - `CHANGELOG.md` — история крупных изменений.
 
@@ -45,7 +45,8 @@ README — короткая входная точка в проект. Боле�
 - dashboard наставника;
 - Telegram-уведомления;
 - polling статусов окружения и проверки;
-- watchdog зависших background-операций.
+- watchdog зависших background-операций;
+- Celery + Redis для запуска окружений, restart и `check.sh`.
 
 Наставник определяется стандартным Django-полем:
 
@@ -122,7 +123,7 @@ python manage.py seed_stages
 
 ## Общая архитектура
 
-Текущая production/staging-схема:
+Текущая staging/production-схема контейнерного runtime:
 
 ```text
 Browser
@@ -137,25 +138,34 @@ TLS / Let's Encrypt
   v
 Docker nginx gateway
   |
-  +---------------------> Django / Gunicorn
-  |                         |
-  |                         v
-  |                     PostgreSQL
+  +---------------------> Django / Gunicorn (web)
+  |                           |
+  |                           +----> PostgreSQL
+  |                           |
+  |                           +----> Redis
+  |                                      |
+  |                                      v
+  |                                 Celery worker
+  |                                      |
+  |                                      v
+  |                                 Docker daemon
   |
   +---------------------> ttyd terminal container
-                              |
-                              v
-                         docker exec
-                              |
-                              v
-                         task container
+                                 |
+                                 v
+                             docker exec
+                                 |
+                                 v
+                           task container
 ```
 
 Основные Compose-сервисы:
 
 ```text
 db       PostgreSQL 16
+redis    Redis 7
 web      Django + Gunicorn
+worker   Celery
 gateway  nginx
 ```
 
@@ -168,63 +178,116 @@ terminal container
 
 Task-контейнер содержит учебную проблему.
 
-Terminal-контейнер содержит `ttyd`, имеет доступ к Docker socket и выполняет `docker exec` в task-контейнер.
+Terminal-контейнер содержит `ttyd` и подключается к `training-platform-runtime`. В Docker network режиме отдельный host-порт для ttyd не публикуется.
 
-Для Docker production-режима отдельные host-порты ttyd не используются:
+Production/staging используют:
 
 ```env
+TERMINAL_GATEWAY_ENABLED=true
 TERMINAL_NETWORK_MODE=docker_network
 TERMINAL_DOCKER_NETWORK=training-platform-runtime
 ```
 
-Gateway обращается к terminal-контейнеру внутри Docker network.
+Terminal URL в этом режиме:
+
+```text
+/terminal/<attempt_id>/
+```
+
+Gateway обращается к terminal-контейнеру через Docker network и перед проксированием проверяет доступ через Django `terminal-auth`.
 
 ---
 
-## Background-задачи
+## Background-задачи: Celery + Redis
 
-На текущем этапе запуск окружения, restart и автопроверка выполняются background threads внутри Django-процесса.
+Запуск окружения, restart и техническая автопроверка больше не выполняются через `threading.Thread` внутри Gunicorn.
 
-Есть отдельный watchdog:
-
-```bash
-python manage.py detect_stuck_attempts
-```
-
-который находит зависшие состояния и не даёт попыткам навсегда оставаться в `starting`, `restarting` или `running`.
-
-### Следующий инфраструктурный этап: Celery + Redis
-
-Celery и Redis ещё не являются частью production runtime.
-
-План:
+Текущий поток:
 
 ```text
 Django web
    |
-   +----> Redis
-            |
-            v
-       Celery worker
-            |
-            +----> start environment
-            +----> restart environment
-            +----> run check.sh
-            +----> другие долгие background-задачи
+   v
+Redis
+   |
+   v
+Celery worker
+   |
+   +----> start environment
+   +----> restart environment
+   +----> run check.sh
 ```
 
-Цель — убрать долгие операции из процесса Gunicorn и сделать background lifecycle устойчивым к restart/deploy web-контейнера.
-
-После внедрения в Docker Compose должны появиться как минимум:
+Зарегистрированные задачи:
 
 ```text
-redis
-worker
+sandbox.start_environment
+sandbox.restart_environment
+sandbox.run_attempt_check
 ```
 
-При необходимости позже можно добавить отдельный scheduler (`celery beat`), если появятся периодические Celery-задачи.
+Тестовая задача `sandbox.celery_ping` используется для проверки Celery-инфраструктуры.
 
-До завершения этого этапа текущие background threads и watchdog остаются рабочим механизмом.
+Celery result backend сейчас не используется. Состояние пользовательской операции хранится в PostgreSQL через поля `TaskAttempt`.
+
+Redis используется как broker.
+
+Watchdog `detect_stuck_attempts` сохраняется: он нужен для recovery, если worker, Docker-операция или процесс выполнения прервались и попытка слишком долго остаётся в `starting`, `restarting` или `running`.
+
+---
+
+## Docker access и безопасность
+
+Контейнеры приложения запускаются от non-root пользователя:
+
+```text
+uid=10001(app)
+gid=10001(app)
+```
+
+`training-platform-web` не получает `/var/run/docker.sock`.
+
+Docker socket монтируется в `worker`, потому что именно Celery worker создаёт, перезапускает и проверяет учебные контейнеры.
+
+Динамический terminal-контейнер также может получать Docker socket для `docker exec` в task-контейнер в рамках terminal runtime.
+
+Для доступа non-root worker к Docker socket используется дополнительная группа:
+
+```env
+DOCKER_GID=<gid /var/run/docker.sock>
+```
+
+GID зависит от Docker host и не должен хардкодиться одинаково для всех серверов.
+
+Проверить значение на Linux:
+
+```bash
+stat -c '%g' /var/run/docker.sock
+```
+
+Примеры из проверенных окружений:
+
+```text
+Docker Desktop на Mac: 0
+текущий staging:       113
+```
+
+Перед deploy выполняется:
+
+```text
+deploy/check_docker_socket_gid.sh
+```
+
+Скрипт сравнивает `DOCKER_GID` из `.env.prod` с реальным GID socket и останавливает deploy при несовпадении.
+
+В Dockerfile используется:
+
+```dockerfile
+COPY --chown=app:app . .
+USER app
+```
+
+Это необходимо, чтобы приложение корректно запускалось non-root пользователем и `manage.py` был доступен внутри image.
 
 ---
 
@@ -266,8 +329,6 @@ Task.requires_manual_review = False
 
 ## Очереди Ticket Sandbox
 
-Текущая схема:
-
 | Уровень | Очереди |
 |---|---|
 | `candidate` | `candidate` |
@@ -285,16 +346,18 @@ Task.requires_manual_review = False
 2. Выбирает доступное задание.
 3. Нажимает «Начать работу».
 4. Django переводит окружение в `starting`.
-5. В background запускается создание task-контейнера и terminal-контейнера.
-6. Frontend polling ждёт `environment_status=ready`.
-7. Стажёру становится доступен терминал.
-8. Стажёр диагностирует и исправляет проблему.
-9. Запускается автопроверка.
-10. `check.sh` проверяет техническую часть.
-11. Frontend polling показывает результат.
-12. После успешной технической сдачи временные контейнеры удаляются.
-13. При необходимости стажёр пишет ответ клиенту и внутренний комментарий.
-14. Наставник принимает ответ или отправляет его на доработку.
+5. Django ставит `sandbox.start_environment` в Redis.
+6. Celery worker создаёт task-контейнер и terminal-контейнер.
+7. Frontend polling ждёт `environment_status=ready`.
+8. Стажёру становится доступен терминал.
+9. Стажёр диагностирует и исправляет проблему.
+10. При restart Django ставит `sandbox.restart_environment` в очередь.
+11. При автопроверке Django атомарно переводит `check_status` в `running` и ставит `sandbox.run_attempt_check` в очередь.
+12. Worker запускает `check.sh`.
+13. Frontend polling показывает результат.
+14. После успешной технической сдачи временные контейнеры удаляются.
+15. При необходимости стажёр пишет ответ клиенту и внутренний комментарий.
+16. Наставник принимает ответ или отправляет его на доработку.
 
 ---
 
@@ -305,17 +368,21 @@ training-platform/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
-│
-├── assessment/             # оценка знаний
-├── config/                 # Django settings / urls / wsgi
-├── deploy/                 # nginx, cron, systemd examples
-├── sandbox/                # Ticket Sandbox
-├── traineediary/           # адаптация и дневник стажёров
+├── assessment/
+├── config/
+│   └── celery.py
+├── deploy/
+│   ├── nginx/
+│   ├── cron/
+│   └── check_docker_socket_gid.sh
+├── sandbox/
+│   ├── services/
+│   └── tasks.py
+├── traineediary/
 ├── static/
 ├── templates/
-├── terminal/               # ttyd image
-├── training_tasks/         # Docker-задания Ticket Sandbox
-│
+├── terminal/
+├── training_tasks/
 ├── .env.example
 ├── .env.prod.example
 ├── Dockerfile
@@ -333,7 +400,7 @@ training-platform/
 
 ## Локальный запуск
 
-### Вариант с Django на host и PostgreSQL в Docker
+### Django на host + инфраструктура в Docker
 
 Создать окружение:
 
@@ -343,13 +410,13 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Поднять локальную PostgreSQL:
+Поднять PostgreSQL и Redis:
 
 ```bash
 docker compose \
   -f docker-compose.yml \
   -f docker-compose.local.yml \
-  up -d db
+  up -d db redis
 ```
 
 Применить миграции:
@@ -358,62 +425,46 @@ docker compose \
 python manage.py migrate
 ```
 
-При необходимости:
-
-```bash
-python manage.py createsuperuser
-```
-
 Запустить Django:
 
 ```bash
 python manage.py runserver
 ```
 
-Приложение:
+В этом режиме `CELERY_BROKER_URL` по умолчанию может использовать локально опубликованный Redis:
 
 ```text
-http://127.0.0.1:8000/
+redis://127.0.0.1:6379/0
 ```
 
-### Local terminal gateway
+Worker можно запускать через Compose.
 
-Если:
-
-```env
-TERMINAL_GATEWAY_ENABLED=true
-```
-
-для полноценной проверки terminal gateway удобнее использовать локальный nginx:
+### Полный локальный Compose
 
 ```bash
-make nginx-test
-make nginx-start
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.local.yml \
+  up -d --build
 ```
 
-После этого:
+Основной вход через gateway:
 
 ```text
 http://localhost:8081/
 ```
 
-Полезные команды:
+Прямой Django:
 
-```bash
-make nginx-reload
-make nginx-stop
-make nginx-logs
+```text
+http://localhost:8000/
 ```
+
+Терминалы нужно проверять через gateway `:8081`, а не через прямой Gunicorn `:8000`.
 
 ---
 
 ## Переменные окружения
-
-Dev-пример:
-
-```text
-.env.example
-```
 
 Production-пример:
 
@@ -425,9 +476,7 @@ Production-пример:
 
 ```env
 DEBUG=False
-
 SECRET_KEY=...
-
 ALLOWED_HOSTS=...
 CSRF_TRUSTED_ORIGINS=...
 EXTERNAL_HOST=...
@@ -439,14 +488,19 @@ DB_PASSWORD=...
 DB_HOST=db
 DB_PORT=5432
 
+CELERY_BROKER_URL=redis://redis:6379/0
+
 TERMINAL_GATEWAY_ENABLED=true
 TERMINAL_NETWORK_MODE=docker_network
 TERMINAL_DOCKER_NETWORK=training-platform-runtime
 
+# Должен совпадать с:
+# stat -c '%g' /var/run/docker.sock
+DOCKER_GID=...
+
 CHECK_TASK_TIMEOUT_SECONDS=60
 
 LOG_LEVEL=INFO
-
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 
@@ -495,10 +549,15 @@ python manage.py sync_training_tasks --dry-run --strict
 python manage.py sync_training_tasks --strict
 ```
 
-Собрать images:
+Сборка task images требует Docker socket. В контейнерном runtime её нужно выполнять через `worker`:
 
 ```bash
-python manage.py build_task_images
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm --no-deps worker \
+  python manage.py build_task_images
 ```
 
 ---
@@ -510,44 +569,50 @@ python manage.py build_task_images
 ```bash
 python manage.py sync_training_tasks --dry-run --strict
 python manage.py sync_training_tasks --strict
-
 python manage.py build_task_images
-
 python manage.py cleanup_task_containers --dry-run
 python manage.py cleanup_task_containers
-
 python manage.py detect_stuck_attempts --dry-run
 python manage.py detect_stuck_attempts
-
 python manage.py seed_stages
 python manage.py check_trainee_integrity
 ```
 
-`cleanup_task_containers` очищает старые незавершённые runtime-окружения и переводит их в состояние для повторного запуска.
+В Docker production/staging:
 
-`detect_stuck_attempts` обрабатывает зависшие background-состояния.
+- команды без Docker API можно выполнять через `web`;
+- `build_task_images` и `cleanup_task_containers` нужно выполнять через `worker`, потому что у `web` нет Docker socket.
 
-`check_trainee_integrity` проверяет целостность данных дневника без изменения БД.
+Пример:
+
+```bash
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm --no-deps worker \
+  python manage.py cleanup_task_containers --dry-run
+```
 
 ---
 
 ## Docker Compose
 
-Общая конфигурация:
+Основные сервисы:
+
+```text
+db
+redis
+web
+worker
+gateway
+```
+
+Конфигурации:
 
 ```text
 docker-compose.yml
-```
-
-Локальные overrides:
-
-```text
 docker-compose.local.yml
-```
-
-Production overrides:
-
-```text
 docker-compose.prod.yml
 ```
 
@@ -558,10 +623,10 @@ docker compose \
   --env-file .env.prod \
   -f docker-compose.yml \
   -f docker-compose.prod.yml \
-  config
+  config --quiet
 ```
 
-Запустить production stack:
+Запустить stack:
 
 ```bash
 docker compose \
@@ -583,17 +648,27 @@ docker compose \
 
 ---
 
-## Healthcheck
+## Healthchecks
 
-Endpoint:
+Используются healthchecks для:
+
+```text
+db
+redis
+web
+worker
+gateway
+```
+
+Django endpoint:
 
 ```text
 /healthz/
 ```
 
-Используется Docker healthcheck и CI/CD smoke-check.
+`/healthz/` является liveness-check приложения и не выполняет отдельный SQL-запрос к PostgreSQL.
 
-Сейчас endpoint является liveness-check приложения и не выполняет отдельный SQL-запрос к PostgreSQL.
+Celery worker healthcheck выполняет `celery inspect ping` для конкретного worker node.
 
 ---
 
@@ -622,37 +697,51 @@ python manage.py test sandbox traineediary assessment
 
 Deploy выполняется после успешных тестов при push в `main`.
 
-Схема:
+Актуальная схема:
 
 ```text
-fetch target commit
+fetch exact target commit
+        |
+        v
+check Docker socket GID
         |
         v
 docker compose config
         |
         v
-build web image
+build web + worker images
         |
         v
 start/wait PostgreSQL
         |
         v
-migrate
+migrate via web
         |
         v
-sync_training_tasks --strict
+sync_training_tasks via web
         |
         v
-build_task_images
+build_task_images via worker
         |
         v
-docker compose up web gateway --wait
+start/wait web + worker
         |
         v
-HTTPS smoke-check
+force-recreate gateway
+        |
+        v
+show compose status
+        |
+        v
+HTTPS smoke-check:
+  /healthz/
+  /
+  /admin/login/
 ```
 
-Dependencies и static входят в Docker image, поэтому на сервере больше не выполняются отдельные:
+Gateway пересоздаётся после `web`, чтобы nginx не оставался привязан к старому IP пересозданного web-контейнера и не отдавал `502`.
+
+Dependencies и static входят в Docker image. На сервере больше не нужны отдельные:
 
 ```text
 pip install
@@ -666,34 +755,17 @@ systemctl restart ticket-sandbox
 
 Текущий staging работает через Docker Compose.
 
-Схема внешнего трафика:
-
-```text
-Internet
-   |
-   v
-host nginx :443
-   |
-   v
-127.0.0.1:8080
-   |
-   v
-training-platform-gateway
-   |
-   +----> training-platform-web
-   |
-   +----> terminal containers
-```
-
 Основные контейнеры:
 
 ```text
 training-platform-db
+training-platform-redis
 training-platform-web
+training-platform-worker
 training-platform-gateway
 ```
 
-Проверка:
+Минимальная проверка:
 
 ```bash
 docker compose \
@@ -703,19 +775,34 @@ docker compose \
   ps
 ```
 
-После deploy минимально проверить:
+Ожидается `healthy` для основных сервисов.
 
-- `/healthz/`;
-- вход пользователем;
-- Ticket Sandbox;
-- запуск окружения;
-- terminal HTTP + WebSocket;
-- автопроверку;
-- Дневник стажёра;
-- Оценку знаний;
-- admin.
+Дополнительно проверить:
 
-Полный ручной сценарий:
+```bash
+docker exec training-platform-web id
+docker exec training-platform-worker id
+```
+
+`web` и `worker` должны работать как `app`, а не root.
+
+Проверка изоляции web:
+
+```bash
+docker exec training-platform-web \
+  sh -c 'test ! -S /var/run/docker.sock && echo "web: no docker.sock"'
+```
+
+Проверка Docker API из worker:
+
+```bash
+docker exec training-platform-worker python -c "
+import docker
+print(docker.from_env().ping())
+"
+```
+
+Полный ручной сценарий описан в:
 
 ```text
 STAGING_CHECKLIST.md
@@ -753,11 +840,22 @@ pg_restore ...
 Поддерживаются:
 
 - Django/application logs;
+- Celery worker logs;
 - Docker logs;
 - Sentry;
 - `/healthz/`;
 - Docker healthchecks;
-- watchdog background-операций.
+- watchdog зависших операций.
+
+Логи основных контейнеров:
+
+```bash
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  logs --tail 100 web worker gateway
+```
 
 Если `SENTRY_DSN` пустой, Sentry не инициализируется.
 
@@ -767,16 +865,13 @@ pg_restore ...
 
 ## Ближайшие инфраструктурные задачи
 
-1. Добавить Redis в Docker Compose.
-2. Добавить Celery worker.
-3. Перенести создание/restart окружения из background threads в Celery.
-4. Перенести автопроверку `check.sh` в Celery.
-5. Добавить retry/time-limit правила для Celery tasks.
-6. Адаптировать watchdog под Celery lifecycle.
-7. Добавить healthcheck Redis и Celery worker.
-8. Добавить Celery/Redis в CI/staging checks.
-9. После периода наблюдения удалить legacy systemd/host deployment.
-10. Постепенно переименовать legacy `ticket-sandbox` identifiers в `training-platform`.
+1. Добавить retry/time-limit правила для Celery tasks там, где это действительно нужно.
+2. Адаптировать и проверить watchdog с учётом Celery lifecycle.
+3. Подготовить и выполнить перенос staging-схемы на production-сервер.
+4. После периода наблюдения удалить legacy systemd/host deployment.
+5. Проверить резервное копирование и rollback уже на production-схеме.
+6. При необходимости добавить отдельный scheduler (`celery beat`) для периодических задач.
+7. Постепенно переименовать legacy `ticket-sandbox` identifiers в `training-platform`.
 
 ---
 
@@ -788,7 +883,7 @@ pg_restore ...
 python manage.py test
 ```
 
-Текущий основной набор включает:
+Основной набор:
 
 ```text
 sandbox
@@ -804,9 +899,7 @@ assessment
 
 ## Коротко
 
-Training Platform — это уже не только Ticket Sandbox.
-
-Сейчас проект объединяет:
+Training Platform объединяет:
 
 ```text
 Training Platform
@@ -815,6 +908,8 @@ Training Platform
 └── Оценка знаний
 ```
 
-Текущий runtime уже переведён на Docker Compose.
+Runtime уже переведён на Docker Compose.
 
-Следующий инфраструктурный этап — Redis + Celery и перенос долгих background-операций из Gunicorn-процесса в отдельный worker.
+Долгие Docker-операции Ticket Sandbox выполняются через Redis + Celery worker.
+
+`web` работает без Docker socket, а Docker-доступ вынесен в worker. Контейнеры приложения запускаются от non-root пользователя `app`.

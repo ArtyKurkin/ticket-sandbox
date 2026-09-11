@@ -1,6 +1,6 @@
 # CONTRIBUTING
 
-Этот файл описывает правила разработки Ticket Sandbox: как добавлять задания, менять архитектуру, писать проверки и готовить проект к ревью.
+Этот файл описывает правила разработки Training Platform с акцентом на Ticket Sandbox: как добавлять задания, менять архитектуру, писать проверки и готовить проект к ревью.
 
 ## Общий принцип
 
@@ -16,23 +16,13 @@ Ticket Sandbox должен оставаться простым и предск�
 
 Любые изменения лучше делать маленькими шагами и сразу закрывать тестами.
 
+---
+
 ## Базовые архитектурные правила
 
 ### Не возвращать очередь trainee
 
 В проекте нет отдельной очереди `trainee`.
-
-Стажёр считается претендующим на L1 и работает в очереди:
-
-```text
-l1
-```
-
-Кандидат работает в отдельной очереди:
-
-```text
-candidate
-```
 
 Текущие очереди:
 
@@ -43,6 +33,8 @@ l2
 admin
 ```
 
+Стажёр L1 работает в `l1`, кандидат — в `candidate`.
+
 ### Task.queue обязателен
 
 Каждое задание должно быть привязано к очереди через:
@@ -51,19 +43,15 @@ admin
 Task.queue
 ```
 
-Заданий без очереди быть не должно.
-
-Поле `queue_name` удалено и не должно возвращаться.
-
-Путь к Docker-окружению строится через очередь и slug задачи:
+Путь к Docker-окружению:
 
 ```text
 training_tasks/<queue_slug>/<task_slug>
 ```
 
-### Наставник определяется через User.is_staff
+`queue_name` возвращать не нужно.
 
-Для доступа к mentor dashboard используется стандартное поле Django:
+### Наставник определяется через User.is_staff
 
 ```python
 User.is_staff
@@ -73,99 +61,158 @@ User.is_staff
 
 ### Не смешивать техническую проверку и проверку текста
 
-Техническую часть проверяет только:
+Техническую часть проверяет:
 
 ```text
 check.sh
 ```
 
-Наставник проверяет только:
+Наставник проверяет только ответ клиенту.
 
-```text
-ответ клиенту
-```
+Если `technical_passed_at` заполнен, техническая часть считается выполненной.
 
-Если `check.sh` прошёл успешно и `technical_passed_at` заполнен, техническая часть считается выполненной.
-
-Если наставник отправил ответ на доработку, стажёр правит только текст.
-
-Docker-контейнер и `check.sh` повторно запускать не нужно.
+При доработке текста Docker-контейнер и `check.sh` повторно запускать не нужно.
 
 ### Не показывать стажёру инфраструктурный шум
 
-Стажёр должен видеть результат проверки, а не внутренние детали очистки инфраструктуры.
+`last_check_output` должен содержать полезный результат проверки.
 
-В `last_check_output` после успешной автопроверки должен оставаться вывод `check.sh`.
+Сообщения об удалении task/terminal-контейнеров, Docker API и внутреннем cleanup нужно писать в application logs.
 
-Сообщения вида:
+### task.json — источник правды
 
-```text
-Контейнер терминала удалён
-Контейнер задания удалён
-```
-
-нужно писать в application logs, а не показывать стажёру.
-
-### task.json — источник правды для задания
-
-Задания синхронизируются командой:
-
-```bash
-python manage.py sync_training_tasks
-```
-
-Постоянные правки задания нужно делать в файле:
+Постоянные изменения задания делаются в:
 
 ```text
 training_tasks/<queue_slug>/<task_slug>/task.json
 ```
 
-Django admin можно использовать для просмотра, фильтров и быстрых массовых действий. Но при следующем deploy/CD команда `sync_training_tasks` снова применит значения из файлов.
-
-Перед применением изменений:
+Проверка:
 
 ```bash
 python manage.py sync_training_tasks --dry-run --strict
 ```
 
-Потом:
+Применение:
 
 ```bash
 python manage.py sync_training_tasks --strict
 ```
 
-### Не делать Basic Auth для ttyd
+---
 
-Basic Auth для ttyd в проекте не используем.
+## Terminal gateway
 
-Актуальное решение:
+Basic Auth для ttyd не используем.
+
+Актуальный production/staging режим:
 
 ```text
-nginx /terminal/<attempt_id>/<port>/
+Browser
+  ↓
+nginx /terminal/<attempt_id>/
   ↓
 auth_request /_terminal_auth
   ↓
 Django /terminal-auth/
   ↓
-204 разрешает proxy_pass на 127.0.0.1:<port>
-401/403 запрещает доступ
+X-Terminal-Upstream: <terminal-container>:7681
+  ↓
+ttyd
 ```
 
 Правила:
 
-- не открывать ttyd-порты наружу;
-- не возвращать Basic Auth для ttyd;
-- проверять доступ через `/terminal-auth/`;
-- разрешать доступ владельцу попытки или наставнику с `User.is_staff=True`;
-- логировать открытие терминала стажёра наставником через `mentor_terminal_access`.
+- не публиковать ttyd host-порты наружу в `docker_network` режиме;
+- не возвращать Basic Auth;
+- проверять доступ через Django terminal auth;
+- разрешать доступ владельцу попытки или `User.is_staff=True`;
+- логировать доступ наставника через `mentor_terminal_access`.
 
-## Background lifecycle
+Legacy-режим `host_port` поддерживается кодом для совместимости, но новая staging/production-схема использует:
 
-Запуск окружения, перезапуск окружения и автопроверка выполняются через background thread.
+```env
+TERMINAL_NETWORK_MODE=docker_network
+```
 
-### Environment status
+---
 
-Для окружения используется:
+## Background lifecycle: только через Celery
+
+Запуск окружения, restart и автопроверка выполняются через Redis + Celery worker.
+
+Новые `threading.Thread` для Docker/background lifecycle добавлять не нужно.
+
+Текущие задачи:
+
+```text
+sandbox.start_environment
+sandbox.restart_environment
+sandbox.run_attempt_check
+```
+
+Поток:
+
+```text
+Django web
+  ↓
+Redis
+  ↓
+Celery worker
+  ↓
+Docker API
+```
+
+### Важное правило Docker-доступа
+
+`web` не имеет `/var/run/docker.sock`.
+
+Нельзя добавлять socket обратно в `web` ради новой фичи или management command.
+
+Docker-операции должны выполняться:
+
+- через Celery worker;
+- либо через management command, запущенную сервисом `worker`.
+
+Если новая web-функция требует Docker API, правильный путь — добавить Celery task, а не прямой вызов Docker из view.
+
+---
+
+## Celery tasks
+
+Celery tasks храним в:
+
+```text
+sandbox/tasks.py
+```
+
+Task должен получать простые сериализуемые аргументы, например:
+
+```text
+attempt_id
+user_id
+```
+
+Не передавай Django model instance в Celery message.
+
+Worker должен заново загрузить актуальный объект из PostgreSQL.
+
+Основная бизнес-логика по возможности остаётся в service-функциях, а Celery task выступает transport/wrapper слоем.
+
+Это позволяет:
+
+- тестировать бизнес-логику отдельно;
+- не дублировать Docker-логику;
+- сохранять понятные recovery-функции;
+- легче менять transport позже.
+
+Если состояние БД создаётся внутри транзакции и задача не должна стартовать до commit, используй `transaction.on_commit(...)` или эквивалентный Celery/Django механизм. Не добавляй это автоматически там, где текущий код уже безопасен — оценивай конкретный transaction lifecycle.
+
+---
+
+## Environment status
+
+Используется:
 
 ```python
 TaskAttempt.environment_status
@@ -181,23 +228,18 @@ restarting
 error
 ```
 
-Время:
-
-```python
-environment_started_at
-environment_finished_at
-```
-
 Правила:
 
 - start не должен перезаписывать `starting` или `restarting`;
 - restart не должен перезаписывать `starting` или `restarting`;
-- restart должен сбрасывать `finished_at`, `check_status`, check timestamps и `stuck_reason`;
-- при ошибке окружение переводится в `error`, а попытка — в `failed`.
+- restart сбрасывает `finished_at`, check state/timestamps и `stuck_reason`;
+- при ошибке окружение переводится в `error`, попытка — в `failed`.
 
-### Check status
+---
 
-Для автопроверки используется:
+## Check status
+
+Используется:
 
 ```python
 TaskAttempt.check_status
@@ -213,307 +255,359 @@ failed
 error
 ```
 
-Время:
-
-```python
-check_started_at
-check_finished_at
-```
-
 Правила:
 
 - запуск автопроверки должен быть атомарным;
-- двойной клик не должен запускать две проверки;
+- двойной клик не должен создавать две Celery-задачи;
 - пока `check_status=running`, повторный запуск запрещён;
 - если окружение `starting`, `restarting` или `error`, автопроверку запускать нельзя.
 
-### Watchdog
+Важно различать:
 
-Фоновые thread-и могут оборваться при рестарте gunicorn/сервиса.
-
-Для recovery есть команда:
-
-```bash
-python manage.py detect_stuck_attempts
+```text
+Celery task succeeded
 ```
 
-Dry-run:
+и:
+
+```text
+check.sh failed with exit code 1
+```
+
+Второе — нормальный пользовательский результат проверки, а не сбой Celery.
+
+---
+
+## Watchdog
+
+Переход на Celery не отменяет watchdog.
+
+`detect_stuck_attempts` нужен, если:
+
+- Celery worker был остановлен;
+- Docker daemon/операция зависли;
+- контейнер был убит;
+- задача прервалась после перевода статуса в `starting`, `restarting` или `running`.
+
+Команды:
 
 ```bash
 python manage.py detect_stuck_attempts --dry-run
+python manage.py detect_stuck_attempts
 ```
 
-Команда должна:
+Не завязывай recovery на текст `last_check_output`. Используй явные status/timestamps и `stuck_reason`.
 
-- находить старые `environment_status=starting/restarting`;
-- находить старые `check_status=running`;
-- переводить их в `error`;
-- ставить `TaskAttempt.status=failed`;
-- заполнять `stuck_reason`;
-- не трогать технически пройденные попытки;
-- не маркировать одну попытку дважды;
-- отправлять Telegram-уведомление наставникам, если Telegram настроен.
+---
 
-Не завязывай бизнес-логику на текст `last_check_output`. Для зависших попыток есть явное поле:
+## Docker image и non-root runtime
 
-```python
-TaskAttempt.stuck_reason
-```
-
-Значения:
+`web` и `worker` запускаются от:
 
 ```text
-""
-environment
-check
+uid=10001(app)
+gid=10001(app)
 ```
 
-### Cron
+В Dockerfile должен сохраняться:
 
-Пример watchdog cron:
-
-```text
-deploy/cron/detect_stuck_attempts.example
+```dockerfile
+COPY --chown=app:app . .
+USER app
 ```
 
-Рекомендуемый интервал:
+Не заменяй это на `chmod 777`.
 
-```cron
-*/5 * * * * cd /opt/ticket-sandbox && /opt/ticket-sandbox/.venv/bin/python manage.py detect_stuck_attempts >> /var/log/ticket-sandbox/detect_stuck_attempts.log 2>&1
-```
+Причина: non-root runtime должен иметь доступ к приложению без выдачи лишних прав.
 
-## Уведомления
+---
 
-### Telegram
+## DOCKER_GID
 
-Telegram-уведомления — побочный эффект, а не часть критического пути.
+Worker получает Docker socket как дополнительную группу.
 
-Правила:
-
-- если `TELEGRAM_BOT_TOKEN` или `TELEGRAM_CHAT_ID` не заданы, уведомления молча выключены;
-- если Telegram API недоступен, пользовательский сценарий не должен падать;
-- ошибки отправки нужно логировать через `sandbox.telegram`;
-- реальные HTTP-запросы в тестах должны мокироваться;
-- бизнес-тексты уведомлений держим в `sandbox/services/notifications.py`;
-- низкоуровневую отправку держим в `sandbox/services/telegram.py`;
-- уведомления после изменения состояния лучше отправлять через `transaction.on_commit(...)`.
-
-### Sentry
-
-Sentry включается только при наличии:
+Переменная:
 
 ```env
-SENTRY_DSN=
+DOCKER_GID=...
 ```
 
-Правила:
+должна совпадать с:
 
-- не хардкодить DSN в коде;
-- `send_default_pii=False`;
-- performance tracing по умолчанию выключен через `SENTRY_TRACES_SAMPLE_RATE=0`;
-- ошибки background-wrapper-ов отправлять через `capture_exception(error)`;
-- в тестах мокировать `capture_exception`.
+```bash
+stat -c '%g' /var/run/docker.sock
+```
+
+Нельзя копировать GID со staging на production вслепую.
+
+Перед deploy используется:
+
+```text
+deploy/check_docker_socket_gid.sh
+```
+
+Если добавляешь или меняешь production/staging deployment, не убирай эту preflight-проверку.
+
+---
+
+## Docker Compose
+
+Основные сервисы:
+
+```text
+db
+redis
+web
+worker
+gateway
+```
+
+`web`:
+
+- без Docker socket;
+- Django/Gunicorn;
+- producer Celery tasks.
+
+`worker`:
+
+- с Docker socket;
+- дополнительная группа `DOCKER_GID`;
+- Celery consumer;
+- Docker management commands.
+
+Redis в production не должен публиковаться наружу без отдельной причины. Локальная публикация `6379:6379` находится только в local override и нужна для Django/Celery, которые могут запускаться с host.
+
+---
 
 ## Management commands
 
-В проекте есть команды:
+Основные команды:
 
 ```bash
 python manage.py build_task_images
 python manage.py cleanup_task_containers
 python manage.py sync_training_tasks
 python manage.py detect_stuck_attempts
+python manage.py seed_stages
+python manage.py check_trainee_integrity
 ```
 
-`build_task_images` собирает Docker-образы заданий.
+Команды, которым Docker API не нужен, можно запускать через `web`.
 
-`cleanup_task_containers` удаляет старые контейнеры тренажёра.
+Docker-зависимые команды запускаем через `worker`:
 
-`sync_training_tasks` создаёт и обновляет задания в БД из `training_tasks`.
+```bash
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm --no-deps worker \
+  python manage.py build_task_images
+```
 
-`detect_stuck_attempts` восстанавливает зависшие фоновые статусы.
+Аналогично для `cleanup_task_containers`.
 
-Если меняешь Docker-логику, background lifecycle, структуру `training_tasks`, `task.json` или management command — добавляй/обновляй тесты.
+---
+
+## CI/CD правила
+
+Deploy staging выполняется только после зелёного tests job при push в `main`.
+
+Не возвращать host deployment шаги:
+
+```text
+pip install на сервере
+collectstatic на сервере
+systemctl restart ticket-sandbox
+```
+
+Dependencies и static входят в application image.
+
+Актуальный deploy должен сохранять последовательность:
+
+```text
+fetch exact commit
+check Docker socket GID
+compose config
+build web + worker
+start db
+migrate via web
+sync tasks via web
+build task images via worker
+start web + worker
+force-recreate gateway
+compose ps
+external smoke checks
+```
+
+Gateway пересоздаётся после web, потому что nginx внутри долгоживущего контейнера может сохранить старый IP пересозданного `web` и начать отдавать `502`.
+
+---
+
+## Healthchecks
+
+Healthchecks должны оставаться у:
+
+```text
+db
+redis
+web
+worker
+gateway
+```
+
+Worker healthcheck использует Celery ping.
+
+Не считай просто `Up` достаточной проверкой worker — нужен `healthy`.
+
+---
+
+## Уведомления
+
+### Telegram
+
+Telegram — побочный эффект, а не часть критического пути.
+
+Если credentials не заданы — уведомления выключены.
+
+Если Telegram API недоступен — пользовательский сценарий не должен падать.
+
+### Sentry
+
+Не хардкодить DSN.
+
+Если `SENTRY_DSN` пустой, Sentry не должен мешать запуску проекта.
+
+Ошибки background/Celery wrappers, которые ловятся вручную, можно отправлять через `capture_exception(error)`.
+
+---
 
 ## Тесты
 
-Тесты лежат в директории:
+Тесты не должны запускать реальные Docker-контейнеры или настоящий Redis/Celery broker для обычных unit/service tests.
+
+Docker-вызовы мокируются.
+
+Celery `.delay()` в service tests также мокируется, если тест проверяет постановку задачи в очередь.
+
+Примеры важных тестов:
 
 ```text
-sandbox/tests/
+start_environment_in_background → вызывает start_environment_task.delay
+restart_environment → вызывает restart_environment_task.delay
+start_attempt_check_in_background → атомарно ставит running и вызывает run_attempt_check_task.delay
+already running → Celery task не ставится
 ```
 
-Тесты не должны запускать реальные Docker-контейнеры.
-
-Docker-вызовы нужно мокировать.
-
-Внешние HTTP-вызовы, включая Telegram API, тоже нужно мокировать.
-
-Sentry `capture_exception` в тестах тоже мокируется.
-
-### Точечные проверки
+Точечные проверки:
 
 ```bash
-make test-terminal
-make test-actions
-make test-docker
-make test-dashboards
 python manage.py test sandbox.tests.test_environment_service
-python manage.py test sandbox.tests.test_checks_service
+python manage.py test sandbox.tests.test_check_service
+python manage.py test sandbox.tests.test_task_actions
 python manage.py test sandbox.tests.test_management_commands
-python manage.py test sandbox.tests.test_telegram_notifications
 ```
 
-Что проверяют группы:
+Полный прогон перед merge/deploy:
 
-```text
-make test-terminal   # terminal auth и terminal gateway
-make test-actions    # действия с попытками, check/restart/rerun
-make test-docker     # Docker service и management-команды
-make test-dashboards # дашборды стажёра и наставника
+```bash
+python manage.py test
 ```
 
-Полный `make validate` нужен после пачки изменений, перед ревью, архивом или деплоем.
-
-Во время разработки не нужно гонять полный набор после каждой мелкой правки. Достаточно запускать тесты по изменённой области.
+---
 
 ## Когда добавлять тесты
 
-Тесты нужно добавлять или обновлять, если меняется:
+Тесты нужно добавлять/обновлять, если меняется:
 
-- модель;
-- миграция;
+- модель или миграция;
 - доступ к очередям;
-- доступ к mentor dashboard;
-- логика открытия следующей задачи;
-- запуск задания;
-- перезапуск задания;
-- автопроверка;
+- mentor dashboard;
+- start/restart/check;
+- Celery task dispatch;
 - background lifecycle;
-- polling статусов;
+- polling;
 - watchdog;
 - `stuck_reason`;
-- создание `CheckRun`;
-- ручная проверка наставником;
-- прогресс по очереди;
-- баннер комментариев наставника;
-- бейдж «Ждут проверки»;
-- Telegram-уведомления;
-- Sentry capture;
-- healthcheck endpoint;
+- `CheckRun`;
+- ручная проверка;
+- Telegram/Sentry;
+- healthchecks;
 - Docker service;
-- management command.
+- management command;
+- CI/CD shell logic, если её можно проверить локально.
+
+---
 
 ## Локальная проверка
 
-Базовая проверка Django:
-
 ```bash
 python manage.py check
-```
-
-Проверка миграций:
-
-```bash
 python manage.py makemigrations --check --dry-run
+python manage.py test
 ```
 
-Запуск всех тестов приложения:
+Compose validation:
 
 ```bash
-python manage.py test sandbox
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.local.yml \
+  config --quiet
 ```
 
-Полная проверка:
+Проверка worker:
 
 ```bash
-make validate
+celery -A config inspect ping
+celery -A config inspect registered
 ```
 
-`make validate` должен проходить успешно перед тем, как отдавать проект на ревью, собирать архив или деплоить.
-
-## Работа с миграциями
-
-Если меняешь модели, нужно создать миграцию:
+Проверка Docker API внутри worker:
 
 ```bash
-python manage.py makemigrations
+docker exec training-platform-worker python -c "
+import docker
+print(docker.from_env().ping())
+"
 ```
 
-После этого проверить:
-
-```bash
-python manage.py migrate
-python manage.py makemigrations --check --dry-run
-python manage.py test sandbox
-```
-
-Не стоит вручную править уже применённые миграции, если проектом уже пользовались.
-
-## Работа со статикой
-
-Исходные CSS и JS лежат в:
-
-```text
-static/
-```
-
-Собранная статика может появляться в:
-
-```text
-staticfiles/
-```
-
-В проекте используется `ManifestStaticFilesStorage`, поэтому тесты настроены так, чтобы не требовать обязательный `collectstatic`.
-
-## Что не добавлять в архив
-
-Перед отправкой проекта на ревью не нужно включать:
-
-```text
-.venv
-__pycache__
-*.pyc
-db.sqlite3
-media
-.DS_Store
-.env
-staticfiles
-```
-
-Лучший вариант архива из git:
-
-```bash
-git archive \
-  --format=tar.gz \
-  --prefix=ticket-sandbox/ \
-  -o ../ticket-sandbox-review-$(date +%F).tar.gz \
-  HEAD
-```
-
-Так в архив попадут только файлы, которые реально находятся в git.
+---
 
 ## Перед push
 
-Обычно порядок такой:
+Обычно:
 
 ```bash
 git status --short
 git diff --stat
+git diff --check
 ```
 
-Точечные тесты по изменённой области.
+Затем точечные тесты и полный прогон.
 
-Потом:
-
-```bash
-make validate
-```
-
-Если всё зелёное:
+После зелёных проверок:
 
 ```bash
 git add ...
 git commit -m "Meaningful commit message"
-git push origin main
+git push
 ```
+
+Не пушить напрямую в `main`, если изменение идёт через feature/infra branch и PR.
+
+---
+
+## Перед merge в main
+
+Для инфраструктурных изменений обязательно:
+
+1. CI ветки зелёный.
+2. Изменения вручную проверены на staging.
+3. `web` не имеет Docker socket.
+4. `worker` работает non-root и имеет доступ к Docker API.
+5. `DOCKER_GID` staging соответствует реальному socket GID.
+6. `start`, `restart`, `check.sh` выполняются через worker.
+7. Gateway/terminal работают после пересоздания web.
+8. После этого создаётся PR в `main` и выполняется merge.
+9. Push/merge в `main` должен пройти автоматический staging deploy.

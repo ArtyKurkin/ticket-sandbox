@@ -1,12 +1,16 @@
 # ARCHITECTURE
 
-Этот файл описывает архитектуру Ticket Sandbox: как связаны Django, очереди, учебные задания, Docker-контейнеры, ttyd-терминал, автопроверка, ручная проверка наставником, background lifecycle, watchdog и мониторинг.
+Этот файл описывает архитектуру Training Platform с акцентом на Ticket Sandbox: Django, Redis, Celery, Docker-контейнеры, terminal gateway, автопроверку, ручную проверку наставником, watchdog и CI/CD.
 
 ## Общая идея
 
-Ticket Sandbox — учебная тикетница для практики стажёров технической поддержки.
+Training Platform объединяет несколько внутренних Django-приложений:
 
-Проект имитирует полный цикл работы с клиентским обращением:
+- `sandbox` — Ticket Sandbox;
+- `traineediary` — сопровождение адаптации;
+- `assessment` — оценка знаний.
+
+Ticket Sandbox имитирует полный цикл работы с клиентским обращением:
 
 1. Стажёр открывает учебный тикет.
 2. Запускает изолированное Docker-окружение.
@@ -25,7 +29,159 @@ check.sh проверяет техническую часть
 
 Если техническая часть уже успешно пройдена, доработка текста наставником не требует повторного запуска Docker-контейнера и `check.sh`.
 
-## Основной поток
+---
+
+## Runtime-архитектура
+
+```text
+Browser
+  |
+  v
+Host nginx :443
+  |
+  v
+127.0.0.1:8080
+  |
+  v
+Docker nginx gateway
+  |
+  +----------------------> Django / Gunicorn (web)
+  |                            |
+  |                            +------> PostgreSQL
+  |                            |
+  |                            +------> Redis
+  |                                        |
+  |                                        v
+  |                                   Celery worker
+  |                                        |
+  |                                        v
+  |                                   Docker daemon
+  |                                        |
+  |                                        +--> task container
+  |                                        +--> terminal container
+  |
+  +----------------------> terminal container / ttyd
+                               |
+                               v
+                           docker exec
+                               |
+                               v
+                         task container
+```
+
+Основные Compose-сервисы:
+
+```text
+db       PostgreSQL 16
+redis    Redis 7
+web      Django + Gunicorn
+worker   Celery
+gateway  nginx
+```
+
+Все основные сервисы подключены к Docker network:
+
+```text
+training-platform-runtime
+```
+
+Task-контейнеры по-прежнему запускаются в обычной Docker bridge-сети, а terminal-контейнер подключается к `training-platform-runtime`, чтобы gateway мог обращаться к нему по Docker DNS.
+
+---
+
+## Разделение ответственности web и worker
+
+### web
+
+`training-platform-web` отвечает за:
+
+- HTTP request/response;
+- авторизацию;
+- dashboard;
+- изменение бизнес-состояния в PostgreSQL;
+- постановку фоновых задач в Redis;
+- terminal auth;
+- polling endpoints.
+
+`web` не имеет `/var/run/docker.sock` и не должен напрямую создавать, удалять или проверять Docker-контейнеры.
+
+### worker
+
+`training-platform-worker` отвечает за длительные Docker-операции:
+
+- запуск окружения;
+- restart окружения;
+- запуск `check.sh`;
+- Docker management commands, когда им нужен Docker API.
+
+Worker получает `/var/run/docker.sock` и работает через Python Docker SDK.
+
+### Redis
+
+Redis используется как broker для Celery.
+
+Celery result backend сейчас отключён. Пользовательское состояние хранится в PostgreSQL, а не в Celery result backend.
+
+---
+
+## Non-root контейнеры
+
+`web` и `worker` запускаются от пользователя:
+
+```text
+uid=10001(app)
+gid=10001(app)
+```
+
+В Dockerfile код приложения копируется так:
+
+```dockerfile
+COPY --chown=app:app . .
+```
+
+и runtime переключается на:
+
+```dockerfile
+USER app
+```
+
+Это исключает запуск Django/Gunicorn и Celery от root.
+
+### Доступ worker к Docker socket
+
+Docker socket на Linux обычно имеет права вида:
+
+```text
+srw-rw---- root:<docker_gid> /var/run/docker.sock
+```
+
+Worker получает дополнительную группу через:
+
+```yaml
+group_add:
+  - "${DOCKER_GID:?DOCKER_GID must match /var/run/docker.sock GID}"
+```
+
+`DOCKER_GID` задаётся в env конкретного Docker host.
+
+Проверить значение:
+
+```bash
+stat -c '%g' /var/run/docker.sock
+```
+
+Проверенные значения:
+
+```text
+Mac / Docker Desktop: 0
+staging Linux:        113
+```
+
+Перед deploy выполняется `deploy/check_docker_socket_gid.sh`. Если значение в `.env.prod` не совпадает с реальным GID socket, deploy останавливается до запуска приложения.
+
+---
+
+## Основной поток Ticket Sandbox
 
 ```text
 Пользователь
@@ -34,11 +190,11 @@ Django dashboard
   ↓
 TaskAttempt
   ↓
-background start/restart/check
+Redis
   ↓
-Docker task container
+Celery worker
   ↓
-ttyd terminal container
+Docker task + terminal containers
   ↓
 check.sh
   ↓
@@ -49,42 +205,37 @@ TaskAttempt.technical_passed_at
 ручная проверка ответа наставником, если требуется
 ```
 
+---
+
 ## Основные сущности
 
 ### Queue
 
 Очередь учебных заданий.
 
-Очередь определяет:
-
-- какие задания видит пользователь;
-- где искать Docker-окружение задания;
-- в каком порядке показывать задачи;
-- к какому сценарию обучения относится задание.
-
 Используемые очереди:
 
-- `candidate` — задания для кандидатов;
-- `l1` — основная очередь для стажёров, которые готовятся к работе на L1;
-- `l2` — будущие более сложные задания;
-- `admin` — служебная очередь.
+```text
+candidate
+l1
+l2
+admin
+```
 
-Отдельной очереди `trainee` в проекте нет.
+Отдельной очереди `trainee` нет.
 
 ### TraineeProfile
 
-Профиль пользователя в тренажёре.
-
 Хранит уровень пользователя:
 
-- `candidate`;
-- `l1`;
-- `l2`;
-- `admin`.
+```text
+candidate
+l1
+l2
+admin
+```
 
-Профиль создаётся автоматически через signal при создании пользователя.
-
-Права наставника не хранятся отдельным полем в профиле. Наставник определяется через:
+Наставник определяется через:
 
 ```python
 User.is_staff
@@ -100,75 +251,49 @@ User.is_staff
 Task.queue
 ```
 
-`Task.slug` уникален внутри очереди, но одинаковый slug может существовать в разных очередях.
-
-Путь к Docker-окружению строится по схеме:
+Путь к Docker-окружению:
 
 ```text
 training_tasks/<queue_slug>/<task_slug>
 ```
 
-Ключевое поле для ручной проверки:
+Ключевое поле ручной проверки:
 
 ```python
 Task.requires_manual_review
 ```
 
-Если `requires_manual_review = True`, после успешной технической проверки ответ клиенту должен проверить наставник.
-
-Если `requires_manual_review = False`, достаточно успешной технической проверки.
-
 ### TaskAttempt
 
-Попытка прохождения задания конкретным пользователем.
+`TaskAttempt` хранит состояние работы пользователя:
 
-Именно `TaskAttempt`, а не `Task`, хранит состояние работы:
+- `status`;
+- `environment_status`;
+- `check_status`;
+- `attempts_count`;
+- `restart_count`;
+- container/terminal runtime fields;
+- `attempt_number`;
+- `is_current`;
+- `last_check_output`;
+- `technical_passed_at`;
+- mentor feedback/decision;
+- timestamps;
+- `stuck_reason`.
 
-- статус попытки;
-- ответ клиенту;
-- внутренний комментарий;
-- количество проверок;
-- количество перезапусков;
-- данные task-контейнера;
-- данные terminal-контейнера;
-- номер попытки `attempt_number`;
-- признак текущей попытки `is_current`;
-- вывод последней проверки;
-- дату успешной технической проверки;
-- комментарий наставника;
-- решение наставника;
-- состояние фоновой автопроверки;
-- состояние фонового запуска/перезапуска окружения;
-- явную причину зависания background-операции.
-
-Ключевое поле технической сдачи:
+Ключевой критерий технической сдачи:
 
 ```python
-TaskAttempt.technical_passed_at
+TaskAttempt.technical_passed_at is not None
 ```
-
-Если `technical_passed_at` заполнено:
-
-- техническая часть считается выполненной;
-- стажёр может переходить к следующему заданию;
-- наставник проверяет только текст ответа;
-- при доработке текста Docker и `check.sh` повторно не нужны.
 
 ### CheckRun
 
-`CheckRun` хранит историю запусков автопроверки.
+Каждый запуск `check.sh` создаёт отдельную запись `CheckRun`.
 
-Каждый запуск `check.sh` создаёт отдельную запись.
+`CheckRun` хранит историю запусков, а `TaskAttempt.last_check_output` — только последний результат для интерфейса.
 
-`CheckRun` хранит:
-
-- связанную `TaskAttempt`;
-- время запуска;
-- результат проверки;
-- exit code;
-- вывод проверки.
-
-`TaskAttempt.last_check_output` нужен для быстрого отображения последнего результата, но история должна оставаться в `CheckRun`.
+---
 
 ## Доступы к очередям
 
@@ -179,57 +304,31 @@ l2        → l1, l2
 admin     → candidate, l1, l2, admin
 ```
 
-Наставники и администраторы, у которых `User.is_staff = True`, попадают в mentor dashboard.
+Наставники и администраторы с `User.is_staff=True` попадают в mentor dashboard.
 
-Обычные пользователи попадают в trainee dashboard.
-
-## Последовательность заданий
-
-Задания внутри очереди идут по полю `order`.
-
-Первая задача доступна сразу.
-
-Следующая задача становится доступной только после того, как предыдущая задача в этой же очереди была успешно пройдена технически.
-
-Критерий технического прохождения:
-
-```python
-TaskAttempt.technical_passed_at is not None
-```
-
-Это важно, потому что ручная проверка наставника относится к качеству ответа клиенту, а не к техническому прохождению задания.
+---
 
 ## Статусы попытки
 
-Основной lifecycle `TaskAttempt.status`:
+Основной lifecycle:
 
 ```text
 new
-  ↓
+ ↓
 in_progress
-  ↓
+ ↓
 on_review / failed / passed
 ```
 
-Смысл статусов:
+`technical_passed_at` хранится отдельно и не должен зависеть от ручной проверки текста.
 
-- `new` — попытка создана, окружение ещё не запущено;
-- `in_progress` — стажёр работает или должен заполнить текст после технической сдачи;
-- `on_review` — техническая часть пройдена, ответ клиента ожидает ручной проверки наставника;
-- `failed` — автопроверка не прошла, окружение упало или наставник отправил ответ на доработку;
-- `passed` — задание принято.
-
-Техническая сдача фиксируется отдельно:
-
-```python
-technical_passed_at
-```
+---
 
 ## Background lifecycle окружения
 
-Запуск и перезапуск окружения выполняются через background thread.
+Запуск и restart выполняются через Celery.
 
-Для этого используется отдельное поле:
+Поле состояния:
 
 ```python
 TaskAttempt.environment_status
@@ -238,11 +337,11 @@ TaskAttempt.environment_status
 Значения:
 
 ```text
-idle        # окружение не запускалось или сброшено
-starting    # запуск окружения выполняется в фоне
-ready       # окружение готово
-restarting  # перезапуск окружения выполняется в фоне
-error       # запуск или перезапуск завершился ошибкой
+idle
+starting
+ready
+restarting
+error
 ```
 
 Поля времени:
@@ -252,27 +351,57 @@ environment_started_at
 environment_finished_at
 ```
 
-Когда стажёр нажимает «Начать работу»:
+### Start
+
+Когда пользователь нажимает «Начать работу»:
 
 1. Django атомарно переводит попытку в `environment_status=starting`.
-2. Запускает background thread.
-3. Пользователь возвращается на страницу задания.
-4. Frontend polling опрашивает endpoint статуса окружения.
-5. После успешного запуска появляется терминал.
+2. Django вызывает `start_environment_in_background()`.
+3. Wrapper ставит Celery task `sandbox.start_environment` в Redis.
+4. Celery worker получает `attempt_id`.
+5. Worker загружает `TaskAttempt` из PostgreSQL.
+6. Worker создаёт task-контейнер.
+7. Worker создаёт terminal-контейнер.
+8. Worker ждёт готовность terminal.
+9. Попытка переводится в `environment_status=ready`.
+10. Frontend polling показывает терминал пользователю.
 
-Перезапуск работает аналогично через `environment_status=restarting`.
+### Restart
 
-Защита от гонок:
+Restart работает через задачу:
 
-- нельзя начать запуск, если окружение уже `starting` или `restarting`;
-- нельзя перезапустить, если окружение уже `starting` или `restarting`;
-- при перезапуске сбрасываются `finished_at`, `check_status`, `check_started_at`, `check_finished_at` и `stuck_reason`.
+```text
+sandbox.restart_environment
+```
+
+При restart:
+
+- старые task/terminal-контейнеры удаляются;
+- создаются новые;
+- увеличивается `restart_count`;
+- сбрасываются `finished_at`, check state/timestamps и `stuck_reason`;
+- окружение снова переходит в `ready`.
+
+### Ошибки
+
+При ошибке background wrapper:
+
+- исключение отправляется в Sentry через `capture_exception`, если Sentry настроен;
+- `environment_status` переводится в `error`;
+- `TaskAttempt.status` переводится в `failed`;
+- заполняется понятный `last_check_output`.
+
+---
 
 ## Background lifecycle автопроверки
 
-Автопроверка `check.sh` тоже выполняется в background thread.
+Автопроверка выполняется через Celery task:
 
-Для этого используется поле:
+```text
+sandbox.run_attempt_check
+```
+
+Поле состояния:
 
 ```python
 TaskAttempt.check_status
@@ -281,40 +410,40 @@ TaskAttempt.check_status
 Значения:
 
 ```text
-idle     # проверка не запускалась или сброшена
-running  # check.sh выполняется в фоне
-passed   # техническая проверка пройдена
-failed   # check.sh отработал и вернул ошибку
-error    # техническая ошибка запуска проверки или фонового процесса
+idle
+running
+passed
+failed
+error
 ```
 
-Поля времени:
+Алгоритм:
 
-```python
-check_started_at
-check_finished_at
-```
+1. Django атомарно вызывает `try_mark_attempt_check_running()`.
+2. Только один запрос может перевести попытку в `running`.
+3. Увеличивается `attempts_count`.
+4. Django ставит Celery task в Redis.
+5. Worker получает `attempt_id` и `user_id`.
+6. Worker запускает `check.sh` через Docker API.
+7. Создаётся `CheckRun`.
+8. Обновляются `check_status`, `last_check_output`, `check_finished_at`.
+9. При успехе заполняется `technical_passed_at`.
+10. При успешной технической сдаче временные task/terminal-контейнеры удаляются.
 
-Когда стажёр запускает автопроверку:
+Защита от двойного клика сохраняется: при `check_status=running` вторая задача не ставится в очередь.
 
-1. Django атомарно переводит попытку в `check_status=running`.
-2. Увеличивает `attempts_count`.
-3. Запускает background thread.
-4. Frontend polling опрашивает endpoint статуса проверки.
-5. После завершения обновляется `check_status` и `last_check_output`.
+Celery task считается успешно выполненной, даже если пользовательский `check.sh` вернул exit code `1`: это нормальный бизнес-результат проверки, а не ошибка Celery-инфраструктуры.
 
-Защита от двойного клика:
-
-- повторный запуск не стартует второй background thread, если `check_status=running`.
+---
 
 ## Frontend polling
 
-На странице задания есть polling для:
+Polling используется для:
 
-- статуса окружения;
-- статуса автопроверки.
+- `environment_status`;
+- `check_status`.
 
-Polling нужен, чтобы пользователь не ждал долгий HTTP-запрос и видел промежуточные состояния:
+Пользователь не ждёт длительный HTTP-запрос и видит промежуточные состояния:
 
 ```text
 Окружение запускается...
@@ -322,118 +451,82 @@ Polling нужен, чтобы пользователь не ждал долги
 Проверка выполняется...
 ```
 
-Для сетевых ошибок используется backoff по количеству подряд неудачных запросов. После нескольких ошибок polling останавливается и предлагает обновить страницу вручную.
+---
 
-## Watchdog зависших background-операций
+## Watchdog зависших операций
 
-Так как текущая реализация использует `threading.Thread` внутри Django/gunicorn-процесса, поток может оборваться при:
+`detect_stuck_attempts` сохраняется и после перехода на Celery.
 
-- рестарте сервиса;
-- OOM;
-- падении worker-процесса;
-- `gunicorn --max-requests`;
-- деплое.
+Теперь его задача — восстановить состояние БД, если Celery worker, Docker daemon или конкретная операция прервались до финального обновления `TaskAttempt`.
 
-Для recovery добавлена management command:
+Команда:
 
 ```bash
 python manage.py detect_stuck_attempts
 ```
 
-Команда ищет попытки, которые слишком долго находятся в состояниях:
+Dry-run:
+
+```bash
+python manage.py detect_stuck_attempts --dry-run
+```
+
+Она ищет старые состояния:
 
 ```text
 environment_status = starting / restarting
 check_status = running
 ```
 
-Дефолтный порог:
+и переводит зависшую попытку в `error`, заполняя `stuck_reason`.
 
-```text
-10 минут
-```
+Watchdog не должен определять зависание по тексту `last_check_output`.
 
-Безопасный dry-run:
-
-```bash
-python manage.py detect_stuck_attempts --dry-run
-```
-
-При обнаружении зависания команда:
-
-- переводит окружение или проверку в `error`;
-- переводит попытку в `failed`;
-- заполняет `environment_finished_at` или `check_finished_at`;
-- записывает понятное сообщение в `last_check_output`;
-- записывает явную причину в `stuck_reason`;
-- отправляет Telegram-уведомление наставникам, если Telegram настроен.
-
-Явная причина хранится в:
-
-```python
-TaskAttempt.stuck_reason
-```
-
-Значения:
-
-```text
-""            # не зависала
-environment   # завис запуск или перезапуск окружения
-check         # зависла автопроверка
-```
-
-Mentor dashboard считает зависшие попытки через `stuck_reason`, а не через текст `last_check_output`.
-
-## Cron для watchdog
-
-Пример cron лежит в:
-
-```text
-deploy/cron/detect_stuck_attempts.example
-```
-
-Рекомендуемый запуск:
-
-```cron
-*/5 * * * * cd /opt/ticket-sandbox && /opt/ticket-sandbox/.venv/bin/python manage.py detect_stuck_attempts >> /var/log/ticket-sandbox/detect_stuck_attempts.log 2>&1
-```
-
-Каждые 5 минут при пороге 10 минут — нормальный баланс между быстрым восстановлением и защитой от ложных срабатываний.
+---
 
 ## Terminal gateway
 
-Terminal gateway включается переменной:
+Production/staging работают в режиме:
 
 ```env
 TERMINAL_GATEWAY_ENABLED=true
+TERMINAL_NETWORK_MODE=docker_network
+TERMINAL_DOCKER_NETWORK=training-platform-runtime
 ```
 
-При включенном gateway `TaskAttempt.terminal_url` строится как внутренний путь:
+Terminal URL:
 
 ```text
-/terminal/<attempt_id>/<port>/
+/terminal/<attempt_id>/
 ```
 
-Запросы принимает nginx.
+Схема:
 
-Перед проксированием WebSocket-соединения nginx выполняет:
-
-```nginx
-auth_request /_terminal_auth;
+```text
+Browser
+  ↓
+nginx gateway /terminal/<attempt_id>/
+  ↓
+auth_request /_terminal_auth
+  ↓
+Django /terminal-auth/
+  ↓
+X-Terminal-Upstream: <terminal-container>:7681
+  ↓
+nginx proxy / WebSocket
+  ↓
+ttyd
 ```
 
-Django view `/terminal-auth/` проверяет:
+Django проверяет:
 
 - пользователь авторизован;
 - попытка существует;
-- пользователь является владельцем попытки или имеет `User.is_staff=True`;
-- запрошенный порт совпадает с `TaskAttempt.terminal_port`;
-- terminal-контейнер существует;
-- `terminal_url` не пустой;
-- попытка не закрыта технически;
+- пользователь — владелец попытки или `User.is_staff=True`;
+- terminal runtime заполнен;
 - попытка доступна пользователю.
 
-Результаты:
+Результаты auth:
 
 ```text
 204 → доступ разрешён
@@ -441,249 +534,212 @@ Django view `/terminal-auth/` проверяет:
 403 → доступ запрещён
 ```
 
-Terminal-контейнер публикует ttyd только на localhost:
+В Docker network режиме `terminal_port` может быть `NULL`, а отдельный диапазон host-портов `20000–30000` не требуется.
 
-```python
-ports = {"7681/tcp": ("127.0.0.1", port)}
-```
+Код сохраняет legacy-совместимость с `host_port`, но staging/новая production-схема используют `docker_network`.
 
-Basic Auth для ttyd не используется.
-
-Если наставник с `User.is_staff=True` открывает терминал стажёра, пишется audit-событие:
-
-```text
-mentor_terminal_access
-```
+---
 
 ## Автопроверка и вывод для стажёра
-
-Автопроверка отвечает только за техническую часть задания.
 
 После успешного `check.sh`:
 
 - создаётся `CheckRun`;
 - заполняется `technical_passed_at`;
 - `check_status` становится `passed`;
-- task-контейнер и terminal-контейнер удаляются;
-- данные контейнеров очищаются в `TaskAttempt`;
-- стажёру показывается только вывод `check.sh`.
+- task/terminal-контейнеры удаляются;
+- runtime-поля очищаются;
+- стажёру показывается только полезный вывод `check.sh`.
 
-Технический вывод удаления контейнеров не показывается стажёру. Он логируется через `sandbox.terminal`, чтобы интерфейс не засорялся инфраструктурными деталями.
+Инфраструктурный cleanup логируется, но не показывается стажёру.
+
+---
 
 ## Ручная проверка наставником
-
-Ручная проверка используется для оценки ответа клиенту.
-
-Логика:
 
 ```text
 check.sh успешен
   ↓
 technical_passed_at заполнен
   ↓
-если Task.requires_manual_review=True
+Task.requires_manual_review=True
   ↓
-стажёр заполняет client_answer и trainee_report
+client_answer + trainee_report
   ↓
-попытка переходит в on_review
+on_review
   ↓
-наставник проверяет client_answer
+mentor review
 ```
 
-Наставник может:
+При доработке ответа техническая сдача не сбрасывается.
 
-- принять ответ;
-- отправить ответ на доработку;
-- оставить комментарий.
-
-Поля:
-
-```python
-mentor_feedback
-mentor_decision
-mentor_reviewed_by
-mentor_reviewed_at
-mentor_feedback_seen_at
-```
-
-Если наставник отправил ответ на доработку:
-
-- стажёр правит только текст;
-- техническая часть не сбрасывается;
-- Docker-контейнер не нужно запускать заново;
-- `check.sh` не нужно запускать повторно.
+---
 
 ## Повторные тренировочные попытки
 
-Если стажёр хочет пройти задание заново после успешной технической сдачи, создаётся отдельная тренировочная попытка.
+После успешной технической сдачи restart текущей попытки блокируется.
 
-Правила:
+Для повторного прохождения создаётся новая тренировочная попытка:
 
-- новая попытка получает `attempt_number > 1`;
+- `attempt_number > 1`;
 - новая попытка становится `is_current=True`;
-- предыдущая попытка становится исторической;
-- дополнительная попытка не откатывает прогресс;
-- дополнительная попытка не попадает в mentor dashboard как зачётная.
+- предыдущая становится исторической;
+- прогресс не откатывается;
+- дополнительная попытка не считается зачётной для mentor dashboard.
 
-## Исторические попытки
-
-Историческая попытка — это попытка, у которой `is_current=False`.
-
-Она открывается в read-only режиме:
-
-- нет кнопок start/restart/check;
-- терминал недоступен;
-- формы ответа и комментария не редактируются;
-- backend блокирует POST-действия.
+---
 
 ## Cleanup контейнеров
 
-Для удаления старых незавершённых контейнеров используется команда:
+Команда:
 
 ```bash
 python manage.py cleanup_task_containers
 ```
 
-Безопасная проверка:
+Dry-run:
 
 ```bash
 python manage.py cleanup_task_containers --dry-run
 ```
 
-Cleanup не должен трогать попытки с заполненным:
+Так как команда использует Docker API, в контейнерной production/staging-схеме её нужно запускать через `worker`:
 
-```python
-technical_passed_at
+```bash
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm --no-deps worker \
+  python manage.py cleanup_task_containers --dry-run
 ```
 
-При cleanup сбрасываются:
+---
 
-- данные task-контейнера;
-- данные terminal-контейнера;
-- `environment_status`;
-- timestamps окружения;
-- `check_status`;
-- timestamps автопроверки;
-- `stuck_reason`.
-
-## Telegram-уведомления
+## Telegram
 
 Telegram — побочный эффект, а не критический путь.
 
-Если не заданы:
-
-```env
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHAT_ID=
-```
-
-уведомления считаются выключенными.
+Если credentials не заданы, уведомления выключены.
 
 Если Telegram API недоступен, основной пользовательский сценарий не должен падать.
 
-Уведомления отправляются через `transaction.on_commit(...)`, когда это связано с изменением состояния в БД.
-
-События:
-
-- попытка отправлена на ручную проверку;
-- стажёр технически прошёл все доступные активные задания;
-- watchdog нашёл зависшую попытку.
+---
 
 ## Sentry
 
-Sentry подключается только если задан:
+Sentry включается только при наличии:
 
 ```env
 SENTRY_DSN=
 ```
 
-Дополнительные переменные:
+Ошибки Celery/background wrappers отправляются через `capture_exception(error)` в тех местах, где они обрабатываются вручную.
 
-```env
-SENTRY_ENVIRONMENT=staging
-SENTRY_RELEASE=
-SENTRY_TRACES_SAMPLE_RATE=0
+---
+
+## Healthchecks
+
+Используются healthchecks для:
+
+```text
+db
+redis
+web
+worker
+gateway
 ```
 
-По умолчанию performance tracing выключен:
-
-```env
-SENTRY_TRACES_SAMPLE_RATE=0
-```
-
-Ошибки Django ловятся через Django integration.
-
-Ошибки background-wrapper-ов дополнительно отправляются через:
-
-```python
-capture_exception(error)
-```
-
-Это важно для фоновых потоков, потому что исключение может не попасть в обычный request/response lifecycle.
-
-## Healthcheck
-
-Endpoint:
+Django:
 
 ```text
 /healthz/
 ```
 
-Возвращает JSON со статусом `ok`.
+Celery worker проверяется через `celery inspect ping`.
 
-Используется для smoke-check после staging deploy.
+---
 
 ## CI/CD
 
 GitHub Actions выполняет CI и staging deploy.
 
-CI:
+### CI
 
 ```text
 makemigrations --check --dry-run
-check
-check --deploy
+python manage.py check
+python manage.py check --deploy
 migrate
 sync_training_tasks --dry-run --strict
-test sandbox
+python manage.py test sandbox traineediary assessment
 ```
 
-Staging deploy:
+### Staging deploy
 
 ```text
-pull latest code
-install dependencies
-migrate
-sync_training_tasks --strict
-build_task_images
-collectstatic
-restart service
-smoke-check /
-smoke-check /healthz/
-smoke-check /admin/login/
+fetch exact target commit
+  ↓
+check Docker socket GID
+  ↓
+docker compose config
+  ↓
+build web + worker
+  ↓
+start/wait db
+  ↓
+migrate via web
+  ↓
+sync_training_tasks via web
+  ↓
+build_task_images via worker
+  ↓
+start/wait web + worker
+  ↓
+force-recreate gateway
+  ↓
+compose ps
+  ↓
+HTTPS smoke-check
 ```
+
+Gateway пересоздаётся после web, чтобы nginx не использовал старый IP пересозданного контейнера.
+
+---
+
+## Management commands и Docker-доступ
+
+Команды, которым Docker API не нужен, можно запускать через `web`.
+
+Команды, которым нужен Docker daemon, запускаются через `worker`:
+
+```text
+build_task_images
+cleanup_task_containers
+```
+
+`web` не должен получать Docker socket ради management command.
+
+---
 
 ## Текущие ограничения
 
-Текущая background-реализация через `threading.Thread` подходит как промежуточный этап, но не заменяет полноценную очередь задач.
+- Redis используется как единичный broker без отдельной HA-схемы.
+- Celery result backend отключён.
+- Для start/restart/check пока нет отдельных retry/time-limit политик Celery сверх существующих application/Docker timeout-механизмов.
+- Watchdog по-прежнему основан на состояниях и timestamps в PostgreSQL.
+- Docker socket остаётся высокопривилегированным интерфейсом; он изолирован от web, но worker и terminal runtime требуют аккуратного контроля.
+- Часть внутренних идентификаторов всё ещё использует legacy-префикс `ticket-sandbox`.
 
-Ограничения:
-
-- фоновые потоки живут внутри процесса Django/gunicorn;
-- при рестарте сервиса поток может оборваться;
-- watchdog восстанавливает состояние в БД, но не завершает фактически оборванную работу;
-- при росте нагрузки Docker-операции лучше вынести в Celery + Redis.
+---
 
 ## Следующие архитектурные шаги
 
-Рекомендуемый порядок:
-
-1. Пройти полный staging checklist на реальных L1-заданиях.
-2. Проверить поведение background lifecycle под реальным staging-deploy/restart.
-3. Настроить Sentry DSN на staging.
-4. Настроить cron для `detect_stuck_attempts` и `cleanup_task_containers`.
-5. Проверить реальные Telegram-уведомления, если они нужны наставникам.
-6. Вынести Docker-операции в Celery + Redis.
-7. Улучшить обработку отдельных ошибок Docker API.
-8. Добавить аналитику по стажёрам и заданиям.
-9. Добавить продуктовые фичи: hints, SLA-таймер, структурированная оценка ответа.
+1. Подготовить production-сервер по той же Compose-схеме, что staging.
+2. Перед production deploy определить `DOCKER_GID` на новом host.
+3. Проверить backup/restore всей PostgreSQL-базы.
+4. Добавить осознанные retry/time-limit правила для Celery tasks.
+5. Проверить watchdog при остановке/restart worker во время задачи.
+6. После периода наблюдения удалить legacy systemd/host deployment.
+7. При необходимости добавить `celery beat` для периодических задач.
+8. Постепенно переименовать legacy `ticket-sandbox` identifiers.
