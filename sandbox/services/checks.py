@@ -1,5 +1,4 @@
 import logging
-import threading
 from dataclasses import dataclass
 
 from sentry_sdk import capture_exception
@@ -52,7 +51,8 @@ def try_mark_attempt_check_running(*, attempt: TaskAttempt) -> bool:
     Атомарно переводит попытку в running.
 
     Нужна защита от двойного клика / двух одновременных POST:
-    только один запрос должен реально увеличить attempts_count и запустить thread.
+    только один запрос должен реально увеличить attempts_count
+    и поставить фоновую задачу в очередь.
     """
     now = timezone.now()
 
@@ -84,8 +84,8 @@ def run_attempt_check(
     """
     Запускает техническую автопроверку попытки.
 
-    Пока выполняется синхронно, но логика уже вынесена из view,
-    чтобы следующим шагом запускать её в background thread.
+    Функция содержит основную синхронную логику проверки
+    и может выполняться из Celery worker.
     """
     if mark_as_running:
         mark_attempt_check_running(attempt=attempt)
@@ -280,13 +280,14 @@ def start_attempt_check_in_background(
     *,
     attempt: TaskAttempt,
     user_id: int,
-) -> threading.Thread | None:
+):
     """
-    Атомарно помечает попытку как running и запускает автопроверку в отдельном thread.
-
-    Это промежуточное решение до Celery/Redis.
+    Атомарно помечает попытку как running
+    и ставит автопроверку в очередь Celery.
     """
-    was_marked_running = try_mark_attempt_check_running(attempt=attempt)
+    was_marked_running = try_mark_attempt_check_running(
+        attempt=attempt,
+    )
 
     if not was_marked_running:
         terminal_logger.info(
@@ -296,18 +297,12 @@ def start_attempt_check_in_background(
         )
         return None
 
-    thread = threading.Thread(
-        target=_run_attempt_check_background,
-        kwargs={
-            "attempt_id": attempt.id,
-            "user_id": user_id,
-        },
-        name=f"attempt-check-{attempt.id}",
-        daemon=True,
-    )
-    thread.start()
+    from sandbox.tasks import run_attempt_check_task
 
-    return thread
+    return run_attempt_check_task.delay(
+        attempt.id,
+        user_id,
+    )
 
 
 def _run_attempt_check_background(

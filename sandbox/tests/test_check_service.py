@@ -37,12 +37,13 @@ class CheckServiceTests(SandboxTestCase):
             container_name="task-container",
         )
 
-    @patch("sandbox.services.checks.threading.Thread")
-    def test_start_attempt_check_in_background_marks_attempt_running_and_starts_thread(
+    @patch("sandbox.tasks.run_attempt_check_task.delay")
+    def test_start_attempt_check_in_background_marks_attempt_running_and_queues_celery_task(
         self,
-        thread_mock,
+        delay_mock,
     ):
-        thread_instance = thread_mock.return_value
+        celery_result = object()
+        delay_mock.return_value = celery_result
 
         result = start_attempt_check_in_background(
             attempt=self.attempt,
@@ -51,7 +52,10 @@ class CheckServiceTests(SandboxTestCase):
 
         self.attempt.refresh_from_db()
 
-        self.assertEqual(self.attempt.status, TaskAttempt.Status.IN_PROGRESS)
+        self.assertEqual(
+            self.attempt.status,
+            TaskAttempt.Status.IN_PROGRESS,
+        )
         self.assertEqual(
             self.attempt.check_status,
             TaskAttempt.CheckStatus.RUNNING,
@@ -59,11 +63,16 @@ class CheckServiceTests(SandboxTestCase):
         self.assertEqual(self.attempt.attempts_count, 1)
         self.assertIsNotNone(self.attempt.check_started_at)
         self.assertIsNone(self.attempt.check_finished_at)
-        self.assertEqual(self.attempt.last_check_output, CHECK_STARTED_OUTPUT)
+        self.assertEqual(
+            self.attempt.last_check_output,
+            CHECK_STARTED_OUTPUT,
+        )
 
-        thread_mock.assert_called_once()
-        thread_instance.start.assert_called_once()
-        self.assertEqual(result, thread_instance)
+        delay_mock.assert_called_once_with(
+            self.attempt.id,
+            self.user.id,
+        )
+        self.assertIs(result, celery_result)
 
     @patch("sandbox.services.checks.check_task_container")
     def test_run_attempt_check_without_mark_as_running_does_not_increment_attempts_count(
@@ -342,10 +351,10 @@ class CheckServiceTests(SandboxTestCase):
             TaskAttempt.CheckStatus.RUNNING,
         )
 
-    @patch("sandbox.services.checks.threading.Thread")
-    def test_start_attempt_check_in_background_does_not_start_thread_when_already_running(
+    @patch("sandbox.tasks.run_attempt_check_task.delay")
+    def test_start_attempt_check_in_background_does_not_queue_task_when_already_running(
         self,
-        thread_mock,
+        delay_mock,
     ):
         self.attempt.check_status = TaskAttempt.CheckStatus.RUNNING
         self.attempt.attempts_count = 1
@@ -365,7 +374,7 @@ class CheckServiceTests(SandboxTestCase):
 
         self.assertIsNone(result)
         self.assertEqual(self.attempt.attempts_count, 1)
-        thread_mock.assert_not_called()
+        delay_mock.assert_not_called()
 
     def test_try_mark_attempt_check_running_replaces_previous_check_output(self):
         self.attempt.status = TaskAttempt.Status.FAILED
