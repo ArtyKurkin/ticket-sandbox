@@ -135,6 +135,10 @@ jobs:
             "git fetch origin main && git reset --hard ${{ github.sha }}"
 
           run_compose_step \
+            "Check Docker socket GID" \
+            "sh deploy/check_docker_socket_gid.sh .env.prod"
+
+          run_compose_step \
             "Validate Docker Compose config" \
             "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml config --quiet"
 
@@ -160,7 +164,11 @@ jobs:
 
           run_compose_step \
             "Start application" \
-            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --wait --wait-timeout 60 web worker gateway"
+            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --wait --wait-timeout 60 web worker"
+
+          run_compose_step \
+            "Recreate gateway" \
+            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --wait --wait-timeout 60 gateway"
 
           run_compose_step \
             "Show Docker Compose status" \

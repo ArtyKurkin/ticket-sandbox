@@ -6,6 +6,9 @@ ENV PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
+RUN groupadd --gid 10001 app \
+    && useradd --uid 10001 --gid app --create-home app
+
 COPY requirements.txt .
 
 RUN pip install --upgrade pip \
@@ -16,5 +19,7 @@ COPY . .
 RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
+
+USER app
 
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
