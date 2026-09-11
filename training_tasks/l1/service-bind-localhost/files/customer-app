@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+set -eu
+
+CONF=/opt/customer-app/app.conf
+PIDFILE=/run/customer-app/customer-app.pid
+LOGFILE=/var/log/customer-app/customer-app.log
+
+load_config() {
+    if [ ! -f "$CONF" ]; then
+        echo "ERROR: config not found: $CONF" >&2
+        exit 1
+    fi
+
+    # shellcheck disable=SC1090
+    . "$CONF"
+
+    : "${BIND_ADDRESS:?BIND_ADDRESS is required}"
+    : "${PORT:?PORT is required}"
+}
+
+is_running() {
+    [ -f "$PIDFILE" ] || return 1
+    pid="$(cat "$PIDFILE" 2>/dev/null || true)"
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+}
+
+start_service() {
+    load_config
+
+    mkdir -p "$(dirname "$PIDFILE")"
+
+    if is_running; then
+        echo "customer-app already running (pid $(cat "$PIDFILE"))"
+        return 0
+    fi
+
+    rm -f "$PIDFILE"
+
+    nohup python3 /opt/customer-app/app_server.py \
+        --bind "$BIND_ADDRESS" \
+        --port "$PORT" \
+        >>"$LOGFILE" 2>&1 &
+
+    pid=$!
+    echo "$pid" > "$PIDFILE"
+
+    sleep 0.2
+
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "ERROR: customer-app failed to start" >&2
+        rm -f "$PIDFILE"
+        return 1
+    fi
+
+    echo "customer-app started (pid $pid)"
+}
+
+stop_service() {
+    if ! is_running; then
+        rm -f "$PIDFILE"
+        echo "customer-app is not running"
+        return 0
+    fi
+
+    pid="$(cat "$PIDFILE")"
+    kill "$pid"
+
+    for _ in 1 2 3 4 5; do
+        if ! kill -0 "$pid" 2>/dev/null; then
+            rm -f "$PIDFILE"
+            echo "customer-app stopped"
+            return 0
+        fi
+        sleep 0.2
+    done
+
+    kill -9 "$pid" 2>/dev/null || true
+    rm -f "$PIDFILE"
+    echo "customer-app stopped"
+}
+
+status_service() {
+    if is_running; then
+        pid="$(cat "$PIDFILE")"
+        echo "● customer-app.service - Customer application"
+        echo "   Active: active (running)"
+        echo "   Main PID: $pid"
+        exit 0
+    fi
+
+    echo "● customer-app.service - Customer application"
+    echo "   Active: inactive (dead)"
+    exit 3
+}
+
+case "${1:-}" in
+    start)
+        start_service
+        ;;
+    stop)
+        stop_service
+        ;;
+    restart)
+        stop_service
+        start_service
+        ;;
+    status)
+        status_service
+        ;;
+    *)
+        echo "Usage: customer-app {start|stop|restart|status}" >&2
+        exit 2
+        ;;
+esac
