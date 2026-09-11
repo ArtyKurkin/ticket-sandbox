@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+ACTION="$1"
+SERVICE="$2"
+
+case "$ACTION" in
+  status)  service "$SERVICE" status ;;
+  start)   service "$SERVICE" start ;;
+  stop)    service "$SERVICE" stop ;;
+  restart) service "$SERVICE" restart ;;
+  reload)  service "$SERVICE" reload ;;
+  *)       echo "Unsupported command: $ACTION"; exit 1 ;;
+esac
