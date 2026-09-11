@@ -1963,6 +1963,8 @@ python manage.py test sandbox traineediary assessment
 - Подготовить пилотное прохождение полноценного L1 assessment на сотрудниках и по результатам скорректировать сложность, тайминги и формулировки.
 
 
+# CHANGELOG
+
 ## Неделя 18 — Подготовка Training Platform к контейнерному развёртыванию
 
 ### Переименование и развитие проекта
@@ -2009,20 +2011,22 @@ python manage.py test sandbox traineediary assessment
 
 ### Доступ Django-контейнера к Docker daemon
 
-- В `training-platform-web` добавлен доступ к `/var/run/docker.sock`.
+- На первом этапе в `training-platform-web` был добавлен доступ к `/var/run/docker.sock`.
 - Проверена работа Python Docker SDK из Django-контейнера.
 - Проверено, что существующий `get_docker_client()` работает внутри контейнера.
 - Из Django-контейнера успешно выполнен базовый цикл с учебным task-контейнером: создание, запуск, выполнение `check.sh`, удаление.
 - Подтверждено, что основная логика Ticket Sandbox может работать после контейнеризации самого Django.
+
+> На неделе 19 прямой Docker-доступ был удалён из `web` и перенесён в отдельный Celery worker.
 
 ### Новая схема терминалов
 
 - Начата переработка terminal/ttyd-схемы для полностью контейнерного окружения.
 - Сохранена обратная совместимость с текущим production.
 - Добавлен параметр:
-  - `TERMINAL_NETWORK_MODE=host_port` — текущая production-схема;
+  - `TERMINAL_NETWORK_MODE=host_port` — legacy-схема;
   - `TERMINAL_NETWORK_MODE=docker_network` — новая контейнерная схема.
-- По умолчанию используется `host_port`, поэтому текущий боевой сервер продолжает работать по старой логике.
+- По умолчанию сохранялась совместимость со старым режимом.
 - Для локального Docker Compose включён `docker_network`.
 
 ### Совместимость terminal gateway
@@ -2043,7 +2047,7 @@ python manage.py test sandbox traineediary assessment
 - `web` и `db` подключены к этой сети.
 - В Docker-режиме ttyd-контейнер больше не публикует порт `7681` на случайный host-порт из диапазона `20000–30000`.
 - Вместо этого ttyd подключается напрямую к `training-platform-runtime`.
-- Проверено, что terminal-контейнер не имеет опубликованных наружу host-портов и доступен из `training-platform-web` по Docker DNS.
+- Проверено, что terminal-контейнер не имеет опубликованных наружу host-портов и доступен из Django-контейнера по Docker DNS.
 - Проверен HTTP-доступ `web -> ttyd` через внутреннюю Docker-сеть — получен `200 OK`.
 
 ### Проверки
@@ -2060,13 +2064,213 @@ python manage.py test sandbox traineediary assessment
   - Django container -> task container;
   - Django container -> ttyd container по внутренней Docker-сети.
 
+### Текущее состояние на конец недели 18
+
+- Основные инфраструктурные изменения разрабатывались в ветке `infra/docker-production`.
+- Контейнерная схема была подготовлена и проверялась до переноса реальных данных.
+- Следующим этапом планировались nginx gateway и дальнейшая миграция background lifecycle.
+
+---
+
+## Неделя 19 — Celery, Redis и изоляция Docker-доступа
+
+### Завершение контейнерного staging runtime
+
+- Staging полностью работает через Docker Compose.
+- Основные сервисы:
+  - `db` — PostgreSQL 16;
+  - `redis` — Redis 7;
+  - `web` — Django + Gunicorn;
+  - `worker` — Celery;
+  - `gateway` — nginx.
+- Host nginx принимает HTTPS и проксирует трафик на Docker gateway через `127.0.0.1:8080`.
+- Terminal gateway работает в `docker_network` режиме без диапазона host-портов `20000–30000`.
+
+### Redis и Celery
+
+- В Docker Compose добавлен Redis.
+- Redis используется как Celery broker.
+- Добавлен отдельный Celery worker.
+- Добавлена конфигурация `config/celery.py` и autodiscovery задач.
+- Добавлена проверочная задача `sandbox.celery_ping`.
+- Проверена полная цепочка Django -> Redis -> Celery worker.
+- Celery result backend не используется: состояние пользовательских операций хранится в PostgreSQL.
+
+### Перенос background lifecycle в Celery
+
+Из `threading.Thread` в Celery перенесены:
+
+- запуск учебного окружения — `sandbox.start_environment`;
+- перезапуск учебного окружения — `sandbox.restart_environment`;
+- техническая автопроверка — `sandbox.run_attempt_check`.
+
+Существующие service-функции и логика `TaskAttempt` сохранены, Celery используется как transport/background execution layer.
+
+Проверено, что:
+
+- start выполняется Celery worker;
+- restart выполняется Celery worker;
+- `check.sh` выполняется Celery worker;
+- Gunicorn больше не выполняет эти Docker-операции;
+- двойной запуск автопроверки по-прежнему блокируется атомарным `check_status=running`;
+- failed `check.sh` корректно считается бизнес-результатом, а не ошибкой Celery infrastructure.
+
+### Docker socket удалён из web
+
+- `/var/run/docker.sock` удалён из `training-platform-web`.
+- Docker socket оставлен у `training-platform-worker` для Docker API операций.
+- Docker-зависимые management commands переведены на запуск через `worker`.
+- `build_task_images` в CI/CD больше не запускается через `web`.
+- Проверено, что `web` физически не видит Docker socket.
+- Проверено, что worker успешно выполняет `docker.from_env().ping()`.
+
+### Non-root web и worker
+
+- В Docker image добавлен пользователь `app`.
+- UID/GID приложения: `10001:10001`.
+- `web` и `worker` больше не запускаются от root.
+- Код приложения копируется через:
+
+```dockerfile
+COPY --chown=app:app . .
+```
+
+- Runtime переключается через:
+
+```dockerfile
+USER app
+```
+
+- На Linux staging была обнаружена и исправлена ошибка `Permission denied` для `/app/manage.py`, связанная с владельцем файлов image.
+
+### DOCKER_GID для non-root worker
+
+Для доступа Celery worker к Docker socket добавлена переменная:
+
+```env
+DOCKER_GID=<gid /var/run/docker.sock>
+```
+
+Проверить реальный GID:
+
+```bash
+stat -c '%g' /var/run/docker.sock
+```
+
+Проверенные значения:
+
+```text
+Docker Desktop / Mac: 0
+staging Linux:        113
+```
+
+GID не должен переноситься на production вслепую — на новом Docker host его нужно определить заново.
+
+### Preflight Docker socket GID
+
+- Добавлен `deploy/check_docker_socket_gid.sh`.
+- Перед staging deploy скрипт сравнивает `DOCKER_GID` из `.env.prod` с реальным GID `/var/run/docker.sock`.
+- При несовпадении deploy останавливается с понятной ошибкой до запуска worker.
+- Это подготовлено специально для будущего переноса на production-сервер.
+
+### Healthchecks
+
+- Redis получил healthcheck через `redis-cli ping`.
+- Celery worker получил healthcheck через `celery inspect ping`.
+- Compose `--wait` теперь может ждать готовности worker, а не только наличие запущенного процесса.
+- Проверяется полный набор `db / redis / web / worker / gateway`.
+
+### CI/CD
+
+Staging deploy обновлён под новую архитектуру:
+
+```text
+fetch exact target commit
+  ↓
+check Docker socket GID
+  ↓
+docker compose config
+  ↓
+build web + worker
+  ↓
+start/wait db
+  ↓
+migrate via web
+  ↓
+sync_training_tasks via web
+  ↓
+build_task_images via worker
+  ↓
+start/wait web + worker
+  ↓
+force-recreate gateway
+  ↓
+compose ps
+  ↓
+external smoke-check
+```
+
+- `migrate` и `sync_training_tasks` остаются на `web`, так как Docker API им не нужен.
+- `build_task_images` запускается через `worker`.
+- В startup добавлен Celery worker.
+- Gateway принудительно пересоздаётся после web.
+
+### Исправление 502 после пересоздания web
+
+При локальной проверке выявлено, что долгоживущий nginx gateway может продолжить использовать старый IP пересозданного `web` контейнера и начать отдавать `502`.
+
+Для deployment добавлен отдельный шаг `force-recreate gateway` после запуска нового `web`.
+
+### Проверка на Linux staging
+
+Новая схема вручную проверена на staging Linux до merge в `main`.
+
+Подтверждено:
+
+- `DOCKER_GID=113` соответствует Docker socket staging;
+- `web` работает как `app` и не имеет Docker socket;
+- `worker` работает как `app`, имеет дополнительную Docker socket группу и доступ к Docker API;
+- `build_task_images` работает через non-root worker;
+- запуск окружения выполняется Celery worker;
+- restart выполняется Celery worker;
+- `check.sh` выполняется Celery worker;
+- terminal gateway продолжает работать;
+- Redis и Celery healthchecks проходят;
+- gateway работает после пересоздания;
+- основной пользовательский сценарий Ticket Sandbox не сломан.
+
+### Архитектура после недели 19
+
+```text
+Browser
+  ↓
+Host nginx
+  ↓
+Docker gateway
+  ↓
+Django web                 без docker.sock
+  ↓
+Redis
+  ↓
+Celery worker              non-root + docker.sock group
+  ↓
+Docker daemon
+  ↓
+task / terminal containers
+```
+
 ### Текущее состояние
 
-- Боевой сервер пока не изменяется.
-- Все инфраструктурные изменения выполняются локально в отдельной ветке `infra/docker-production`.
-- Production продолжает работать по старой схеме: host nginx, systemd, Gunicorn и host-port terminal gateway.
-- Новая контейнерная схема готовится отдельно и будет проверена до переноса реальных данных.
-- Следующий этап:
-  - добавить отдельный nginx gateway-контейнер;
-  - проксировать `/terminal/<attempt_id>/` во внутренний ttyd-контейнер;
-  - проверить полноценный end-to-end запуск учебного задания через браузер без диапазона `20000–30000`.
+- Ветка `infra/celery-redis` подготовлена к merge в `main` после зелёного PR.
+- После merge push в `main` запускает автоматический staging deploy.
+- Следующий крупный инфраструктурный этап — подготовка production-сервера по проверенной staging-схеме.
+
+### Следующие задачи
+
+- подготовить production migration checklist;
+- определить `DOCKER_GID` непосредственно на production host;
+- перенести/восстановить PostgreSQL с проверкой всех приложений;
+- проверить backup и rollback production-схемы;
+- при необходимости добавить retry/time-limit политики Celery;
+- проверить watchdog с учётом Celery lifecycle;
+- после периода наблюдения удалить legacy systemd/host deployment.

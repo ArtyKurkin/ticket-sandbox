@@ -1,10 +1,106 @@
 # STAGING CHECKLIST
 
-Чеклист ручной проверки Ticket Sandbox после деплоя на staging.
+Чеклист ручной проверки Training Platform после деплоя на staging.
 
-Цель — убедиться, что проект работает не только по тестам и CI/CD, но и в полном пользовательском сценарии: стажёр открывает задание, запускает окружение, работает в терминале, проходит автопроверку, отправляет текст на ручную проверку и может открыть историю попыток.
+Цель — убедиться, что проект работает не только по тестам и CI/CD, но и в полном пользовательском сценарии: стажёр открывает задание, запускает окружение через Celery worker, работает в терминале, проходит автопроверку, отправляет текст на ручную проверку и может открыть историю попыток.
 
-## 1. Базовая доступность
+---
+
+## 1. Docker Compose stack
+
+На сервере:
+
+```bash
+cd /opt/training-platform-compose/app
+
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  ps
+```
+
+- [ ] `training-platform-db` — `healthy`.
+- [ ] `training-platform-redis` — `healthy`.
+- [ ] `training-platform-web` — `healthy`.
+- [ ] `training-platform-worker` — `healthy`.
+- [ ] `training-platform-gateway` — `healthy`.
+- [ ] Нет контейнеров основного stack в состоянии `Restarting` или `Exited`.
+
+## 2. Docker socket и non-root runtime
+
+Проверить пользователей:
+
+```bash
+docker exec training-platform-web id
+docker exec training-platform-worker id
+```
+
+- [ ] `web` работает от `uid=10001(app)`.
+- [ ] `worker` работает от `uid=10001(app)`.
+- [ ] Celery worker не выводит warning о запуске от root.
+
+Проверить, что web не имеет Docker socket:
+
+```bash
+docker exec training-platform-web \
+  sh -c 'test ! -S /var/run/docker.sock && echo "web: no docker.sock"'
+```
+
+- [ ] Получен `web: no docker.sock`.
+
+Проверить Docker API из worker:
+
+```bash
+docker exec training-platform-worker python -c "
+import docker
+print(docker.from_env().ping())
+"
+```
+
+- [ ] Получено `True`.
+
+Проверить GID socket на host:
+
+```bash
+stat -c 'uid=%u gid=%g mode=%a' /var/run/docker.sock
+```
+
+- [ ] GID совпадает с `DOCKER_GID` в `.env.prod`.
+- [ ] `deploy/check_docker_socket_gid.sh .env.prod` завершается успешно.
+
+## 3. Redis и Celery
+
+Проверить Redis:
+
+```bash
+docker exec training-platform-redis redis-cli ping
+```
+
+- [ ] Получено `PONG`.
+
+Проверить worker:
+
+```bash
+docker exec training-platform-worker \
+  celery -A config inspect ping --timeout=5
+```
+
+- [ ] Worker отвечает `pong`.
+
+Проверить зарегистрированные задачи:
+
+```bash
+docker exec training-platform-worker \
+  celery -A config inspect registered
+```
+
+- [ ] Есть `sandbox.start_environment`.
+- [ ] Есть `sandbox.restart_environment`.
+- [ ] Есть `sandbox.run_attempt_check`.
+- [ ] Может присутствовать `sandbox.celery_ping`.
+
+## 4. Базовая доступность
 
 - [ ] Открывается `/`.
 - [ ] Есть редирект на страницу входа, если пользователь не авторизован.
@@ -12,11 +108,36 @@
 - [ ] Открывается `/healthz/`.
 - [ ] `/healthz/` возвращает JSON со статусом `ok`.
 - [ ] Страницы открываются по HTTPS.
-- [ ] Нет mixed content в браузере.
+- [ ] Нет mixed content.
 - [ ] CSS и JS загружаются корректно.
-- [ ] В `journalctl -u ticket-sandbox -f` нет traceback после открытия страниц.
 
-## 2. Авторизация
+Проверка извне:
+
+```bash
+curl -fsS https://ticket-sandbox-staging.twc1.net/healthz/
+```
+
+## 5. Логи основных сервисов
+
+```bash
+cd /opt/training-platform-compose/app
+
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  logs --tail 100 web worker gateway redis
+```
+
+- [ ] Нет traceback при обычном открытии страниц.
+- [ ] Нет постоянных ошибок Redis connection.
+- [ ] Нет постоянных ошибок Celery broker.
+- [ ] Нет ошибок Docker permission denied.
+- [ ] Нет ошибок CSRF.
+- [ ] Нет ошибок static files.
+- [ ] Нет постоянных ошибок nginx `auth_request`.
+
+## 6. Авторизация
 
 - [ ] Стажёр может войти.
 - [ ] Наставник/admin может войти.
@@ -24,280 +145,379 @@
 - [ ] Анонимный пользователь не может открыть страницу задания.
 - [ ] Logout работает корректно.
 
-## 3. Dashboard стажёра
+## 7. Dashboard стажёра
 
-- [ ] Стажёр видит свои доступные очереди.
-- [ ] Стажёр видит задания своей очереди.
+- [ ] Стажёр видит доступные очереди.
+- [ ] Видит задания своей очереди.
 - [ ] Недоступные задания заблокированы до прохождения предыдущих.
 - [ ] Отображается прогресс по очереди.
-- [ ] Баннер нового комментария наставника отображается, если есть непрочитанный feedback.
-- [ ] Нет ошибок в шаблоне или пустых блоков.
+- [ ] Баннер нового комментария наставника отображается при непрочитанном feedback.
+- [ ] Нет ошибок шаблона или пустых блоков.
 
-## 4. Запуск окружения
+## 8. Запуск окружения через Celery
 
-- [ ] Стажёр открывает первое доступное задание.
-- [ ] Кнопка «Начать работу» переводит окружение в `starting`.
-- [ ] На странице отображается состояние запуска окружения.
-- [ ] Polling статуса окружения работает без ошибок в консоли браузера.
+Перед тестом можно открыть worker logs:
+
+```bash
+docker logs -f training-platform-worker
+```
+
+В интерфейсе:
+
+- [ ] Стажёр открывает доступное задание.
+- [ ] «Начать работу» переводит окружение в `starting`.
+- [ ] Polling работает без ошибок.
+- [ ] В worker logs появляется `Task sandbox.start_environment[...] received`.
 - [ ] Создаётся task-контейнер.
 - [ ] Создаётся terminal-контейнер.
-- [ ] `docker ps` показывает контейнеры попытки.
-- [ ] Попытка переходит в `status=in_progress`.
 - [ ] `environment_status` становится `ready`.
+- [ ] `status` становится `in_progress`.
 - [ ] Заполнены `environment_started_at` и `environment_finished_at`.
 - [ ] На странице появляется терминал.
-- [ ] На странице появляется shell-команда для наставника, если пользователь staff.
+- [ ] У staff отображается shell-команда для наставника, если предусмотрено интерфейсом.
 
-## 5. Terminal gateway
+Проверить, что start не выполнялся в web:
+
+```bash
+docker logs --since 5m training-platform-web 2>&1 \
+  | grep 'task_environment_started' \
+  || echo "web did not run environment start"
+```
+
+- [ ] Получено `web did not run environment start`.
+
+## 9. Terminal gateway
+
+В актуальном `docker_network` режиме:
 
 - [ ] Терминал открывается в iframe.
 - [ ] Терминал принимает ввод.
-- [ ] URL терминала имеет вид `/terminal/<attempt_id>/<port>/`.
-- [ ] ttyd-порт не открыт наружу напрямую.
-- [ ] nginx проксирует WebSocket без ошибок.
-- [ ] В `journalctl -u ticket-sandbox -f` нет ошибок terminal-auth.
-- [ ] В nginx error log нет `auth request unexpected status`.
+- [ ] URL имеет вид `/terminal/<attempt_id>/`.
+- [ ] В URL нет случайного host-порта `20000–30000`.
+- [ ] ttyd не публикуется наружу через отдельный host-порт.
+- [ ] nginx проксирует WebSocket.
+- [ ] terminal-контейнер подключён к `training-platform-runtime`.
+- [ ] В gateway logs нет `auth request unexpected status`.
 
-## 6. Проверка доступа к терминалу
+Проверить сеть:
+
+```bash
+docker ps --format 'table {{.Names}}\t{{.Networks}}' \
+  | grep -E 'training-platform|ticket-sandbox-terminal'
+```
+
+## 10. Доступ к терминалу
 
 - [ ] Стажёр может открыть только свой терминал.
 - [ ] Стажёр не может открыть чужой terminal URL.
 - [ ] Наставник с `is_staff=True` может открыть терминал стажёра.
-- [ ] Открытие терминала наставником логируется как `mentor_terminal_access`.
+- [ ] Открытие наставником логируется как `mentor_terminal_access`.
 - [ ] Анонимный пользователь не может открыть terminal URL.
 
-## 7. Автопроверка check.sh
+## 11. Перезапуск окружения через Celery
 
-- [ ] Стажёр выполняет техническую часть задания в терминале.
-- [ ] До успешной технической сдачи форма ответа клиенту и внутреннего комментария скрыта, если задание требует ручную проверку.
-- [ ] Кнопка проверки переводит `check_status` в `running`.
-- [ ] На странице отображается состояние выполнения автопроверки.
-- [ ] Polling статуса автопроверки работает без ошибок в консоли браузера.
-- [ ] Успешная проверка создаёт запись `CheckRun`.
-- [ ] `last_check_output` обновляется.
-- [ ] В `last_check_output` стажёр видит вывод `check.sh`, без технического шума про удаление контейнеров.
-- [ ] `technical_passed_at` заполняется.
-- [ ] `check_status` становится `passed`.
-- [ ] После успешной технической сдачи task/terminal-контейнеры удаляются.
-- [ ] `docker ps` не показывает активные контейнеры завершённой попытки.
-- [ ] Если `requires_manual_review=False`, задача сразу считается принятой.
-- [ ] Если `requires_manual_review=True`, после технической сдачи появляется форма ответа клиенту и внутреннего комментария.
-
-## 8. Неуспешная автопроверка
-
-- [ ] Если `check.sh` возвращает ошибку, создаётся `CheckRun` с failed-результатом.
-- [ ] `check_status` становится `failed`.
-- [ ] Попытка получает `status=failed`.
-- [ ] Стажёр видит понятный вывод проверки.
-- [ ] Кнопка автопроверки доступна повторно после исправления проблемы.
-- [ ] Техническая форма ответа клиенту всё ещё скрыта, если `technical_passed_at` не заполнен.
-
-## 9. Ошибка автопроверки
-
-- [ ] Если Docker API или background-check падает, `check_status` становится `error`.
-- [ ] Попытка получает `status=failed`.
-- [ ] `check_finished_at` заполнен.
-- [ ] На странице отображается понятное сообщение.
-- [ ] В Sentry появляется событие, если `SENTRY_DSN` настроен.
-- [ ] Пользователь не получает 500.
-
-## 10. Перезапуск окружения
-
-- [ ] До технической сдачи стажёр может перезапустить окружение.
-- [ ] Кнопка перезапуска переводит `environment_status` в `restarting`.
-- [ ] На странице отображается состояние перезапуска.
+- [ ] До технической сдачи доступен restart.
+- [ ] `environment_status` становится `restarting`.
+- [ ] В worker logs появляется `sandbox.restart_environment`.
 - [ ] Старые task/terminal-контейнеры удаляются.
-- [ ] Создаются новые task/terminal-контейнеры.
+- [ ] Создаются новые контейнеры.
 - [ ] `restart_count` увеличивается.
 - [ ] `finished_at` сбрасывается.
 - [ ] `check_status` сбрасывается в `idle`.
 - [ ] `stuck_reason` сбрасывается.
-- [ ] После перезапуска терминал снова доступен.
+- [ ] После restart терминал снова доступен.
 
-## 11. Ошибка окружения
-
-- [ ] Если запуск окружения падает, `environment_status` становится `error`.
-- [ ] Попытка получает `status=failed`.
-- [ ] `environment_finished_at` заполнен.
-- [ ] На странице отображается ошибка окружения.
-- [ ] Автопроверку нельзя запустить, пока окружение в `error`.
-- [ ] Стажёр может перезапустить окружение после ошибки.
-- [ ] В Sentry появляется событие, если `SENTRY_DSN` настроен.
-
-## 12. Watchdog зависших операций
-
-Проверить на сервере:
+Проверить, что restart не выполнялся в web:
 
 ```bash
-cd /opt/ticket-sandbox
-source .venv/bin/activate
-python manage.py detect_stuck_attempts --dry-run
+docker logs --since 5m training-platform-web 2>&1 \
+  | grep 'task_environment_restarted' \
+  || echo "web did not run environment restart"
+```
+
+- [ ] Получено `web did not run environment restart`.
+
+## 12. Автопроверка check.sh через Celery
+
+- [ ] Стажёр выполняет техническую часть задания.
+- [ ] Кнопка проверки переводит `check_status` в `running`.
+- [ ] Повторный быстрый клик не создаёт вторую проверку.
+- [ ] В worker logs появляется `sandbox.run_attempt_check`.
+- [ ] Polling проверки работает.
+- [ ] Создаётся `CheckRun`.
+- [ ] `last_check_output` обновляется.
+- [ ] После успешной проверки заполняется `technical_passed_at`.
+- [ ] `check_status` становится `passed`.
+- [ ] После успешной технической сдачи task/terminal-контейнеры удаляются.
+- [ ] Пользователь видит вывод `check.sh`, а не инфраструктурный cleanup.
+- [ ] Если `requires_manual_review=False`, задача принимается автоматически.
+- [ ] Если `requires_manual_review=True`, появляется форма ответа клиенту и внутреннего комментария.
+
+Проверить, что check не выполнялся в web:
+
+```bash
+docker logs --since 5m training-platform-web 2>&1 \
+  | grep -E 'task_check_(passed|failed|docker_error)' \
+  || echo "web did not run technical check"
+```
+
+- [ ] Получено `web did not run technical check`.
+
+## 13. Неуспешная автопроверка
+
+- [ ] Если `check.sh` возвращает exit code `1`, создаётся failed `CheckRun`.
+- [ ] `check_status=failed`.
+- [ ] `TaskAttempt.status=failed`.
+- [ ] Стажёр видит понятный вывод.
+- [ ] Повторная проверка доступна после исправления.
+- [ ] Celery task при этом может иметь статус `succeeded` — это нормально, потому что worker корректно обработал пользовательский failed-result.
+
+## 14. Ошибка автопроверки
+
+- [ ] При технической ошибке Docker API `check_status=error`.
+- [ ] `TaskAttempt.status=failed`.
+- [ ] `check_finished_at` заполнен.
+- [ ] Пользователь получает понятное сообщение, а не HTTP 500.
+- [ ] При настроенном Sentry появляется событие.
+
+## 15. Ошибка окружения
+
+- [ ] При ошибке start/restart `environment_status=error`.
+- [ ] `TaskAttempt.status=failed`.
+- [ ] `environment_finished_at` заполнен.
+- [ ] Автопроверка блокируется, пока окружение в `error`.
+- [ ] Пользователь может повторить restart.
+- [ ] Ошибка попадает в Sentry, если Sentry настроен.
+
+## 16. Watchdog зависших операций
+
+Dry-run через web, потому что Docker API этой команде не нужен:
+
+```bash
+cd /opt/training-platform-compose/app
+
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm --no-deps web \
+  python manage.py detect_stuck_attempts --dry-run
 ```
 
 - [ ] Команда выполняется без traceback.
 - [ ] Dry-run не меняет данные.
-- [ ] В проекте есть cron-пример `deploy/cron/detect_stuck_attempts.example`.
-- [ ] На staging настроен cron или systemd timer для регулярного запуска watchdog.
-- [ ] `crontab -l` или systemd timer показывает запуск `detect_stuck_attempts`.
-- [ ] Лог watchdog пишется в ожидаемый файл.
+- [ ] Watchdog понимает старые `starting`, `restarting`, `running`.
+- [ ] При реальном recovery заполняется `stuck_reason`.
+- [ ] Технически пройденные попытки не ломаются.
 
-Если есть тестовая зависшая попытка:
+Если на сервере есть cron/systemd timer для watchdog:
 
-- [ ] `environment_status=starting/restarting` старше порога переводится в `error`.
-- [ ] `check_status=running` старше порога переводится в `error`.
-- [ ] Заполняется `stuck_reason`.
-- [ ] Mentor dashboard показывает счётчик зависших попыток за 24 часа.
-- [ ] При настроенном Telegram приходит уведомление о зависшей попытке.
+- [ ] Расписание существует.
+- [ ] Команда запускается в актуальном контейнерном окружении, а не через удалённый host `.venv`.
+- [ ] Логи расписания доступны.
 
-## 13. Ручная проверка наставником
+## 17. Ручная проверка наставником
 
-- [ ] Если у задачи `requires_manual_review=True`, после технической сдачи стажёр видит форму ответа клиенту.
-- [ ] Стажёр заполняет ответ клиенту.
-- [ ] Стажёр заполняет внутренний комментарий.
-- [ ] Отправка текста переводит попытку в `on_review`.
+- [ ] После технической сдачи стажёр видит форму ответа при `requires_manual_review=True`.
+- [ ] Заполняет `client_answer`.
+- [ ] Заполняет `trainee_report`.
+- [ ] Отправка переводит попытку в `on_review`.
 - [ ] Попытка появляется в mentor dashboard.
-- [ ] Бейдж «Ждут проверки» увеличивается на 1.
-- [ ] Наставник видит ответ клиенту.
-- [ ] Наставник видит внутренний комментарий.
-- [ ] Наставник может принять ответ.
-- [ ] Наставник может отправить ответ на доработку.
-- [ ] Комментарий наставника отображается стажёру.
-- [ ] Баннер нового комментария отображается стажёру.
-- [ ] Просмотр комментария заполняет `mentor_feedback_seen_at`.
+- [ ] Бейдж «Ждут проверки» увеличивается.
+- [ ] Наставник видит ответ и внутренний комментарий.
+- [ ] Может принять ответ.
+- [ ] Может отправить на доработку.
+- [ ] Feedback отображается стажёру.
+- [ ] Просмотр feedback заполняет `mentor_feedback_seen_at`.
 
-Если на staging настроены Telegram-переменные:
+## 18. Доработка текста
 
-- [ ] При переходе попытки в `on_review` приходит Telegram-уведомление наставникам.
-- [ ] Если Telegram API недоступен, основной сценарий не падает.
-- [ ] В логах нет traceback из-за Telegram-уведомлений.
-
-## 14. Доработка текста
-
-- [ ] Если наставник отправил на доработку, стажёр правит только текст.
-- [ ] Техническая сдача не сбрасывается.
-- [ ] `technical_passed_at` остаётся заполненным.
-- [ ] Docker-контейнер повторно не требуется.
+- [ ] При `needs_revision` стажёр правит только текст.
+- [ ] `technical_passed_at` не сбрасывается.
+- [ ] Docker runtime повторно не требуется.
 - [ ] `check.sh` повторно не требуется.
 - [ ] После повторной отправки наставник видит обновлённый текст.
 
-## 15. Повторная тренировочная попытка
+## 19. Повторная тренировочная попытка
 
 - [ ] После успешной технической сдачи обычный restart заблокирован.
-- [ ] Стажёр может создать осознанную дополнительную тренировочную попытку.
-- [ ] Новая попытка получает `attempt_number > 1`.
+- [ ] Можно создать дополнительную тренировочную попытку.
+- [ ] `attempt_number > 1`.
 - [ ] Новая попытка становится `is_current=True`.
-- [ ] Предыдущая попытка становится исторической.
+- [ ] Предыдущая становится исторической.
 - [ ] Дополнительная попытка не откатывает прогресс.
-- [ ] Дополнительная попытка не попадает в mentor dashboard как зачётная.
+- [ ] Не попадает в mentor dashboard как зачётная.
 
-## 16. Историческая попытка
+## 20. Историческая попытка
 
-- [ ] Историческая попытка открывается в read-only режиме.
-- [ ] На исторической попытке нет кнопок start/restart/check.
-- [ ] Терминал исторической попытки недоступен.
-- [ ] Формы ответа и комментария не редактируются.
-- [ ] Backend блокирует POST-действия для исторической попытки.
+- [ ] Открывается read-only.
+- [ ] Нет кнопок start/restart/check.
+- [ ] Терминал недоступен.
+- [ ] Формы не редактируются.
+- [ ] Backend блокирует POST-действия.
 
-## 17. Admin
+## 21. Admin
 
-- [ ] В Django admin открывается список Task.
+- [ ] Открывается список Task.
 - [ ] Работают фильтры Task.
-- [ ] Работают массовые actions для Task.
-- [ ] В Django admin открывается список Queue.
-- [ ] `order` редактируется в списке Task.
-- [ ] `order` редактируется в списке Queue.
-- [ ] В списке TaskAttempt видны `environment_status`, `check_status`, `stuck_reason`.
-- [ ] Работают фильтры по `environment_status`, `check_status`, `stuck_reason`.
-- [ ] Работают admin actions сброса статуса окружения и автопроверки.
-- [ ] Superuser видит кнопку «Синхронизировать training_tasks».
-- [ ] Страница sync сначала показывает dry-run.
-- [ ] При ошибках strict-режима кнопка применения не отображается.
-- [ ] При успешном dry-run можно применить sync.
+- [ ] Работают массовые actions.
+- [ ] Открывается Queue.
+- [ ] `order` редактируется.
+- [ ] В TaskAttempt видны `environment_status`, `check_status`, `stuck_reason`.
+- [ ] Работают фильтры по этим полям.
+- [ ] Работают admin actions сброса статусов.
+- [ ] Superuser видит синхронизацию `training_tasks`.
+- [ ] Dry-run strict работает.
 
-## 18. Management commands на staging
+## 22. Trainee Diary
 
-Проверить на сервере:
+- [ ] Открывается `/diary/` для staff.
+- [ ] Kanban загружается.
+- [ ] Карточки сотрудников открываются.
+- [ ] Weekly metrics отображаются.
+- [ ] Нет ошибок после миграции runtime.
 
-```bash
-cd /opt/ticket-sandbox
-source .venv/bin/activate
+## 23. Assessment
 
-python manage.py check
-python manage.py check --deploy
-python manage.py sync_training_tasks --dry-run --strict
-python manage.py build_task_images
-python manage.py cleanup_task_containers --dry-run
-python manage.py detect_stuck_attempts --dry-run
-```
+- [ ] Модуль оценки знаний открывается.
+- [ ] Банк вопросов доступен.
+- [ ] Существующие данные на месте.
+- [ ] Создание/прохождение тестовой оценки работает согласно текущему сценарию.
 
-После dry-run и проверки текущих контейнеров можно осознанно выполнить cleanup:
+## 24. Management commands на staging
+
+Проверки без Docker API:
 
 ```bash
-python manage.py cleanup_task_containers
+cd /opt/training-platform-compose/app
+
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm --no-deps web python manage.py check
+
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm --no-deps web python manage.py check --deploy
+
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm --no-deps web python manage.py sync_training_tasks --dry-run --strict
 ```
 
-## 19. CI/CD
+Docker-зависимые команды — только через worker:
+
+```bash
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm --no-deps worker python manage.py build_task_images
+
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm --no-deps worker python manage.py cleanup_task_containers --dry-run
+```
+
+- [ ] Все команды выполняются без `Permission denied`.
+- [ ] `build_task_images` действительно имеет доступ к Docker API.
+- [ ] `web` не получает Docker socket ради этих команд.
+
+## 25. CI/CD
 
 - [ ] GitHub Actions tests job зелёный.
-- [ ] GitHub Actions deploy-staging job зелёный.
-- [ ] Deploy summary показывает успешные шаги:
-  - Pull latest code;
-  - Install dependencies;
+- [ ] GitHub Actions deploy-staging job зелёный после merge/push в `main`.
+- [ ] Deploy summary содержит успешные шаги:
+  - Fetch latest code;
+  - Check Docker socket GID;
+  - Validate Docker Compose config;
+  - Build application images;
+  - Start database;
   - Run migrations;
-  - Sync training tasks;
+  - Sync training tasks in strict mode;
   - Build task images;
-  - Collect static files;
-  - Restart service;
-  - Check homepage;
-  - Check healthz;
-  - Check admin login.
-- [ ] После деплоя staging реально открывается в браузере.
+  - Start application;
+  - Recreate gateway;
+  - Show Docker Compose status;
+  - Check staging healthz;
+  - Check staging homepage;
+  - Check staging admin login.
+- [ ] После автоматического deploy staging реально открывается в браузере.
+- [ ] Gateway не отдаёт `502` после пересоздания web.
 
-## 20. Cleanup
+## 26. Gateway после deploy
 
-- [ ] Cron или systemd timer для cleanup настроен.
-- [ ] `crontab -l` под нужным пользователем показывает cleanup-команду.
-- [ ] `cleanup_task_containers --dry-run` выполняется без traceback.
-- [ ] Старые контейнеры не копятся.
-- [ ] Контейнеры с успешной технической сдачей не удаляются некорректно.
-- [ ] `docker ps -a` не показывает большое количество мёртвых контейнеров тренажёра.
+- [ ] Gateway пересоздан после нового web.
+- [ ] `docker compose ps` показывает gateway healthy.
+- [ ] `/` отдаёт ответ без `502`.
+- [ ] `/healthz/` отдаёт `200`.
+- [ ] Terminal WebSocket работает после deploy.
 
-## 21. Sentry
+## 27. Cleanup
 
-Если Sentry настроен на staging:
-
-- [ ] `SENTRY_DSN` задан в env сервиса.
-- [ ] `SENTRY_ENVIRONMENT=staging`.
-- [ ] `SENTRY_TRACES_SAMPLE_RATE=0` или осознанное другое значение.
-- [ ] Django стартует без ошибок Sentry SDK.
-- [ ] Ошибки background start/restart/check попадают в Sentry.
-- [ ] В Sentry не отправляются лишние персональные данные.
-
-Если Sentry не настроен:
-
-- [ ] При пустом `SENTRY_DSN` проект работает без ошибок.
-
-## 22. Логи
-
-Проверить:
+Dry-run:
 
 ```bash
-journalctl -u ticket-sandbox -n 100 --no-pager
-journalctl -u ticket-sandbox -f
+cd /opt/training-platform-compose/app
+
+docker compose \
+  --env-file .env.prod \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  run --rm --no-deps worker \
+  python manage.py cleanup_task_containers --dry-run
 ```
 
 - [ ] Нет traceback.
-- [ ] Нет постоянных ошибок terminal-auth.
-- [ ] Нет ошибок Docker API.
-- [ ] Нет ошибок CSRF.
-- [ ] Нет ошибок static files.
-- [ ] Нет ошибок nginx auth_request.
-- [ ] Есть понятные события `task_environment_started`, `task_environment_restarted`, `task_check_passed`, `task_check_failed`.
-- [ ] Технический cleanup после успешного check логируется, но не показывается стажёру.
+- [ ] Старые runtime-контейнеры не копятся.
+- [ ] Успешно завершённые попытки не ломаются.
+- [ ] `docker ps -a` не показывает большое количество забытых контейнеров.
 
-## Итог проверки
+## 28. Sentry
 
-Дата проверки:
+Если Sentry включён:
+
+- [ ] `SENTRY_DSN` задан.
+- [ ] `SENTRY_ENVIRONMENT=staging`.
+- [ ] Django стартует без ошибок SDK.
+- [ ] Ошибки Celery start/restart/check попадают в Sentry.
+- [ ] Не отправляются лишние персональные данные.
+
+Если Sentry выключен:
+
+- [ ] При пустом `SENTRY_DSN` проект работает нормально.
+
+## 29. Telegram
+
+Если Telegram включён:
+
+- [ ] Уведомление при `on_review` приходит.
+- [ ] При недоступном Telegram основной сценарий не падает.
+- [ ] Ошибки уведомлений логируются.
+
+## 30. Итоговые worker logs
+
+После полного smoke-сценария:
+
+```bash
+docker logs --since 10m training-platform-worker 2>&1 \
+  | grep -E 'sandbox.start_environment|sandbox.restart_environment|sandbox.run_attempt_check'
+```
+
+- [ ] Есть `sandbox.start_environment ... received` и `succeeded`.
+- [ ] Есть `sandbox.restart_environment ... received` и `succeeded`.
+- [ ] Есть `sandbox.run_attempt_check ... received` и `succeeded`.
+
+## 31. Итог проверки
+
+Дата:
 
 ```text
 YYYY-MM-DD
@@ -307,6 +527,12 @@ YYYY-MM-DD
 
 ```text
 ФИО / username
+```
+
+Commit / release:
+
+```text
+<git sha>
 ```
 
 Результат:
