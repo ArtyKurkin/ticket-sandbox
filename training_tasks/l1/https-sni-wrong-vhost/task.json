@@ -1,0 +1,11 @@
+{
+  "title": "По HTTPS открывается не тот сайт",
+  "ticket_title": "По HTTPS открывается чужая страница",
+  "client_name": "Анна Миронова",
+  "client_email": "a.mironova@example.com",
+  "description": "Добрый день.\n\nПосле изменений в настройках nginx наш портал по HTTPS стал открывать не ту страницу. Вместо портала отображается старый служебный сайт.\n\nСам nginx запущен, порт 443 доступен. Сертификат для нашего домена на сервере есть.\n\nДомен портала: portal.example.test\n\nПомогите восстановить корректную работу сайта по HTTPS.",
+  "priority": "high",
+  "order": 13,
+  "requires_manual_review": true,
+  "is_active": true
+}

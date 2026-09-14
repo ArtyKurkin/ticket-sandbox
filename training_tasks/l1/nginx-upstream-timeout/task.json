@@ -1,0 +1,11 @@
+{
+  "title": "API отвечает 504 Gateway Timeout",
+  "ticket_title": "Часть сайта падает с 504 Gateway Timeout",
+  "client_name": "Сергей Котов",
+  "client_email": "s.kotov@example.com",
+  "description": "Добрый день.\n\nПосле изменения настроек nginx часть сайта перестала работать. Главная страница открывается, но при формировании отчёта через API примерно через секунду появляется «504 Gateway Timeout».\n\nРазработчик проверил приложение и говорит, что API запущен, а отчёт формируется примерно за 3 секунды.\n\nПомогите восстановить работу запроса.",
+  "priority": "high",
+  "order": 14,
+  "requires_manual_review": true,
+  "is_active": true
+}
