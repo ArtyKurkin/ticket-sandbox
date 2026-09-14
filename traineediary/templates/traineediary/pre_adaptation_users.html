@@ -88,7 +88,7 @@
                   padding: 16px;
                   border-top:
                     1px solid
-                    rgba(255, 255, 255, 0.08);
+                    var(--border);
                 "
               >
                 <strong>
@@ -105,7 +105,7 @@
                   padding: 16px;
                   border-top:
                     1px solid
-                    rgba(255, 255, 255, 0.08);
+                    var(--border);
                 "
               >
                 {{ trainee_user.username }}
@@ -116,7 +116,7 @@
                   padding: 16px;
                   border-top:
                     1px solid
-                    rgba(255, 255, 255, 0.08);
+                    var(--border);
                 "
               >
                 {{ trainee_user.date_joined|date:"d.m.Y H:i" }}
@@ -127,7 +127,7 @@
                   padding: 16px;
                   border-top:
                     1px solid
-                    rgba(255, 255, 255, 0.08);
+                    var(--border);
                 "
               >
                 {% if trainee_user.is_active %}
@@ -146,7 +146,7 @@
                   padding: 16px;
                   border-top:
                     1px solid
-                    rgba(255, 255, 255, 0.08);
+                    var(--border);
                 "
               >
                 {% include "traineediary/_sandbox_l1_progress.html" with progress=trainee_user.sandbox_l1_progress %}
@@ -158,7 +158,7 @@
                   text-align: right;
                   border-top:
                     1px solid
-                    rgba(255, 255, 255, 0.08);
+                    var(--border);
                 "
               >
                 {% if trainee_user.is_active %}

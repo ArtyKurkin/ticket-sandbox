@@ -1,9 +1,12 @@
 {% load static %}
 
 <!doctype html>
-<html lang="ru">
+<html lang="ru"{% if request.resolver_match.app_name == "sandbox" or request.resolver_match.app_name == "traineediary" %} data-theme="dark"{% endif %}>
 <head>
   <meta charset="UTF-8">
+  {% if request.resolver_match.app_name == "sandbox" or request.resolver_match.app_name == "traineediary" %}
+    <script src="{% static 'js/theme.js' %}"></script>
+  {% endif %}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Ticket Sandbox{% endblock %}</title>
 
@@ -28,6 +31,44 @@
 
       {% if request.user.is_authenticated %}
         <div class="user-panel">
+          {% if request.resolver_match.app_name == "sandbox" or request.resolver_match.app_name == "traineediary" %}
+            <button
+              type="button"
+              class="button secondary button-small"
+              id="theme-toggle"
+              aria-label="Включить светлую тему"
+              aria-pressed="false"
+              title="Включить светлую тему"
+              hidden
+            >
+              <svg
+                class="lucide theme-icon theme-icon-sun"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path>
+              </svg>
+
+              <svg
+                class="lucide theme-icon theme-icon-moon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            </button>
+          {% endif %}
           {% if request.resolver_match.app_name == "traineediary" %}
             <a href="{% url 'sandbox:dashboard' %}" class="user-chip">
               <i data-lucide="terminal"></i>

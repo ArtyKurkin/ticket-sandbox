@@ -536,13 +536,8 @@
 
             <td>
               <span
-                class="status"
-                style="
-                  background:
-                    {{ row.journey.current_stage.color }}22;
-                  color:
-                    {{ row.journey.current_stage.color }};
-                "
+                class="status stage-accent"
+                style="--stage-color: {{ row.journey.current_stage.color }};"
               >
                 {{ row.journey.current_stage.name }}
               </span>
