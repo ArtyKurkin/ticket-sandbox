@@ -6,6 +6,11 @@ RUN apt-get update \
 COPY files/start.sh /start.sh
 COPY files/check.sh /task/check.sh
 COPY files/index.php /var/www/html/index.php
+
+RUN chown root:root /var/www/html/index.php \
+    && chmod 755 /var/www /var/www/html \
+    && chmod 644 /var/www/html/index.php
+    
 COPY files/systemctl /usr/local/bin/systemctl
 RUN chmod +x /start.sh /task/check.sh /usr/local/bin/systemctl
 CMD ["/start.sh"]
