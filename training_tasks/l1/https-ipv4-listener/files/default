@@ -1,0 +1,15 @@
+server {
+    # После изменения конфигурации остался только IPv6 listener.
+    listen [::]:443 ssl ipv6only=on;
+
+    server_name customer.example.test;
+
+    ssl_certificate     /etc/nginx/ssl/customer.crt;
+    ssl_certificate_key /etc/nginx/ssl/customer.key;
+
+    root /var/www/customer;
+    index index.html;
+
+    access_log /var/log/nginx/access.log;
+    error_log  /var/log/nginx/error.log;
+}

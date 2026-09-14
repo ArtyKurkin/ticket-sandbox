@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -eu
+
+if [ "${1:-}" = "--type=service" ] || [ "${1:-}" = "list-units" ]; then
+    echo "UNIT                  LOAD   ACTIVE SUB     DESCRIPTION"
+    echo "customer-app.service  loaded active running Customer application"
+    exit 0
+fi
+
+ACTION="${1:-}"
+SERVICE="${2:-}"
+
+case "$SERVICE" in
+    customer-app|customer-app.service)
+        exec /usr/local/bin/customer-app "$ACTION"
+        ;;
+    *)
+        echo "Unit ${SERVICE:-unknown} could not be found." >&2
+        exit 4
+        ;;
+esac

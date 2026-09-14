@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -eu
+
+PIDFILE=/run/report-api/report-api.pid
+LOGFILE=/var/log/report-api/report-api.log
+
+ensure_runtime_dir() {
+    mkdir -p "$(dirname "$PIDFILE")"
+}
+
+is_running() {
+    [ -f "$PIDFILE" ] || return 1
+    pid="$(cat "$PIDFILE" 2>/dev/null || true)"
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+}
+
+start_service() {
+    ensure_runtime_dir
+
+    if is_running; then
+        echo "report-api already running (pid $(cat "$PIDFILE"))"
+        return 0
+    fi
+
+    rm -f "$PIDFILE"
+
+    nohup python3 /opt/report-api/backend.py >>"$LOGFILE" 2>&1 &
+    pid=$!
+    echo "$pid" > "$PIDFILE"
+
+    sleep 0.2
+
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "ERROR: report-api failed to start" >&2
+        rm -f "$PIDFILE"
+        return 1
+    fi
+
+    echo "report-api started (pid $pid)"
+}
+
+stop_service() {
+    if ! is_running; then
+        rm -f "$PIDFILE"
+        echo "report-api is not running"
+        return 0
+    fi
+
+    pid="$(cat "$PIDFILE")"
+    kill "$pid" 2>/dev/null || true
+
+    for _ in 1 2 3 4 5; do
+        if ! kill -0 "$pid" 2>/dev/null; then
+            rm -f "$PIDFILE"
+            echo "report-api stopped"
+            return 0
+        fi
+        sleep 0.2
+    done
+
+    kill -9 "$pid" 2>/dev/null || true
+    rm -f "$PIDFILE"
+    echo "report-api stopped"
+}
+
+status_service() {
+    if is_running; then
+        echo "● report-api.service - Report API"
+        echo "   Active: active (running)"
+        echo "   Main PID: $(cat "$PIDFILE")"
+        exit 0
+    fi
+
+    echo "● report-api.service - Report API"
+    echo "   Active: inactive (dead)"
+    exit 3
+}
+
+case "${1:-}" in
+    start) start_service ;;
+    stop) stop_service ;;
+    restart) stop_service; start_service ;;
+    status) status_service ;;
+    *) echo "Usage: report-api {start|stop|restart|status}" >&2; exit 2 ;;
+esac

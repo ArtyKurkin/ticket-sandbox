@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -eu
+
+ACTION="${1:-}"
+SERVICE="${2:-}"
+
+case "$SERVICE" in
+    nginx|nginx.service)
+        case "$ACTION" in
+            status)  service nginx status ;;
+            start)   service nginx start ;;
+            stop)    service nginx stop ;;
+            restart) service nginx restart ;;
+            reload)  service nginx reload ;;
+            *) echo "Unsupported command: $ACTION" >&2; exit 2 ;;
+        esac
+        ;;
+    *)
+        echo "Unit ${SERVICE:-unknown} could not be found." >&2
+        exit 4
+        ;;
+esac
