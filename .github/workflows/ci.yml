@@ -135,6 +135,10 @@ jobs:
             "git fetch origin main && git reset --hard ${{ github.sha }}"
 
           run_compose_step \
+            "Normalize training task permissions" \
+            "bash deploy/normalize_training_task_permissions.sh"
+
+          run_compose_step \
             "Check Docker socket GID" \
             "sh deploy/check_docker_socket_gid.sh .env.prod"
 
