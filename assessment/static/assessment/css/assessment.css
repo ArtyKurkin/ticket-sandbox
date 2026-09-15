@@ -2418,6 +2418,11 @@ input[type="text"] {
   min-height: 78px;
   padding: 8px 10px;
 
+  background: #ffffff;
+  color: var(--assessment-text);
+  -webkit-text-fill-color: var(--assessment-text);
+  opacity: 1;
+
   border:
     1px solid var(--assessment-border-strong);
   border-radius: 8px;
@@ -2432,6 +2437,12 @@ input[type="text"] {
 
   font-size: 13px;
   line-height: 1.55;
+}
+
+.assessment-line-editor-input::placeholder {
+  color: #98a2b3;
+  -webkit-text-fill-color: #98a2b3;
+  opacity: 1;
 }
 
 .assessment-editor-row input[type="text"],
