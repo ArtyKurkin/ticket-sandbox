@@ -1282,6 +1282,8 @@ body {
 
   font-size: 13px;
   line-height: 1.7;
+
+    white-space: pre-wrap;
 }
 
 
@@ -2412,10 +2414,24 @@ input[type="text"] {
 }
 
 .assessment-line-editor-input {
+  width: 100%;
+  min-height: 78px;
+  padding: 8px 10px;
+
+  border:
+    1px solid var(--assessment-border-strong);
+  border-radius: 8px;
+
+  box-sizing: border-box;
+  resize: vertical;
+
   font-family:
     "JetBrains Mono",
     ui-monospace,
     monospace !important;
+
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .assessment-editor-row input[type="text"],

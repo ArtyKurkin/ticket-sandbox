@@ -476,14 +476,15 @@ class SelectableLineEditorForm(forms.ModelForm):
         )
 
         widgets = {
-            "text": forms.TextInput(
+            "text": forms.Textarea(
                 attrs={
                     "placeholder": (
-                        "Строка лога или конфигурации"
+                        "Строка или блок лога / конфигурации"
                     ),
                     "class": (
                         "assessment-line-editor-input"
                     ),
+                    "rows": 3,
                 }
             ),
             "order": forms.HiddenInput(),
