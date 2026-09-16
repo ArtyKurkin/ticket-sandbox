@@ -17,6 +17,8 @@ class SeededL1TaxonomyTests(TestCase):
                 "web",
                 "networks",
                 "internal-regulations",
+                "mail",
+                "managed-services",
             },
         )
 

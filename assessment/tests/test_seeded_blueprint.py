@@ -45,24 +45,65 @@ class SeededL1BlueprintTests(TestCase):
             self.blueprint.shuffle_answer_options,
         )
 
-    def test_blueprint_contains_twenty_six_questions(
-        self,
-    ):
+    def test_blueprint_contains_thirty_questions(self):
         self.assertEqual(
             self.blueprint.question_count,
-            26,
-        )
-        self.assertEqual(
-            self.blueprint.skill_quotas.count(),
-            26,
+            30,
         )
 
-    def test_each_skill_requires_one_question(self):
-        self.assertFalse(
-            self.blueprint.skill_quotas.exclude(
-                question_count=1,
-            ).exists()
+    def test_blueprint_uses_expected_skill_quotas(self):
+        quotas = {
+            (
+                quota.skill.topic.slug,
+                quota.skill.slug,
+            ): quota.question_count
+            for quota in (
+                self.blueprint.skill_quotas
+                .select_related(
+                    "skill",
+                    "skill__topic",
+                )
+            )
+        }
+
+        self.assertEqual(
+            quotas[
+                (
+                    "mail",
+                    "mail-diagnostics",
+                )
+            ],
+            2,
         )
+
+        self.assertEqual(
+            quotas[
+                (
+                    "managed-services",
+                    "managed-services-diagnostics",
+                )
+            ],
+            2,
+        )
+
+        for key, question_count in quotas.items():
+            if key in {
+                (
+                    "mail",
+                    "mail-diagnostics",
+                ),
+                (
+                    "managed-services",
+                    "managed-services-diagnostics",
+                ),
+            }:
+                continue
+
+            self.assertEqual(
+                question_count,
+                1,
+                msg=f"Unexpected quota for {key}",
+            )
 
     def test_blueprint_has_expected_topic_distribution(
         self,
