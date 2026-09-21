@@ -3,6 +3,12 @@ import os
 
 import requests
 
+from copy import deepcopy
+
+from django.utils import timezone
+
+from sandbox.models import AIReview
+
 
 class AIReviewerError(Exception):
     """Ошибка обращения к AI reviewer."""
@@ -24,8 +30,10 @@ ALLOWED_SEVERITIES = {
     "critical",
 }
 
+AI_REVIEW_PROMPT_VERSION = "v1"
 
-def review_trainee_answer(task, client_answer):
+
+def review_trainee_answer(task, client_answer, review_context=None):
     agent_id = os.getenv("TWC_AI_AGENT_ID", "").strip()
     token = os.getenv("TWC_AI_TOKEN", "").strip()
 
@@ -55,6 +63,7 @@ def review_trainee_answer(task, client_answer):
                 "content": build_review_input(
                     task=task,
                     client_answer=client_answer,
+                    review_context=review_context,
                 ),
             }
         ],
@@ -88,11 +97,22 @@ def review_trainee_answer(task, client_answer):
 
     validate_review_response(review)
 
-    return review
+    usage = api_response.get("usage") or {}
+
+    return {
+        "review": review,
+        "raw_response": api_response,
+        "model": api_response.get("model", ""),
+        "input_tokens": usage.get("prompt_tokens"),
+        "output_tokens": usage.get("completion_tokens"),
+    }
 
 
-def build_review_input(task, client_answer):
-    context = task.ai_review_context
+def build_review_input(task, client_answer, review_context=None):
+    if review_context is None:
+        context = task.ai_review_context
+    else:
+        context = review_context
 
     required_client_facts = context.get(
         "required_client_facts",
@@ -176,3 +196,77 @@ def validate_review_response(review):
         raise AIReviewerError(
             "AI reviewer returned an invalid response structure"
         )
+
+
+def create_ai_review(attempt):
+    return AIReview.objects.create(
+        attempt=attempt,
+        client_answer=attempt.client_answer,
+        task_context=deepcopy(attempt.task.ai_review_context),
+        prompt_version=AI_REVIEW_PROMPT_VERSION,
+    )
+
+
+def run_ai_review(ai_review):
+    ai_review.status = AIReview.Status.RUNNING
+    ai_review.started_at = timezone.now()
+    ai_review.finished_at = None
+    ai_review.error_message = ""
+
+    ai_review.save(
+        update_fields=[
+            "status",
+            "started_at",
+            "finished_at",
+            "error_message",
+        ]
+    )
+
+    try:
+        result = review_trainee_answer(
+            task=ai_review.attempt.task,
+            client_answer=ai_review.client_answer,
+            review_context=ai_review.task_context,
+        )
+    except AIReviewerError as error:
+        ai_review.status = AIReview.Status.ERROR
+        ai_review.error_message = str(error)
+        ai_review.finished_at = timezone.now()
+
+        ai_review.save(
+            update_fields=[
+                "status",
+                "error_message",
+                "finished_at",
+            ]
+        )
+
+        raise
+
+    review = result["review"]
+
+    ai_review.status = AIReview.Status.COMPLETED
+    ai_review.checks = review["checks"]
+    ai_review.recommendations = review["recommendations"]
+    ai_review.raw_response = result["raw_response"]
+    ai_review.model = result["model"]
+    ai_review.input_tokens = result["input_tokens"]
+    ai_review.output_tokens = result["output_tokens"]
+    ai_review.error_message = ""
+    ai_review.finished_at = timezone.now()
+
+    ai_review.save(
+        update_fields=[
+            "status",
+            "checks",
+            "recommendations",
+            "raw_response",
+            "model",
+            "input_tokens",
+            "output_tokens",
+            "error_message",
+            "finished_at",
+        ]
+    )
+
+    return ai_review

@@ -559,6 +559,106 @@ class TaskAttempt(models.Model):
         return f"{self.user} — {self.task}"
 
 
+class AIReview(models.Model):
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Ожидает"
+        RUNNING = "running", "Выполняется"
+        COMPLETED = "completed", "Завершена"
+        ERROR = "error", "Ошибка"
+
+    attempt = models.ForeignKey(
+        TaskAttempt,
+        on_delete=models.CASCADE,
+        related_name="ai_reviews",
+        verbose_name="Попытка",
+    )
+
+    client_answer = models.TextField(
+        verbose_name="Проверенный ответ клиенту",
+    )
+
+    task_context = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Контекст задания на момент проверки",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        verbose_name="Статус",
+    )
+
+    checks = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Результаты проверки",
+    )
+
+    recommendations = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Рекомендации",
+    )
+
+    raw_response = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Полный ответ AI",
+    )
+
+    model = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Модель",
+    )
+
+    prompt_version = models.CharField(
+        max_length=32,
+        default="v1",
+        verbose_name="Версия промпта",
+    )
+
+    input_tokens = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Входные токены",
+    )
+
+    output_tokens = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Выходные токены",
+    )
+
+    error_message = models.TextField(
+        blank=True,
+        verbose_name="Ошибка AI",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Создана",
+    )
+
+    started_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Начата",
+    )
+
+    finished_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Завершена",
+    )
+
+    def __str__(self):
+        return f"AI review #{self.pk} for attempt #{self.attempt_id}"
+
+
 class CheckRun(models.Model):
     class Result(models.TextChoices):
         PASSED = "passed", "Пройдена"
