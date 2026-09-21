@@ -401,3 +401,15 @@ class AIReviewDatabaseTests(SandboxTestCase):
         )
         self.assertIsNotNone(ai_review.started_at)
         self.assertIsNotNone(ai_review.finished_at)
+
+    @patch("sandbox.tasks.run_ai_review_task.delay")
+    def test_start_ai_review_in_background_enqueues_celery_task(self, delay_mock):
+        from sandbox.services.ai_reviewer import (
+            start_ai_review_in_background,
+        )
+
+        ai_review = create_ai_review(self.attempt)
+
+        start_ai_review_in_background(ai_review)
+
+        delay_mock.assert_called_once_with(ai_review.id)

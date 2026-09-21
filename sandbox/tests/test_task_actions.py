@@ -6,7 +6,7 @@ from django.shortcuts import resolve_url
 from django.urls import reverse
 from django.utils import timezone
 
-from sandbox.models import TaskAttempt, TraineeProfile
+from sandbox.models import AIReview, TaskAttempt, TraineeProfile
 
 from .base import SandboxTestCase
 
@@ -869,6 +869,115 @@ class TaskFlowTests(SandboxTestCase):
         self.assertIsNone(self.attempt.mentor_reviewed_by)
         self.assertIsNone(self.attempt.mentor_reviewed_at)
 
+    def test_check_task_creates_ai_review_when_context_is_configured(self):
+        self.attempt.task.requires_manual_review = True
+        self.attempt.task.ai_review_context = {
+            "root_cause": "Неверный порт приложения.",
+            "resolution": "Порт исправлен.",
+            "result": "Сайт работает.",
+            "required_client_facts": [],
+        }
+        self.attempt.task.save(
+            update_fields=[
+                "requires_manual_review",
+                "ai_review_context",
+            ]
+        )
+
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+            ]
+        )
+
+        with patch(
+            "sandbox.views.start_ai_review_in_background"
+        ) as start_ai_review_mock:
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(
+                    reverse(
+                        "sandbox:check_task",
+                        args=[self.attempt.id],
+                    ),
+                    data={
+                        "client_answer": "Здравствуйте, проблема исправлена.",
+                        "trainee_report": "Нашел неверный порт и исправил его.",
+                    },
+                )
+
+        self.assertEqual(response.status_code, 302)
+
+        ai_review = AIReview.objects.get(
+            attempt=self.attempt,
+        )
+
+        self.assertEqual(
+            ai_review.client_answer,
+            "Здравствуйте, проблема исправлена.",
+        )
+        self.assertEqual(
+            ai_review.task_context,
+            {
+                "root_cause": "Неверный порт приложения.",
+                "resolution": "Порт исправлен.",
+                "result": "Сайт работает.",
+                "required_client_facts": [],
+            },
+        )
+        self.assertEqual(
+            ai_review.status,
+            AIReview.Status.PENDING,
+        )
+
+        start_ai_review_mock.assert_called_once_with(ai_review)
+
+    def test_check_task_does_not_create_ai_review_without_context(self):
+        self.attempt.task.requires_manual_review = True
+        self.attempt.task.ai_review_context = {}
+        self.attempt.task.save(
+            update_fields=[
+                "requires_manual_review",
+                "ai_review_context",
+            ]
+        )
+
+        self.attempt.status = TaskAttempt.Status.IN_PROGRESS
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+            ]
+        )
+
+        with patch(
+            "sandbox.views.start_ai_review_in_background"
+        ) as start_ai_review_mock:
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(
+                    reverse(
+                        "sandbox:check_task",
+                        args=[self.attempt.id],
+                    ),
+                    data={
+                        "client_answer": "Здравствуйте, проблема исправлена.",
+                        "trainee_report": "Проверил проблему и исправил.",
+                    },
+                )
+
+        self.assertEqual(response.status_code, 302)
+
+        self.assertFalse(
+            AIReview.objects.filter(
+                attempt=self.attempt,
+            ).exists()
+        )
+
+        start_ai_review_mock.assert_not_called()
+
     @patch("sandbox.services.environments.remove_task_container")
     @patch("sandbox.services.environments.remove_terminal_container")
     def test_check_task_after_technical_pass_cleans_environment(
@@ -1482,6 +1591,106 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(
             self.attempt.trainee_report,
             "Доработал ответ по комментарию наставника.",
+        )
+
+    @patch("sandbox.views.start_ai_review_in_background")
+    @patch("sandbox.services.checks.check_task_container")
+    def test_manual_review_resubmit_creates_new_ai_review(
+        self,
+        check_task_container_mock,
+        start_ai_review_mock,
+    ):
+        self.task.requires_manual_review = True
+        self.task.ai_review_context = {
+            "root_cause": "Неверный порт приложения.",
+            "resolution": "Порт исправлен.",
+            "result": "Сайт работает.",
+            "required_client_facts": [],
+        }
+        self.task.save(
+            update_fields=[
+                "requires_manual_review",
+                "ai_review_context",
+            ]
+        )
+
+        self.attempt.status = TaskAttempt.Status.FAILED
+        self.attempt.technical_passed_at = timezone.now()
+        self.attempt.container_name = ""
+        self.attempt.client_answer = "Старый ответ клиенту."
+        self.attempt.trainee_report = "Старый отчет."
+        self.attempt.mentor_decision = TaskAttempt.MentorDecision.NEEDS_REVISION
+        self.attempt.mentor_feedback = "Поправь ответ клиенту."
+        self.attempt.mentor_reviewed_at = timezone.now()
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "technical_passed_at",
+                "container_name",
+                "client_answer",
+                "trainee_report",
+                "mentor_decision",
+                "mentor_feedback",
+                "mentor_reviewed_at",
+            ]
+        )
+
+        old_review = AIReview.objects.create(
+            attempt=self.attempt,
+            client_answer="Старый ответ клиенту.",
+            task_context={
+                "root_cause": "Неверный порт приложения.",
+                "resolution": "Порт исправлен.",
+                "result": "Сайт работает.",
+                "required_client_facts": [],
+            },
+            status=AIReview.Status.COMPLETED,
+            prompt_version="v1",
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse(
+                    "sandbox:check_task",
+                    args=[self.attempt.id],
+                ),
+                data={
+                    "client_answer": "Доработанный ответ клиенту.",
+                    "trainee_report": (
+                        "Доработал ответ по комментарию наставника."
+                    ),
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+
+        check_task_container_mock.assert_not_called()
+
+        reviews = list(
+            AIReview.objects
+            .filter(attempt=self.attempt)
+            .order_by("id")
+        )
+
+        self.assertEqual(len(reviews), 2)
+
+        self.assertEqual(reviews[0].id, old_review.id)
+        self.assertEqual(
+            reviews[0].client_answer,
+            "Старый ответ клиенту.",
+        )
+
+        self.assertEqual(
+            reviews[1].client_answer,
+            "Доработанный ответ клиенту.",
+        )
+        self.assertEqual(
+            reviews[1].status,
+            AIReview.Status.PENDING,
+        )
+
+        start_ai_review_mock.assert_called_once_with(
+            reviews[1]
         )
 
     @patch("sandbox.views.start_attempt_check_in_background")

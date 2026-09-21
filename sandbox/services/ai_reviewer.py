@@ -207,6 +207,12 @@ def create_ai_review(attempt):
     )
 
 
+def start_ai_review_in_background(ai_review):
+    from sandbox.tasks import run_ai_review_task
+
+    return run_ai_review_task.delay(ai_review.id)
+
+
 def run_ai_review(ai_review):
     ai_review.status = AIReview.Status.RUNNING
     ai_review.started_at = timezone.now()

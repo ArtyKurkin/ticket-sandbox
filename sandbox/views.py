@@ -12,9 +12,12 @@ from .models import TaskAttempt
 from .services.trainee_dashboard import build_trainee_dashboard_context
 from .services.mentor_dashboard import build_mentor_dashboard_context
 from .services.attempts import get_next_attempt_number
+from .services.ai_reviewer import (
+    create_ai_review,
+    start_ai_review_in_background,
+)
 from .services.notifications import (
     notify_manual_review_required,
-    notify_user_completed_all_tasks,
 )
 from .services.terminal_gateway import (
     log_terminal_auth_denied,
@@ -479,6 +482,15 @@ def check_task(request, attempt_id):
                 "mentor_feedback_seen_at",
             ]
         )
+
+        if attempt.task.ai_review_context:
+            ai_review = create_ai_review(attempt)
+
+            transaction.on_commit(
+                lambda ai_review=ai_review: start_ai_review_in_background(
+                    ai_review
+                )
+            )
 
         cleanup_attempt_environment(attempt)
 

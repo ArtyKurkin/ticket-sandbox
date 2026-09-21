@@ -34,3 +34,17 @@ def run_attempt_check_task(attempt_id, user_id):
         attempt_id=attempt_id,
         user_id=user_id,
     )
+
+@shared_task(name="sandbox.run_ai_review")
+def run_ai_review_task(ai_review_id):
+    from sandbox.services.ai_reviewer import run_ai_review
+
+    from sandbox.models import AIReview
+
+    ai_review = (
+        AIReview.objects
+        .select_related("attempt__task")
+        .get(id=ai_review_id)
+    )
+
+    run_ai_review(ai_review)
