@@ -477,10 +477,12 @@
               </p>
 
             {% elif latest_ai_review.status == "completed" %}
-              <span class="status status-success">
-                <i data-lucide="circle-check-big"></i>
-                Проверка завершена
-              </span>
+              {% if ai_review_summary %}
+                <span class="status {{ ai_review_summary.status_class }}">
+                  <i data-lucide="{{ ai_review_summary.icon }}"></i>
+                  {{ ai_review_summary.label }}
+                </span>
+              {% endif %}
 
               <div class="ai-review-checks">
                 {% for check in ai_review_checks %}

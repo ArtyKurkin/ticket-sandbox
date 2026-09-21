@@ -658,7 +658,7 @@ class TaskDetailAccessTests(SandboxTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "AI-проверка ответа")
-        self.assertContains(response, "Проверка завершена")
+        self.assertContains(response, "Есть замечания")
         self.assertContains(response, "Приветствие")
         self.assertContains(response, "Язык для клиента")
         self.assertContains(
@@ -710,6 +710,92 @@ class TaskDetailAccessTests(SandboxTestCase):
         self.assertNotContains(
             response,
             "Timeweb AI returned HTTP 500",
+        )
+
+    def test_mentor_task_detail_shows_critical_ai_review_summary(self):
+        mentor = self.create_user(
+            username="mentor-ai-critical",
+            level=TraineeProfile.Level.L1,
+        )
+        mentor.is_staff = True
+        mentor.save(update_fields=["is_staff"])
+
+        AIReview.objects.create(
+            attempt=self.attempt,
+            client_answer="Ответ стажёра.",
+            task_context={},
+            status=AIReview.Status.COMPLETED,
+            checks={
+                "greeting": {
+                    "passed": False,
+                    "severity": "critical",
+                    "comment": "Нет приветствия.",
+                },
+                "solution": {
+                    "passed": True,
+                    "severity": "ok",
+                    "comment": "",
+                },
+            },
+            recommendations=[],
+        )
+
+        self.client.login(
+            username="mentor-ai-critical",
+            password="test-password",
+        )
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Есть критичные замечания",
+        )
+
+    def test_mentor_task_detail_shows_clean_ai_review_summary(self):
+        mentor = self.create_user(
+            username="mentor-ai-clean",
+            level=TraineeProfile.Level.L1,
+        )
+        mentor.is_staff = True
+        mentor.save(update_fields=["is_staff"])
+
+        AIReview.objects.create(
+            attempt=self.attempt,
+            client_answer="Здравствуйте! Проблема исправлена.",
+            task_context={},
+            status=AIReview.Status.COMPLETED,
+            checks={
+                "greeting": {
+                    "passed": True,
+                    "severity": "ok",
+                    "comment": "",
+                },
+                "solution": {
+                    "passed": True,
+                    "severity": "ok",
+                    "comment": "",
+                },
+            },
+            recommendations=[],
+        )
+
+        self.client.login(
+            username="mentor-ai-clean",
+            password="test-password",
+        )
+
+        response = self.client.get(
+            reverse("sandbox:task_detail", args=[self.attempt.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Замечаний нет",
         )
 
 

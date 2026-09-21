@@ -144,6 +144,7 @@ def task_detail(request, attempt_id):
 
     latest_ai_review = None
     ai_review_checks = []
+    ai_review_summary = None
 
     if is_mentor_view:
         latest_ai_review = (
@@ -173,6 +174,30 @@ def task_detail(request, attempt_id):
                     }
                 )
 
+    severities = {
+        check["severity"]
+        for check in ai_review_checks
+    }
+
+    if "critical" in severities:
+        ai_review_summary = {
+            "status_class": "status-danger",
+            "icon": "circle-x",
+            "label": "Есть критичные замечания",
+        }
+    elif "minor" in severities:
+        ai_review_summary = {
+            "status_class": "status-warning",
+            "icon": "triangle-alert",
+            "label": "Есть замечания",
+        }
+    else:
+        ai_review_summary = {
+            "status_class": "status-success",
+            "icon": "circle-check-big",
+            "label": "Замечаний нет",
+        }
+
     return render(
         request,
         "sandbox/task_detail.html",
@@ -191,6 +216,7 @@ def task_detail(request, attempt_id):
             "answer_section_is_hidden": answer_section_is_hidden,
             "latest_ai_review": latest_ai_review,
             "ai_review_checks": ai_review_checks,
+            "ai_review_summary": ai_review_summary,
         }
     )
 
