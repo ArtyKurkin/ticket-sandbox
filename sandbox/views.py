@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.views.decorators.http import require_GET, require_POST
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
-from .models import TaskAttempt
+from .models import AIReview, TaskAttempt
 from .services.trainee_dashboard import build_trainee_dashboard_context
 from .services.mentor_dashboard import build_mentor_dashboard_context
 from .services.attempts import get_next_attempt_number
@@ -35,6 +35,16 @@ from .services.environments import (
 
 
 terminal_logger = logging.getLogger("sandbox.terminal")
+
+AI_REVIEW_CHECK_LABELS = {
+    "greeting": "Приветствие",
+    "problem_description": "Описание проблемы",
+    "solution": "Решение",
+    "completeness": "Полнота ответа",
+    "direct_answer": "Ответ по существу",
+    "client_language": "Язык для клиента",
+    "structure_and_grammar": "Структура и грамотность",
+}
 
 
 def block_historical_attempt_action(request, attempt):
@@ -132,6 +142,37 @@ def task_detail(request, attempt_id):
         and attempt.is_current
     )
 
+    latest_ai_review = None
+    ai_review_checks = []
+
+    if is_mentor_view:
+        latest_ai_review = (
+            attempt.ai_reviews
+            .order_by("-created_at", "-id")
+            .first()
+        )
+
+        if (
+            latest_ai_review
+            and latest_ai_review.status == AIReview.Status.COMPLETED
+        ):
+            for key, label in AI_REVIEW_CHECK_LABELS.items():
+                check = latest_ai_review.checks.get(key)
+
+                if not check:
+                    continue
+
+                ai_review_checks.append(
+                    {
+                        "key": key,
+                        "label": label,
+                        "passed": check.get("passed"),
+                        "severity": check.get("severity", ""),
+                        "comment": check.get("comment", ""),
+                        "missing_facts": check.get("missing_facts", []),
+                    }
+                )
+
     return render(
         request,
         "sandbox/task_detail.html",
@@ -148,6 +189,8 @@ def task_detail(request, attempt_id):
             "answer_is_collapsed": answer_is_collapsed,
             "answer_is_hidden_before_technical_pass": answer_is_hidden_before_technical_pass,
             "answer_section_is_hidden": answer_section_is_hidden,
+            "latest_ai_review": latest_ai_review,
+            "ai_review_checks": ai_review_checks,
         }
     )
 

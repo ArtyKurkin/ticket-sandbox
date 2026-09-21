@@ -447,6 +447,106 @@
           </p>
         </div>
       {% else %}
+        {% if latest_ai_review %}
+          <div class="card">
+            <div class="card-title-bar">
+              <i data-lucide="sparkles"></i>
+              <h2>AI-проверка ответа</h2>
+            </div>
+
+            {% if latest_ai_review.status == "pending" %}
+              <span class="status status-muted">
+                <i data-lucide="clock"></i>
+                Ожидает проверки
+              </span>
+
+            {% elif latest_ai_review.status == "running" %}
+              <span class="status status-primary">
+                <i data-lucide="loader-circle"></i>
+                Проверка выполняется
+              </span>
+
+            {% elif latest_ai_review.status == "error" %}
+              <span class="status status-danger">
+                <i data-lucide="triangle-alert"></i>
+                AI-проверка недоступна
+              </span>
+
+              <p class="muted-text">
+                Проверь ответ вручную. Решение наставника не зависит от AI.
+              </p>
+
+            {% elif latest_ai_review.status == "completed" %}
+              <span class="status status-success">
+                <i data-lucide="circle-check-big"></i>
+                Проверка завершена
+              </span>
+
+              <div class="ai-review-checks">
+                {% for check in ai_review_checks %}
+                  <div class="ai-review-check">
+                    {% if check.severity == "critical" %}
+                      <span class="status status-danger">
+                        <i data-lucide="circle-x"></i>
+                        {{ check.label }}
+                      </span>
+
+                    {% elif check.severity == "minor" %}
+                      <span class="status status-warning">
+                        <i data-lucide="triangle-alert"></i>
+                        {{ check.label }}
+                      </span>
+
+                    {% else %}
+                      <span class="status status-success">
+                        <i data-lucide="circle-check"></i>
+                        {{ check.label }}
+                      </span>
+                    {% endif %}
+
+                    {% if check.comment %}
+                      <p class="muted-text">
+                        {{ check.comment }}
+                      </p>
+                    {% endif %}
+
+                    {% if check.missing_facts %}
+                      <div class="ai-review-missing-facts">
+                        <strong>Не хватает:</strong>
+                        <ul>
+                          {% for fact in check.missing_facts %}
+                            <li>{{ fact }}</li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+
+              {% if latest_ai_review.recommendations %}
+                <div class="ai-review-recommendations">
+                  <h3>Рекомендации</h3>
+
+                  <ul>
+                    {% for recommendation in latest_ai_review.recommendations %}
+                      <li>{{ recommendation }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+
+              {% if latest_ai_review.model %}
+                <p class="muted-text">
+                  {{ latest_ai_review.model }}
+                  {% if latest_ai_review.finished_at %}
+                    · {{ latest_ai_review.finished_at|date:"d.m.Y H:i" }}
+                  {% endif %}
+                </p>
+              {% endif %}
+            {% endif %}
+          </div>
+        {% endif %}
         <div class="card">
           <div class="card-title-bar">
             <i data-lucide="message-square-text"></i>

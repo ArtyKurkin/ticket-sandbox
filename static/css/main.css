@@ -1106,6 +1106,66 @@ pre {
   flex: 0 0 auto;
 }
 
+/* ===== AI review ===== */
+
+.ai-review-checks {
+  display: grid;
+  gap: 0;
+  margin-top: 16px;
+}
+
+.ai-review-check {
+  padding: 12px 0;
+  border-top: 1px solid rgba(var(--accent-rgb), 0.12);
+}
+
+.ai-review-check:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.ai-review-check:last-child {
+  padding-bottom: 0;
+}
+
+.ai-review-check .status {
+  margin-bottom: 0;
+}
+
+.ai-review-check .muted-text {
+  margin: 8px 0 0;
+}
+
+.ai-review-missing-facts {
+  margin-top: 8px;
+}
+
+.ai-review-missing-facts strong {
+  font-size: 0.9rem;
+}
+
+.ai-review-missing-facts ul,
+.ai-review-recommendations ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.ai-review-missing-facts li,
+.ai-review-recommendations li {
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+.ai-review-recommendations {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(var(--accent-rgb), 0.12);
+}
+
+.ai-review-recommendations h3 {
+  margin: 0;
+}
+
 
 /* ===== 10. Ticket message card (сообщение клиента) ===== */
 
