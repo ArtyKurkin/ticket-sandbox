@@ -138,6 +138,12 @@ class Task(models.Model):
         verbose_name="Требует ручной проверки наставника"
     )
 
+    ai_review_context = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Контекст для AI-проверки",
+    )
+
     is_active = models.BooleanField(
         default=True,
         verbose_name="Активно"

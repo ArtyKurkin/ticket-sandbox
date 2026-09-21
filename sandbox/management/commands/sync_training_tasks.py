@@ -145,6 +145,7 @@ def get_default_metadata(task_slug, order):
         "priority": Task.Priority.MEDIUM,
         "order": order,
         "requires_manual_review": True,
+        "ai_review_context": {},
         "is_active": True,
     }
 
@@ -183,6 +184,13 @@ def validate_task_metadata(metadata, task_dir):
             raise CommandError(
                 f'Invalid metadata in {metadata_path}: "{field_name}" must be true or false'
             )
+
+    ai_review_context = metadata.get("ai_review_context", {})
+
+    if not isinstance(ai_review_context, dict):
+        raise CommandError(
+            f'Invalid metadata in {metadata_path}: "ai_review_context" must be an object'
+        )
 
 
 class Command(BaseCommand):
@@ -274,6 +282,7 @@ class Command(BaseCommand):
                 "priority": metadata.get("priority", Task.Priority.MEDIUM),
                 "order": metadata.get("order", default_order),
                 "requires_manual_review": metadata.get("requires_manual_review", True),
+                "ai_review_context": metadata.get("ai_review_context", {}),
                 "is_active": metadata.get("is_active", True),
             }
 

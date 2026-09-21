@@ -152,6 +152,12 @@ class SyncTrainingTasksCommandTests(SandboxTestCase):
                     "priority": Task.Priority.HIGH,
                     "order": 7,
                     "requires_manual_review": False,
+                    "ai_review_context": {
+                        "root_cause": "В конфигурации Nginx указан неверный порт приложения.",
+                        "resolution": "Порт в конфигурации Nginx исправлен.",
+                        "result": "После исправления сайт открывается корректно.",
+                        "required_client_facts": [],
+                    },
                     "is_active": True,
                 },
             )
@@ -178,6 +184,15 @@ class SyncTrainingTasksCommandTests(SandboxTestCase):
         self.assertEqual(task.priority, Task.Priority.HIGH)
         self.assertEqual(task.order, 7)
         self.assertFalse(task.requires_manual_review)
+        self.assertEqual(
+            task.ai_review_context,
+            {
+                "root_cause": "В конфигурации Nginx указан неверный порт приложения.",
+                "resolution": "Порт в конфигурации Nginx исправлен.",
+                "result": "После исправления сайт открывается корректно.",
+                "required_client_facts": [],
+            },
+        )
         self.assertTrue(task.is_active)
 
         self.assertIn(
@@ -509,6 +524,25 @@ class SyncTrainingTasksCommandTests(SandboxTestCase):
                 with self.assertRaisesMessage(
                     CommandError,
                     '"requires_manual_review" must be true or false',
+                ):
+                    call_command("sync_training_tasks")
+
+    def test_sync_training_tasks_raises_for_invalid_ai_review_context(self):
+        with TemporaryDirectory() as temp_dir:
+            self._write_training_task(
+                base_dir=Path(temp_dir),
+                queue_slug="l1",
+                task_slug="invalid-ai-review-context",
+                task_json={
+                    "title": "Invalid AI review context",
+                    "ai_review_context": "not-an-object",
+                },
+            )
+
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                with self.assertRaisesMessage(
+                    CommandError,
+                    '"ai_review_context" must be an object',
                 ):
                     call_command("sync_training_tasks")
 

@@ -7,5 +7,11 @@
   "priority": "high",
   "order": 11,
   "requires_manual_review": true,
+  "ai_review_context": {
+    "root_cause": "В конфигурации Nginx был указан неверный порт приложения: 9001 вместо 9000.",
+    "resolution": "В конфигурации Nginx порт приложения был исправлен на 9000.",
+    "result": "После исправления сайт корректно открывается через Nginx.",
+    "required_client_facts": []
+  },
   "is_active": true
 }
