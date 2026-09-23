@@ -1,0 +1,12 @@
+services:
+  web:
+    env_file:
+      - .env
+
+  worker:
+    env_file:
+      - .env
+
+  gateway:
+    ports:
+      - "127.0.0.1:8081:80"
