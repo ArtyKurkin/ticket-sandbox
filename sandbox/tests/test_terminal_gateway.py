@@ -1,7 +1,7 @@
 import os
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 from sandbox.services.terminal_gateway import (
     build_terminal_base_path,
@@ -11,6 +11,7 @@ from sandbox.services.terminal_gateway import (
 
 
 class TerminalGatewayUrlTests(SimpleTestCase):
+    @override_settings(TERMINAL_NETWORK_MODE="host_port")
     @patch.dict(
         os.environ,
         {
@@ -37,6 +38,7 @@ class TerminalGatewayUrlTests(SimpleTestCase):
             "http://localhost:24000",
         )
 
+    @override_settings(TERMINAL_NETWORK_MODE="host_port")
     @patch.dict(
         os.environ,
         {

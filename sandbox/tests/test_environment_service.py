@@ -1,7 +1,10 @@
+import os
+
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.utils import timezone
+from django.test import override_settings
 
 from sandbox.models import TaskAttempt, TraineeProfile
 from sandbox.services.environments import (
@@ -167,6 +170,11 @@ class EnvironmentServiceTests(SandboxTestCase):
             TaskAttempt.StuckReason.NONE,
         )
 
+    @override_settings(TERMINAL_NETWORK_MODE="host_port")
+    @patch.dict(
+        os.environ,
+        {"TERMINAL_GATEWAY_ENABLED": "true"},
+    )
     @patch("sandbox.services.environments.get_free_port")
     @patch("sandbox.services.environments.create_terminal_container")
     @patch("sandbox.services.environments.create_task_container")
@@ -305,6 +313,11 @@ class EnvironmentServiceTests(SandboxTestCase):
         self.assertIsNone(self.attempt.check_started_at)
         self.assertIsNone(self.attempt.check_finished_at)
 
+    @override_settings(TERMINAL_NETWORK_MODE="host_port")
+    @patch.dict(
+        os.environ,
+        {"TERMINAL_GATEWAY_ENABLED": "true"},
+    )
     @patch("sandbox.services.environments.get_free_port")
     @patch("sandbox.services.environments.create_terminal_container")
     @patch("sandbox.services.environments.create_task_container")

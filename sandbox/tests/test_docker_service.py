@@ -62,6 +62,7 @@ class DockerServiceSecurityTests(SimpleTestCase):
             "1",
         )
 
+    @override_settings(TERMINAL_NETWORK_MODE="host_port")
     @patch("sandbox.services.docker_service.get_docker_socket_path")
     @patch("sandbox.services.docker_service.get_docker_client")
     def test_create_terminal_container_uses_resource_limits(

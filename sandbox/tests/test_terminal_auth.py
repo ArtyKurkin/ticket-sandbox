@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -149,6 +149,7 @@ class TerminalAuthTests(TestCase):
         self.assertIn("queue_slug=l1", log_output)
         self.assertIn("port=24000", log_output)
 
+    @override_settings(TERMINAL_NETWORK_MODE="host_port")
     def test_terminal_auth_denies_wrong_port(self):
         self.client.login(
             username="terminal_user",
