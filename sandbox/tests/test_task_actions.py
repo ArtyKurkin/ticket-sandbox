@@ -798,6 +798,110 @@ class TaskDetailAccessTests(SandboxTestCase):
             "Замечаний нет",
         )
 
+    def test_mentor_task_detail_builds_ai_review_history(self):
+        mentor = self.create_user(
+            username="mentor-ai-history",
+            level=TraineeProfile.Level.L1,
+        )
+        mentor.is_staff = True
+        mentor.save(update_fields=["is_staff"])
+
+        first_review = AIReview.objects.create(
+            attempt=self.attempt,
+            client_answer="Первая версия ответа.",
+            task_context={},
+            status=AIReview.Status.COMPLETED,
+            checks={
+                "greeting": {
+                    "passed": False,
+                    "severity": "critical",
+                    "comment": "Нет приветствия.",
+                },
+            },
+            recommendations=[],
+        )
+
+        second_review = AIReview.objects.create(
+            attempt=self.attempt,
+            client_answer="Вторая версия ответа.",
+            task_context={},
+            status=AIReview.Status.COMPLETED,
+            checks={
+                "greeting": {
+                    "passed": True,
+                    "severity": "ok",
+                    "comment": "",
+                },
+                "client_language": {
+                    "passed": False,
+                    "severity": "minor",
+                    "comment": "Можно сформулировать проще.",
+                },
+            },
+            recommendations=[],
+        )
+
+        third_review = AIReview.objects.create(
+            attempt=self.attempt,
+            client_answer="Третья версия ответа.",
+            task_context={},
+            status=AIReview.Status.COMPLETED,
+            checks={
+                "greeting": {
+                    "passed": True,
+                    "severity": "ok",
+                    "comment": "",
+                },
+                "solution": {
+                    "passed": True,
+                    "severity": "ok",
+                    "comment": "",
+                },
+            },
+            recommendations=[],
+        )
+
+        self.client.login(
+            username="mentor-ai-history",
+            password="test-password",
+        )
+
+        response = self.client.get(
+            reverse(
+                "sandbox:task_detail",
+                args=[self.attempt.id],
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(
+            response.context["latest_ai_review"],
+            third_review,
+        )
+
+        history = response.context["ai_review_history"]
+
+        self.assertEqual(len(history), 2)
+
+        self.assertEqual(
+            history[0]["review"],
+            second_review,
+        )
+        self.assertEqual(
+            history[0]["summary"]["label"],
+            "Есть замечания",
+        )
+
+        self.assertEqual(
+            history[1]["review"],
+            first_review,
+        )
+        self.assertEqual(
+            history[1]["summary"]["label"],
+            "Есть критичные замечания",
+        )
+
 
 class TaskFlowTests(SandboxTestCase):
     def setUp(self):

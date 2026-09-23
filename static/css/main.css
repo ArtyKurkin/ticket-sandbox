@@ -1167,6 +1167,79 @@ pre {
 }
 
 
+.ai-review-history {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ai-review-history-item {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(var(--overlay-rgb), 0.035);
+  overflow: hidden;
+}
+
+.ai-review-history-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ai-review-history-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.ai-review-history-item summary::before {
+  content: "›";
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.ai-review-history-item[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.ai-review-history-item summary > span:first-of-type {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-review-history-item summary .status {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+.ai-review-history-content {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.ai-review-history-content > h3 {
+  margin-top: 14px;
+  margin-bottom: 10px;
+}
+
+.ai-review-history-content .text-preview {
+  font-size: 14px;
+}
+
+.ai-review-history-content > .muted-text:last-child {
+  margin-top: 14px;
+  margin-bottom: 0;
+}
+
+
 /* ===== 10. Ticket message card (сообщение клиента) ===== */
 
 .ticket-message {

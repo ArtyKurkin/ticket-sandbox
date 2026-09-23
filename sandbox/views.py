@@ -47,6 +47,70 @@ AI_REVIEW_CHECK_LABELS = {
 }
 
 
+def build_ai_review_display(ai_review):
+    if (
+        not ai_review
+        or ai_review.status != AIReview.Status.COMPLETED
+    ):
+        return {
+            "review": ai_review,
+            "checks": [],
+            "summary": None,
+        }
+
+    checks = []
+
+    for key, label in AI_REVIEW_CHECK_LABELS.items():
+        check = ai_review.checks.get(key)
+
+        if not check:
+            continue
+
+        checks.append(
+            {
+                "key": key,
+                "label": label,
+                "passed": check.get("passed"),
+                "severity": check.get("severity", ""),
+                "comment": check.get("comment", ""),
+                "missing_facts": check.get("missing_facts", []),
+            }
+        )
+
+    if not checks:
+        summary = None
+    else:
+        severities = {
+            check["severity"]
+            for check in checks
+        }
+
+        if "critical" in severities:
+            summary = {
+                "status_class": "status-danger",
+                "icon": "circle-x",
+                "label": "Есть критичные замечания",
+            }
+        elif "minor" in severities:
+            summary = {
+                "status_class": "status-warning",
+                "icon": "triangle-alert",
+                "label": "Есть замечания",
+            }
+        else:
+            summary = {
+                "status_class": "status-success",
+                "icon": "circle-check-big",
+                "label": "Замечаний нет",
+            }
+
+    return {
+        "review": ai_review,
+        "checks": checks,
+        "summary": summary,
+    }
+
+
 def block_historical_attempt_action(request, attempt):
     if attempt.is_current:
         return None
@@ -143,60 +207,25 @@ def task_detail(request, attempt_id):
     )
 
     latest_ai_review = None
-    ai_review_checks = []
-    ai_review_summary = None
+    ai_review_history = []
 
     if is_mentor_view:
-        latest_ai_review = (
+        ai_reviews = list(
             attempt.ai_reviews
             .order_by("-created_at", "-id")
-            .first()
         )
 
-        if (
-            latest_ai_review
-            and latest_ai_review.status == AIReview.Status.COMPLETED
-        ):
-            for key, label in AI_REVIEW_CHECK_LABELS.items():
-                check = latest_ai_review.checks.get(key)
+        if ai_reviews:
+            latest_ai_review = ai_reviews[0]
 
-                if not check:
-                    continue
+            ai_review_history = [
+                build_ai_review_display(ai_review)
+                for ai_review in ai_reviews[1:]
+            ]
 
-                ai_review_checks.append(
-                    {
-                        "key": key,
-                        "label": label,
-                        "passed": check.get("passed"),
-                        "severity": check.get("severity", ""),
-                        "comment": check.get("comment", ""),
-                        "missing_facts": check.get("missing_facts", []),
-                    }
-                )
-
-    severities = {
-        check["severity"]
-        for check in ai_review_checks
-    }
-
-    if "critical" in severities:
-        ai_review_summary = {
-            "status_class": "status-danger",
-            "icon": "circle-x",
-            "label": "Есть критичные замечания",
-        }
-    elif "minor" in severities:
-        ai_review_summary = {
-            "status_class": "status-warning",
-            "icon": "triangle-alert",
-            "label": "Есть замечания",
-        }
-    else:
-        ai_review_summary = {
-            "status_class": "status-success",
-            "icon": "circle-check-big",
-            "label": "Замечаний нет",
-        }
+    ai_review_display = build_ai_review_display(
+        latest_ai_review
+    )
 
     return render(
         request,
@@ -214,9 +243,10 @@ def task_detail(request, attempt_id):
             "answer_is_collapsed": answer_is_collapsed,
             "answer_is_hidden_before_technical_pass": answer_is_hidden_before_technical_pass,
             "answer_section_is_hidden": answer_section_is_hidden,
-            "latest_ai_review": latest_ai_review,
-            "ai_review_checks": ai_review_checks,
-            "ai_review_summary": ai_review_summary,
+            "latest_ai_review": ai_review_display["review"],
+            "ai_review_checks": ai_review_display["checks"],
+            "ai_review_history": ai_review_history,
+            "ai_review_summary": ai_review_display["summary"],
         }
     )
 

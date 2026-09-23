@@ -549,6 +549,134 @@
             {% endif %}
           </div>
         {% endif %}
+
+
+        {% if ai_review_history %}
+          <div class="card">
+            <div class="card-title-bar">
+              <i data-lucide="history"></i>
+              <h2>История AI-проверок</h2>
+            </div>
+
+            <p class="muted-text">
+              Предыдущие версии ответа стажёра и результаты AI-проверки.
+            </p>
+
+            <div class="ai-review-history">
+              {% for item in ai_review_history %}
+                <details class="ai-review-history-item">
+                  <summary>
+                    <span>
+                      Проверка от {{ item.review.created_at|date:"d.m.Y H:i" }}
+                    </span>
+
+                    {% if item.review.status == "completed" and item.summary %}
+                      <span class="status {{ item.summary.status_class }}">
+                        <i data-lucide="{{ item.summary.icon }}"></i>
+                        {{ item.summary.label }}
+                      </span>
+
+                    {% elif item.review.status == "error" %}
+                      <span class="status status-danger">
+                        <i data-lucide="triangle-alert"></i>
+                        Ошибка
+                      </span>
+
+                    {% elif item.review.status == "running" %}
+                      <span class="status status-primary">
+                        <i data-lucide="loader-circle"></i>
+                        Выполняется
+                      </span>
+
+                    {% else %}
+                      <span class="status status-muted">
+                        <i data-lucide="clock"></i>
+                        Ожидает
+                      </span>
+                    {% endif %}
+                  </summary>
+
+                  <div class="ai-review-history-content">
+                    <h3>Ответ стажёра</h3>
+
+                    <div class="text-preview">
+                      {{ item.review.client_answer|linebreaksbr }}
+                    </div>
+
+                    {% if item.review.status == "completed" %}
+                      <div class="ai-review-checks">
+                        {% for check in item.checks %}
+                          <div class="ai-review-check">
+                            {% if check.severity == "critical" %}
+                              <span class="status status-danger">
+                                <i data-lucide="circle-x"></i>
+                                {{ check.label }}
+                              </span>
+
+                            {% elif check.severity == "minor" %}
+                              <span class="status status-warning">
+                                <i data-lucide="triangle-alert"></i>
+                                {{ check.label }}
+                              </span>
+
+                            {% else %}
+                              <span class="status status-success">
+                                <i data-lucide="circle-check"></i>
+                                {{ check.label }}
+                              </span>
+                            {% endif %}
+
+                            {% if check.comment %}
+                              <p class="muted-text">
+                                {{ check.comment }}
+                              </p>
+                            {% endif %}
+
+                            {% if check.missing_facts %}
+                              <div class="ai-review-missing-facts">
+                                <strong>Не хватает:</strong>
+                                <ul>
+                                  {% for fact in check.missing_facts %}
+                                    <li>{{ fact }}</li>
+                                  {% endfor %}
+                                </ul>
+                              </div>
+                            {% endif %}
+                          </div>
+                        {% endfor %}
+                      </div>
+
+                      {% if item.review.recommendations %}
+                        <div class="ai-review-recommendations">
+                          <h3>Рекомендации</h3>
+
+                          <ul>
+                            {% for recommendation in item.review.recommendations %}
+                              <li>{{ recommendation }}</li>
+                            {% endfor %}
+                          </ul>
+                        </div>
+                      {% endif %}
+
+                    {% elif item.review.status == "error" %}
+                      <p class="muted-text">
+                        AI-проверка этой версии завершилась с ошибкой.
+                      </p>
+                    {% endif %}
+
+                    {% if item.review.model %}
+                      <p class="muted-text">
+                        {{ item.review.model }}
+                      </p>
+                    {% endif %}
+                  </div>
+                </details>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+
         <div class="card">
           <div class="card-title-bar">
             <i data-lucide="message-square-text"></i>
@@ -557,7 +685,6 @@
 
           <form method="post" action="{% url 'sandbox:save_mentor_feedback' attempt.id %}">
             {% csrf_token %}
-
             <p class="field-label">Решение наставника</p>
             <div class="select-wrap">
               <select
@@ -577,6 +704,7 @@
             </div>
 
             <p class="field-label">Комментарий</p>
+
             <textarea
               name="mentor_feedback"
               placeholder="Напиши обратную связь по ответу, диагностике или подходу к тикету"
