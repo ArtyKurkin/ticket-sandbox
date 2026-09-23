@@ -788,10 +788,12 @@ def save_mentor_feedback(request, attempt_id):
     if mentor_decision not in allowed_decisions:
         mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
 
+    mentor_reviewed_at = timezone.now()
+
     attempt.mentor_feedback = request.POST.get("mentor_feedback", "").strip()
     attempt.mentor_decision = mentor_decision
     attempt.mentor_reviewed_by = request.user
-    attempt.mentor_reviewed_at = timezone.now()
+    attempt.mentor_reviewed_at = mentor_reviewed_at
     attempt.mentor_feedback_seen_at = None
 
     update_fields = [
@@ -838,6 +840,30 @@ def save_mentor_feedback(request, attempt_id):
         messages.success(request, "Комментарий наставника сохранен.")
 
     attempt.save(update_fields=update_fields)
+
+    if mentor_decision in [
+        TaskAttempt.MentorDecision.APPROVED,
+        TaskAttempt.MentorDecision.NEEDS_REVISION,
+    ]:
+        ai_review = (
+            attempt.ai_reviews
+            .filter(client_answer=attempt.client_answer)
+            .order_by("-created_at", "-id")
+            .first()
+        )
+
+        if ai_review:
+            ai_review.mentor_decision = mentor_decision
+            ai_review.mentor_reviewed_by = request.user
+            ai_review.mentor_reviewed_at = mentor_reviewed_at
+
+            ai_review.save(
+                update_fields=[
+                    "mentor_decision",
+                    "mentor_reviewed_by",
+                    "mentor_reviewed_at",
+                ]
+            )
 
     return redirect("sandbox:task_detail", attempt_id=attempt.id)
 

@@ -567,6 +567,10 @@ class AIReview(models.Model):
         COMPLETED = "completed", "Завершена"
         ERROR = "error", "Ошибка"
 
+    class MentorDecision(models.TextChoices):
+        APPROVED = "approved", "Принято"
+        NEEDS_REVISION = "needs_revision", "Нужна доработка"
+
     attempt = models.ForeignKey(
         TaskAttempt,
         on_delete=models.CASCADE,
@@ -636,6 +640,29 @@ class AIReview(models.Model):
     error_message = models.TextField(
         blank=True,
         verbose_name="Ошибка AI",
+    )
+
+    mentor_decision = models.CharField(
+        max_length=20,
+        choices=MentorDecision.choices,
+        blank=True,
+        default="",
+        verbose_name="Решение наставника",
+    )
+
+    mentor_reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_ai_reviews",
+        verbose_name="Проверил наставник",
+    )
+
+    mentor_reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Проверено наставником",
     )
 
     created_at = models.DateTimeField(

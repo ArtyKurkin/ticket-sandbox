@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.shortcuts import resolve_url
 from django.urls import reverse
 from django.utils import timezone
@@ -2106,6 +2107,159 @@ class TaskFlowTests(SandboxTestCase):
         start_ai_review_mock.assert_called_once_with(
             reviews[1]
         )
+
+    def test_mentor_approved_decision_is_saved_to_ai_review(self):
+        mentor = get_user_model().objects.create_user(
+            username="mentor-approved",
+            password="testpass123",
+            is_staff=True,
+        )
+
+        self.attempt.status = TaskAttempt.Status.ON_REVIEW
+        self.attempt.client_answer = "Текущий ответ клиенту."
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "client_answer",
+            ]
+        )
+
+        ai_review = AIReview.objects.create(
+            attempt=self.attempt,
+            client_answer="Текущий ответ клиенту.",
+            status=AIReview.Status.COMPLETED,
+        )
+
+        self.client.force_login(mentor)
+
+        response = self.client.post(
+            reverse(
+                "sandbox:save_mentor_feedback",
+                args=[self.attempt.id],
+            ),
+            data={
+                "mentor_decision": TaskAttempt.MentorDecision.APPROVED,
+                "mentor_feedback": "Все хорошо.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        ai_review.refresh_from_db()
+
+        self.assertEqual(
+            ai_review.mentor_decision,
+            AIReview.MentorDecision.APPROVED,
+        )
+        self.assertEqual(ai_review.mentor_reviewed_by, mentor)
+        self.assertIsNotNone(ai_review.mentor_reviewed_at)
+
+
+    def test_mentor_needs_revision_decision_is_saved_to_ai_review(self):
+        mentor = get_user_model().objects.create_user(
+            username="mentor-revision",
+            password="testpass123",
+            is_staff=True,
+        )
+
+        self.attempt.status = TaskAttempt.Status.ON_REVIEW
+        self.attempt.client_answer = "Ответ с ошибкой."
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "client_answer",
+            ]
+        )
+
+        ai_review = AIReview.objects.create(
+            attempt=self.attempt,
+            client_answer="Ответ с ошибкой.",
+            status=AIReview.Status.COMPLETED,
+        )
+
+        self.client.force_login(mentor)
+
+        response = self.client.post(
+            reverse(
+                "sandbox:save_mentor_feedback",
+                args=[self.attempt.id],
+            ),
+            data={
+                "mentor_decision": (
+                    TaskAttempt.MentorDecision.NEEDS_REVISION
+                ),
+                "mentor_feedback": "Поправь ответ.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        ai_review.refresh_from_db()
+
+        self.assertEqual(
+            ai_review.mentor_decision,
+            AIReview.MentorDecision.NEEDS_REVISION,
+        )
+        self.assertEqual(ai_review.mentor_reviewed_by, mentor)
+        self.assertIsNotNone(ai_review.mentor_reviewed_at)
+
+
+    def test_mentor_decision_is_saved_only_to_current_answer_ai_review(self):
+        mentor = get_user_model().objects.create_user(
+            username="mentor-history",
+            password="testpass123",
+            is_staff=True,
+        )
+
+        self.attempt.status = TaskAttempt.Status.ON_REVIEW
+        self.attempt.client_answer = "Новый ответ клиенту."
+        self.attempt.save(
+            update_fields=[
+                "status",
+                "client_answer",
+            ]
+        )
+
+        old_review = AIReview.objects.create(
+            attempt=self.attempt,
+            client_answer="Старый ответ клиенту.",
+            status=AIReview.Status.COMPLETED,
+        )
+
+        current_review = AIReview.objects.create(
+            attempt=self.attempt,
+            client_answer="Новый ответ клиенту.",
+            status=AIReview.Status.COMPLETED,
+        )
+
+        self.client.force_login(mentor)
+
+        response = self.client.post(
+            reverse(
+                "sandbox:save_mentor_feedback",
+                args=[self.attempt.id],
+            ),
+            data={
+                "mentor_decision": TaskAttempt.MentorDecision.APPROVED,
+                "mentor_feedback": "Теперь все хорошо.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        old_review.refresh_from_db()
+        current_review.refresh_from_db()
+
+        self.assertEqual(old_review.mentor_decision, "")
+        self.assertIsNone(old_review.mentor_reviewed_by)
+        self.assertIsNone(old_review.mentor_reviewed_at)
+
+        self.assertEqual(
+            current_review.mentor_decision,
+            AIReview.MentorDecision.APPROVED,
+        )
+        self.assertEqual(current_review.mentor_reviewed_by, mentor)
+        self.assertIsNotNone(current_review.mentor_reviewed_at)
 
     @patch("sandbox.views.start_attempt_check_in_background")
     def test_check_task_starts_background_check(
