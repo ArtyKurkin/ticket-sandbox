@@ -7,5 +7,13 @@
   "priority": "medium",
   "order": 6,
   "requires_manual_review": true,
+  "ai_review_context": {
+    "root_cause": "Загрузка ограничена на двух уровнях: Nginx допускает тело запроса лишь до 1 МБ, а PHP upload_max_filesize и post_max_size установлены в 2 МБ. Эти ограничения не позволяют загрузить файл 10 МБ.",
+    "resolution": "Применены настройки Nginx и PHP, допускающие загрузку файла 10 МБ: upload_max_filesize позволяет принять сам файл, а client_max_body_size и post_max_size — весь multipart-запрос с его служебными данными.",
+    "result": "Файл размером 10 МБ (10485760 байт) успешно загружается через форму: Nginx пропускает запрос, PHP принимает файл полностью и возвращает HTTP 200 с подтверждением размера.",
+    "required_client_facts": [
+      "Через форму можно загрузить файл размером 10 МБ."
+    ]
+  },
   "is_active": true
 }

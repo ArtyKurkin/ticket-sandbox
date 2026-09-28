@@ -7,5 +7,11 @@
   "priority": "medium",
   "order": 2,
   "requires_manual_review": true,
+  "ai_review_context": {
+    "root_cause": "После переноса файлов не настроена выдача сайта из /var/www/client-crm: Nginx продолжает обслуживать стандартный сайт по умолчанию.",
+    "resolution": "Nginx настроен отдавать перенесённый сайт клиента из /var/www/client-crm при обращении по адресу сервера; изменения применены.",
+    "result": "Nginx запущен с корректной конфигурацией, по адресу сервера открывается Client CRM вместо стандартной заглушки.",
+    "required_client_facts": []
+  },
   "is_active": true
 }

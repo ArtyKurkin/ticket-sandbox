@@ -7,5 +7,11 @@
   "priority": "high",
   "order": 5,
   "requires_manual_review": true,
+  "ai_review_context": {
+    "root_cause": "Служба PHP-FPM не запущена. Nginx настроен на её сокет, но обработчик PHP недоступен, поэтому PHP-страницы возвращают 502.",
+    "resolution": "Запущена служба PHP-FPM, восстановлена обработка PHP-страниц через Nginx.",
+    "result": "Nginx и PHP-FPM работают, PHP-страница возвращает HTTP 200 и ожидаемое содержимое сайта.",
+    "required_client_facts": []
+  },
   "is_active": true
 }

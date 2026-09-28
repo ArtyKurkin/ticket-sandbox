@@ -7,5 +7,11 @@
   "priority": "high",
   "order": 15,
   "requires_manual_review": true,
+  "ai_review_context": {
+    "root_cause": "Nginx настроен принимать HTTPS-соединения только по IPv6: оставлен listener [::]:443 с ipv6only=on. По IPv4 порт 443 не обслуживается.",
+    "resolution": "Настройка прослушивания HTTPS изменена и применена так, чтобы сайт был доступен по IPv4 с сохранением работы по IPv6.",
+    "result": "Nginx запущен с корректной конфигурацией, HTTPS возвращает страницу клиента по IPv4 и IPv6.",
+    "required_client_facts": []
+  },
   "is_active": true
 }

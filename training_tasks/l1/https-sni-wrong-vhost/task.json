@@ -7,5 +7,11 @@
   "priority": "high",
   "order": 13,
   "requires_manual_review": true,
+  "ai_review_context": {
+    "root_cause": "В HTTPS-виртуальном хосте портала осталось имя portal-old.example.test вместо portal.example.test. Запросы к домену портала попадают в служебный виртуальный хост по умолчанию и получают его страницу и сертификат.",
+    "resolution": "Исправлено сопоставление домена portal.example.test с HTTPS-виртуальным хостом портала и применена конфигурация Nginx.",
+    "result": "По HTTPS-домену portal.example.test открывается портал и отдаётся его сертификат; служебный сайт legacy.example.test продолжает открываться.",
+    "required_client_facts": []
+  },
   "is_active": true
 }

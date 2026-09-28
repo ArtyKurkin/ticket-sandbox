@@ -7,5 +7,11 @@
   "priority": "medium",
   "order": 4,
   "requires_manual_review": true,
+  "ai_review_context": {
+    "root_cause": "В задании cron указан путь /opt/app/update.sh, но скрипт обновления находится в /opt/app/update_data.sh. Планировщик запущен, однако не может выполнить скрипт по неверному пути.",
+    "resolution": "Исправлен путь к скрипту в задании планировщика, чтобы обновление выполнялось раз в минуту.",
+    "result": "Служба cron запущена, файл /var/www/html/status.txt существует и обновлён не более 90 секунд назад.",
+    "required_client_facts": []
+  },
   "is_active": true
 }
