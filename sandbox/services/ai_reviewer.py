@@ -5,6 +5,7 @@ import requests
 
 from copy import deepcopy
 
+from django.conf import settings
 from django.utils import timezone
 
 from sandbox.models import AIReview
@@ -30,10 +31,20 @@ ALLOWED_SEVERITIES = {
     "critical",
 }
 
-AI_REVIEW_PROMPT_VERSION = "v1"
+
+def _resolve_prompt_version(prompt_version=None):
+    if prompt_version is None:
+        prompt_version = settings.TWC_AI_PROMPT_VERSION
+
+    if prompt_version not in ("v1", "v2"):
+        raise AIReviewerError(f"Unsupported AI review prompt version: {prompt_version}")
+
+    return prompt_version
 
 
-def review_trainee_answer(task, client_answer, review_context=None):
+def review_trainee_answer(
+    task, client_answer, review_context=None, *, prompt_version=None,
+):
     agent_id = os.getenv("TWC_AI_AGENT_ID", "").strip()
     token = os.getenv("TWC_AI_TOKEN", "").strip()
 
@@ -64,6 +75,7 @@ def review_trainee_answer(task, client_answer, review_context=None):
                     task=task,
                     client_answer=client_answer,
                     review_context=review_context,
+                    prompt_version=prompt_version,
                 ),
             }
         ],
@@ -108,7 +120,11 @@ def review_trainee_answer(task, client_answer, review_context=None):
     }
 
 
-def build_review_input(task, client_answer, review_context=None):
+def build_review_input(
+    task, client_answer, review_context=None, *, prompt_version=None,
+):
+    prompt_version = _resolve_prompt_version(prompt_version)
+
     if review_context is None:
         context = task.ai_review_context
     else:
@@ -127,18 +143,37 @@ def build_review_input(task, client_answer, review_context=None):
     else:
         required_facts_text = "Нет."
 
+    if prompt_version == "v1":
+        context_text = (
+            "Известные факты:\n"
+            f"Причина проблемы: {context.get('root_cause', '')}\n"
+            f"Выполненное решение: {context.get('resolution', '')}\n"
+            f"Итоговое состояние: {context.get('result', '')}\n"
+            "Обязательные факты для клиента:\n"
+            f"{required_facts_text}\n\n"
+        )
+    else:
+        context_text = (
+            "Эталонный контекст задания:\n\n"
+            "Эталонный вариант решения описывает один известный корректный "
+            "способ решения задачи и не является исчерпывающим списком "
+            "допустимых действий или журналом действий стажёра. "
+            "Не считай дополнительное действие ошибочным только потому, "
+            "что оно отсутствует в эталонном варианте.\n\n"
+            f"Причина проблемы:\n{context.get('root_cause', '')}\n\n"
+            f"Эталонный вариант решения:\n{context.get('resolution', '')}\n\n"
+            f"Ожидаемый результат:\n{context.get('result', '')}\n\n"
+            "Обязательные факты для ответа клиенту:\n"
+            f"{required_facts_text}\n\n"
+        )
+
     return (
         "Условие задания:\n"
         f"Имя клиента: {task.client_name}\n"
         f"Тема обращения: {task.ticket_title}\n\n"
         "Сообщение клиента:\n"
         f"{task.description}\n\n"
-        "Известные факты:\n"
-        f"Причина проблемы: {context.get('root_cause', '')}\n"
-        f"Выполненное решение: {context.get('resolution', '')}\n"
-        f"Итоговое состояние: {context.get('result', '')}\n"
-        "Обязательные факты для клиента:\n"
-        f"{required_facts_text}\n\n"
+        f"{context_text}"
         "Ответ стажёра:\n"
         f"{client_answer}"
     )
@@ -203,7 +238,7 @@ def create_ai_review(attempt):
         attempt=attempt,
         client_answer=attempt.client_answer,
         task_context=deepcopy(attempt.task.ai_review_context),
-        prompt_version=AI_REVIEW_PROMPT_VERSION,
+        prompt_version=_resolve_prompt_version(),
     )
 
 
@@ -233,6 +268,7 @@ def run_ai_review(ai_review):
             task=ai_review.attempt.task,
             client_answer=ai_review.client_answer,
             review_context=ai_review.task_context,
+            prompt_version=ai_review.prompt_version,
         )
     except AIReviewerError as error:
         ai_review.status = AIReview.Status.ERROR

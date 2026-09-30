@@ -1,14 +1,17 @@
 import json
 import os
+import subprocess
+import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 from sandbox.models import AIReview, TaskAttempt
 from sandbox.tests.base import SandboxTestCase
 from sandbox.services.ai_reviewer import (
     AIReviewerError,
+    REQUIRED_CHECKS,
     build_review_input,
     create_ai_review,
     review_trainee_answer,
@@ -17,6 +20,7 @@ from sandbox.services.ai_reviewer import (
 )
 
 
+@override_settings(TWC_AI_PROMPT_VERSION="v1")
 class AIReviewerTests(SimpleTestCase):
     def setUp(self):
         self.task = SimpleNamespace(
@@ -250,7 +254,126 @@ class AIReviewerTests(SimpleTestCase):
         self.assertIn("Старая причина из snapshot.", result)
         self.assertNotIn("9001 вместо 9000", result)
 
+    def test_prompt_version_setting_defaults_to_v1_and_reads_environment(self):
+        # Import real settings in an isolated process, without loading a local
+        # .env or changing the environment of the running test suite.
+        for value, expected in ((None, "v1"), ("v1", "v1"), ("v2", "v2"), (" ", "v1")):
+            with self.subTest(value=value):
+                env = {**os.environ, "SENTRY_DSN": ""}
+                env.pop("TWC_AI_PROMPT_VERSION", None)
+                if value is not None:
+                    env["TWC_AI_PROMPT_VERSION"] = value
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-B",
+                        "-c",
+                        "from unittest.mock import patch\n"
+                        "with patch('dotenv.load_dotenv'):\n"
+                        "    from config.settings import TWC_AI_PROMPT_VERSION\n"
+                        "    print(TWC_AI_PROMPT_VERSION)\n",
+                    ],
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                self.assertEqual(result.stdout.strip(), expected)
 
+    def test_v1_message_is_unchanged_including_whitespace(self):
+        expected = (
+            "Условие задания:\n"
+            "Имя клиента: Никита Волков\n"
+            "Тема обращения: Сайт перестал открываться — ошибка 502 Bad Gateway\n\n"
+            "Сообщение клиента:\n"
+            "Сайт возвращает 502 Bad Gateway.\n\n"
+            "Известные факты:\n"
+            "Причина проблемы: В конфигурации Nginx был указан неверный порт "
+            "приложения: 9001 вместо 9000.\n"
+            "Выполненное решение: В конфигурации Nginx порт приложения "
+            "был исправлен на 9000.\n"
+            "Итоговое состояние: После исправления сайт корректно "
+            "открывается через Nginx.\n"
+            "Обязательные факты для клиента:\n"
+            "Нет.\n\n"
+            "Ответ стажёра:\n"
+            "Здравствуйте!\r\nСайт работает."
+        )
+        for facts, facts_text in (
+            ([], "Нет."),
+            (["Первый факт.", "Второй факт."], "- Первый факт.\n- Второй факт."),
+        ):
+            with self.subTest(facts=facts):
+                self.task.ai_review_context["required_client_facts"] = facts
+                actual = build_review_input(
+                    self.task, "Здравствуйте!\r\nСайт работает.",
+                )
+                self.assertEqual(actual, expected.replace("Нет.", facts_text))
+                self.assertNotIn("Эталонный вариант решения", actual)
+                self.assertNotIn("исчерпывающим списком", actual)
+
+    @override_settings(TWC_AI_PROMPT_VERSION="v2")
+    def test_v2_message_explains_reference_context_and_preserves_required_facts(self):
+        context = {
+            "root_cause": "Причина из snapshot.",
+            "resolution": "Решение из snapshot.",
+            "result": "Результат из snapshot.",
+            "required_client_facts": [
+                "Занимаемое логом место освобождено.",
+                "Важные конфигурационные файлы не затронуты.",
+            ],
+        }
+        result = build_review_input(
+            self.task, "Здравствуйте!\r\nМой ответ.", review_context=context,
+        )
+        self.assertIn("Имя клиента: Никита Волков\n", result)
+        self.assertIn("Сообщение клиента:\nСайт возвращает 502 Bad Gateway.\n", result)
+        self.assertIn("Эталонный контекст задания:\n", result)
+        self.assertIn("Причина проблемы:\nПричина из snapshot.\n", result)
+        self.assertIn("Эталонный вариант решения:\nРешение из snapshot.\n", result)
+        self.assertIn("Ожидаемый результат:\nРезультат из snapshot.\n", result)
+        self.assertIn(
+            "не является исчерпывающим списком допустимых действий "
+            "или журналом действий стажёра",
+            result,
+        )
+        self.assertIn(
+            "Не считай дополнительное действие ошибочным только потому, "
+            "что оно отсутствует в эталонном варианте.",
+            result,
+        )
+        self.assertIn(
+            "Обязательные факты для ответа клиенту:\n"
+            "- Занимаемое логом место освобождено.\n"
+            "- Важные конфигурационные файлы не затронуты.\n\n",
+            result,
+        )
+        self.assertTrue(result.endswith("Ответ стажёра:\nЗдравствуйте!\r\nМой ответ."))
+        self.assertNotIn("Выполненное решение", result)
+        self.assertNotIn("Известные факты", result)
+        self.assertNotIn("Итоговое состояние", result)
+        self.assertNotIn("9001 вместо 9000", result)
+
+    @override_settings(TWC_AI_PROMPT_VERSION="v2")
+    def test_v2_message_handles_empty_required_facts(self):
+        result = build_review_input(self.task, "Ответ.")
+        self.assertIn("Обязательные факты для ответа клиенту:\nНет.\n\n", result)
+
+    def test_explicit_version_overrides_current_setting_for_message(self):
+        for saved, current, label in (
+            ("v1", "v2", "Известные факты:"),
+            ("v2", "v1", "Эталонный контекст задания:"),
+        ):
+            with self.subTest(saved=saved), self.settings(TWC_AI_PROMPT_VERSION=current):
+                result = build_review_input(self.task, "Ответ.", prompt_version=saved)
+                self.assertIn(label, result)
+
+    def test_unsupported_version_is_not_silently_formatted_as_v1_or_v2(self):
+        with self.assertRaisesMessage(AIReviewerError, "Unsupported AI review prompt version"):
+            build_review_input(self.task, "Ответ.", prompt_version="v3")
+
+
+@override_settings(TWC_AI_PROMPT_VERSION="v1")
 class AIReviewDatabaseTests(SandboxTestCase):
     def setUp(self):
         self.user = self.create_user(
@@ -373,6 +496,7 @@ class AIReviewDatabaseTests(SandboxTestCase):
                 "result": "Сайт работает.",
                 "required_client_facts": [],
             },
+            prompt_version="v1",
         )
 
     @patch("sandbox.services.ai_reviewer.review_trainee_answer")
@@ -413,3 +537,87 @@ class AIReviewDatabaseTests(SandboxTestCase):
         start_ai_review_in_background(ai_review)
 
         delay_mock.assert_called_once_with(ai_review.id)
+
+    @override_settings(TWC_AI_PROMPT_VERSION="v2")
+    def test_create_ai_review_saves_v2_version(self):
+        review = create_ai_review(self.attempt)
+        review.refresh_from_db()
+        self.assertEqual(review.prompt_version, "v2")
+        self.assertEqual(review.task_context, self.task.ai_review_context)
+        self.assertEqual(review.client_answer, self.attempt.client_answer)
+        self.assertEqual(review.status, AIReview.Status.PENDING)
+
+    @override_settings(TWC_AI_PROMPT_VERSION="v3")
+    def test_unsupported_config_does_not_create_mislabeled_review(self):
+        with self.assertRaisesMessage(AIReviewerError, "Unsupported AI review prompt version"):
+            create_ai_review(self.attempt)
+        self.assertFalse(self.attempt.ai_reviews.exists())
+
+    @patch.dict(
+        os.environ,
+        {"TWC_AI_AGENT_ID": "test-agent-id", "TWC_AI_TOKEN": "test-token"},
+    )
+    @patch("sandbox.services.ai_reviewer.requests.post")
+    def test_worker_uses_snapshot_version_after_settings_change(self, post_mock):
+        from sandbox.tasks import run_ai_review_task
+
+        # This response only exercises transport/persistence, not LLM quality.
+        checks = {
+            key: {"passed": True, "severity": "ok", "comment": ""}
+            for key in REQUIRED_CHECKS
+        }
+        checks["completeness"]["missing_facts"] = []
+        post_mock.return_value.json.return_value = {
+            "model": "test-model",
+            "choices": [{"message": {"content": json.dumps({
+                "checks": checks, "recommendations": [],
+            })}}],
+        }
+
+        for saved, current, expected_label, forbidden_label in (
+            ("v1", "v2", "Выполненное решение:", "Эталонный вариант решения:"),
+            ("v2", "v1", "Эталонный вариант решения:", "Выполненное решение:"),
+        ):
+            for status in (AIReview.Status.PENDING, AIReview.Status.RUNNING):
+                with self.subTest(saved=saved, status=status):
+                    with self.settings(TWC_AI_PROMPT_VERSION=saved):
+                        review = create_ai_review(self.attempt)
+                    review.status = status
+                    review.save(update_fields=["status"])
+                    post_mock.reset_mock()
+
+                    with self.settings(TWC_AI_PROMPT_VERSION=current):
+                        # Load the saved record through the real Celery entry
+                        # point, but run synchronously with HTTP mocked.
+                        run_ai_review_task.run(review.pk)
+
+                    post_mock.assert_called_once()
+                    payload = post_mock.call_args.kwargs["json"]
+                    self.assertEqual(set(payload), {"messages", "stream"})
+                    self.assertIs(payload["stream"], False)
+                    self.assertEqual(len(payload["messages"]), 1)
+                    self.assertEqual(payload["messages"][0]["role"], "user")
+                    content = payload["messages"][0]["content"]
+                    self.assertIn(expected_label, content)
+                    self.assertNotIn(forbidden_label, content)
+                    self.assertIn("Неверный порт приложения.", content)
+                    self.assertTrue(content.endswith(review.client_answer))
+                    review.refresh_from_db()
+                    self.assertEqual(review.prompt_version, saved)
+                    self.assertEqual(review.status, AIReview.Status.COMPLETED)
+
+    @patch.dict(
+        os.environ,
+        {"TWC_AI_AGENT_ID": "test-agent-id", "TWC_AI_TOKEN": "test-token"},
+    )
+    @patch("sandbox.services.ai_reviewer.requests.post")
+    def test_unsupported_saved_version_records_error_without_http_request(self, post_mock):
+        review = create_ai_review(self.attempt)
+        review.prompt_version = "v3"
+        review.save(update_fields=["prompt_version"])
+        with self.assertRaisesMessage(AIReviewerError, "Unsupported AI review prompt version"):
+            run_ai_review(review)
+        post_mock.assert_not_called()
+        review.refresh_from_db()
+        self.assertEqual(review.prompt_version, "v3")
+        self.assertEqual(review.status, AIReview.Status.ERROR)

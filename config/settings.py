@@ -226,6 +226,9 @@ CHECK_TASK_TIMEOUT_SECONDS = int(
     os.getenv("CHECK_TASK_TIMEOUT_SECONDS", "60")
 )
 
+# Applies to newly created AIReview snapshots; workers use the saved version.
+TWC_AI_PROMPT_VERSION = os.getenv("TWC_AI_PROMPT_VERSION", "v1").strip() or "v1"
+
 CELERY_BROKER_URL = os.getenv(
     "CELERY_BROKER_URL",
     "redis://127.0.0.1:6379/0",
