@@ -770,6 +770,59 @@ pre {
   line-height: 1;
 }
 
+/* AI Reviewer statistics reuse theme-aware cards, tables and badges. */
+.ai-review-stats-nav {
+  margin-bottom: 24px;
+}
+
+.ai-review-stats-page {
+  display: grid;
+  gap: 20px;
+}
+
+.ai-review-stats-page .card {
+  min-width: 0;
+}
+
+.ai-review-stats-page .card h2 {
+  margin-bottom: 12px;
+}
+
+.ai-review-stats-page .mentor-stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  margin-bottom: 0;
+}
+
+.ai-review-stats-page .mentor-stat-card strong {
+  display: block;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.ai-review-stats-page .mentor-stat-card p {
+  margin: 10px 0 0;
+}
+
+.ai-review-criteria-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 20px;
+  min-width: 0;
+}
+
+.ai-review-stats-page .table-scroll .table {
+  min-width: 380px;
+}
+
+.ai-review-stats-page .table-scroll .ai-review-recent-table {
+  min-width: 900px;
+}
+
+.ai-review-stats-page .table th[scope="row"] {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .dashboard-badge {
   display: inline-flex;
   align-items: center;
@@ -1733,6 +1786,21 @@ body.terminal-is-expanded {
 }
 
 @media (max-width: 760px) {
+  .header-inner,
+  .user-panel {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .user-panel {
+    max-width: 100%;
+  }
+
+  .user-chip {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   .hero-title-row {
     flex-direction: column;
     align-items: flex-start;

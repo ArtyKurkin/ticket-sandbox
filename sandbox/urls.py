@@ -6,6 +6,11 @@ app_name = "sandbox"
 
 urlpatterns = [
     path(
+        "sandbox/ai-review-stats/",
+        views.ai_review_stats,
+        name="ai_review_stats",
+    ),
+    path(
         "sandbox/",
         views.dashboard,
         name="dashboard",

@@ -9,6 +9,8 @@ from django.views.decorators.http import require_GET, require_POST
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from .models import AIReview, TaskAttempt
+from .ai_review_constants import AI_REVIEW_CHECK_LABELS
+from .services.ai_review_stats import build_ai_review_stats_context
 from .services.trainee_dashboard import build_trainee_dashboard_context
 from .services.mentor_dashboard import build_mentor_dashboard_context
 from .services.attempts import get_next_attempt_number
@@ -35,16 +37,6 @@ from .services.environments import (
 
 
 terminal_logger = logging.getLogger("sandbox.terminal")
-
-AI_REVIEW_CHECK_LABELS = {
-    "greeting": "Приветствие",
-    "problem_description": "Описание проблемы",
-    "solution": "Решение",
-    "completeness": "Полнота ответа",
-    "direct_answer": "Ответ по существу",
-    "client_language": "Язык для клиента",
-    "structure_and_grammar": "Структура и грамотность",
-}
 
 
 def build_ai_review_display(ai_review):
@@ -139,6 +131,20 @@ def dashboard(request):
         request,
         "sandbox/trainee_dashboard.html",
         build_trainee_dashboard_context(request.user),
+    )
+
+
+@login_required
+@require_GET
+def ai_review_stats(request):
+    if not request.user.is_staff:
+        messages.error(request, "У тебя нет доступа к этой странице.")
+        return redirect("sandbox:dashboard")
+
+    return render(
+        request,
+        "sandbox/ai_review_stats.html",
+        build_ai_review_stats_context(),
     )
 
 

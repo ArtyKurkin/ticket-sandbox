@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}AI Reviewer — статистика{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <h1>AI Reviewer — статистика<span class="hero-dot">.</span></h1>
+    <p>
+      Сравнение AI с решениями наставников за всё время. Каждая проверка конкретной
+      версии ответа — отдельное сравнение, включая историю одного тикета.
+      Финальное решение принимает наставник.
+    </p>
+  </section>
+
+  <nav class="ai-review-stats-nav" aria-label="Навигация наставника">
+    <a class="button secondary" href="{% url 'sandbox:dashboard' %}">
+      <i data-lucide="arrow-left"></i>
+      Панель наставника
+    </a>
+  </nav>
+
+  <div class="ai-review-stats-page">
+    <div class="mentor-stats ai-review-summary">
+      <div class="mentor-stat-card">
+        <span>Всего AI-проверок</span>
+        <strong>{{ stats.total }}</strong>
+      </div>
+      <div class="mentor-stat-card">
+        <span>Завершено</span>
+        <strong>{{ stats.completed }}</strong>
+      </div>
+      <div class="mentor-stat-card">
+        <span>С решением наставника</span>
+        <strong>{{ stats.comparisons }}</strong>
+      </div>
+      <div class="mentor-stat-card">
+        <span>Agreement</span>
+        {% if stats.comparisons %}
+          <strong>{{ stats.agreement }} из {{ stats.comparisons }} · {{ stats.agreement_percent|floatformat:"1u" }}%</strong>
+        {% else %}
+          <strong>—</strong>
+          <p class="muted-text">Пока нет сравнений</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <section class="card" aria-labelledby="disagreements-title">
+      <h2 id="disagreements-title">Расхождения</h2>
+      <p>
+        В сравнении участвуют только завершённые AI-проверки с решением наставника.
+        Agreement — доля совпадений. Проценты False critical и Missed revision рассчитаны от {{ stats.comparisons }} сравнений.
+        AI предлагает доработку при хотя бы одном critical; minor допускает принятие ответа.
+      </p>
+      <div class="mentor-stats ai-review-disagreements">
+        <div class="mentor-stat-card">
+          <span>False critical</span>
+          <strong>{{ stats.false_critical }} · {% if stats.comparisons %}{{ stats.false_critical_percent|floatformat:"1u" }}%{% else %}—{% endif %}</strong>
+          <p class="muted-text">AI нашёл critical, наставник принял ответ.</p>
+        </div>
+        <div class="mentor-stat-card">
+          <span>Missed revision</span>
+          <strong>{{ stats.missed_revision }} · {% if stats.comparisons %}{{ stats.missed_revision_percent|floatformat:"1u" }}%{% else %}—{% endif %}</strong>
+          <p class="muted-text">AI не нашёл critical, наставник отправил ответ на доработку.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="matrix-title">
+      <h2 id="matrix-title">Матрица AI / Mentor</h2>
+      <p>Approved — ответ можно принять. Needs revision — нужна доработка.</p>
+      <div class="table-scroll" role="region" aria-labelledby="matrix-title" tabindex="0">
+        <table class="table">
+          <thead><tr><th scope="col">Решение AI</th><th scope="col">Mentor approved</th><th scope="col">Mentor needs revision</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">AI approved</th><td>{{ matrix.approved.approved }}</td><td>{{ matrix.approved.needs_revision }}</td></tr>
+            <tr><th scope="row">AI needs revision</th><td>{{ matrix.needs_revision.approved }}</td><td>{{ matrix.needs_revision.needs_revision }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="ai-review-criteria-grid">
+      <section class="card" aria-labelledby="criteria-title">
+        <h2 id="criteria-title">Критерии в False critical</h2>
+        <p>
+          Critical в ответах, принятых наставником. Одна проверка может учитываться
+          в нескольких критериях. Наставник оценивает ответ целиком, поэтому это
+          не agreement по критериям.
+        </p>
+        <div class="table-scroll" role="region" aria-labelledby="criteria-title" tabindex="0">
+          <table class="table">
+            <thead><tr><th scope="col">Критерий</th><th scope="col">Проверок</th></tr></thead>
+            <tbody>
+              {% for criterion in false_critical_criteria %}
+                <tr><th scope="row">{{ criterion.label }}</th><td>{{ criterion.false_critical }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="severity-title">
+        <h2 id="severity-title">Распределение severity</h2>
+        <p>Все {{ stats.completed }} завершённых проверок, включая проверки без решения наставника.</p>
+        <div class="table-scroll" role="region" aria-labelledby="severity-title" tabindex="0">
+          <table class="table">
+            <thead><tr><th scope="col">Критерий</th><th scope="col">Critical</th><th scope="col">Minor</th><th scope="col">OK</th></tr></thead>
+            <tbody>
+              {% for criterion in criteria %}
+                <tr><th scope="row">{{ criterion.label }}</th><td>{{ criterion.critical }}</td><td>{{ criterion.minor }}</td><td>{{ criterion.ok }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <section class="card" aria-labelledby="prompt-title">
+      <h2 id="prompt-title">Версии prompt</h2>
+      <p>Количество и доля исходов от числа сравнений внутри каждой версии prompt.</p>
+      <div class="table-scroll" role="region" aria-labelledby="prompt-title" tabindex="0">
+        <table class="table">
+          <thead><tr><th scope="col">Prompt version</th><th scope="col">Comparisons</th><th scope="col">Agreement</th><th scope="col">False critical</th><th scope="col">Missed revision</th></tr></thead>
+          <tbody>
+            {% for prompt in prompt_stats %}
+              <tr>
+                <th scope="row">{{ prompt.version|default:"Не указана" }}</th>
+                <td>{{ prompt.comparisons }}</td>
+                <td>{{ prompt.agreement }} · {{ prompt.agreement_percent|floatformat:"1u" }}%</td>
+                <td>{{ prompt.false_critical }} · {{ prompt.false_critical_percent|floatformat:"1u" }}%</td>
+                <td>{{ prompt.missed_revision }} · {{ prompt.missed_revision_percent|floatformat:"1u" }}%</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5">Пока нет сравнений.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="models-title">
+      <h2 id="models-title">Модели AI</h2>
+      <p>Количество всех проверок независимо от статуса. До ответа AI модель может быть не указана.</p>
+      <div class="table-scroll" role="region" aria-labelledby="models-title" tabindex="0">
+        <table class="table">
+          <thead><tr><th scope="col">Модель</th><th scope="col">Проверок</th></tr></thead>
+          <tbody>
+            {% for item in model_stats %}
+              <tr><th scope="row">{{ item.model|default:"Не указана" }}</th><td>{{ item.count }}</td></tr>
+            {% empty %}
+              <tr><td colspan="2">Пока нет AI-проверок.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="recent-title">
+      <h2 id="recent-title">Последние расхождения</h2>
+      <p>До 10 случаев, сначала новые по дате создания AI-проверки. Подробности и история версий — в тикете.</p>
+      <div class="table-scroll" role="region" aria-labelledby="recent-title" tabindex="0">
+        <table class="table ai-review-recent-table">
+          <thead><tr><th scope="col">Дата проверки</th><th scope="col">Задание / тикет</th><th scope="col">Стажёр</th><th scope="col">AI decision</th><th scope="col">Mentor decision</th><th scope="col">Критерии critical</th></tr></thead>
+          <tbody>
+            {% for item in recent_disagreements %}
+              <tr>
+                <td>{{ item.review.created_at|date:"d.m.Y H:i" }}<div class="table-muted">AI #{{ item.review.id }}</div></td>
+                <td><a class="table-link" href="{% url 'sandbox:task_detail' item.review.attempt_id %}">{{ item.review.attempt.task.title }} · #{{ item.review.attempt_id }}</a></td>
+                <td>{{ item.review.attempt.user.username }}</td>
+                <td><span class="status {% if item.ai_decision == 'approved' %}status-success{% else %}status-danger{% endif %}">{% if item.ai_decision == 'approved' %}Принято{% else %}Нужна доработка{% endif %}</span></td>
+                <td><span class="status {% if item.review.mentor_decision == 'approved' %}status-success{% else %}status-danger{% endif %}">{{ item.review.get_mentor_decision_display }}</span></td>
+                <td>{{ item.critical_labels|join:", "|default:"Нет" }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6">Расхождений пока нет.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+{% endblock %}
