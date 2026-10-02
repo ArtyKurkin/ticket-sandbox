@@ -66,8 +66,8 @@ function removeTerminalFramesBeforeSubmit() {
     }
 
     form.dataset.terminalCleanupBound = "true";
-    form.addEventListener("submit", function () {
-      removeTerminalFrames();
+    form.addEventListener("submit", function (event) {
+      if (!event.defaultPrevented) removeTerminalFrames();
     });
   });
 }
@@ -108,7 +108,8 @@ function bindLoadingButtons(root = document) {
     }
 
     form.dataset.loadingBound = "true";
-    form.addEventListener("submit", function () {
+    form.addEventListener("submit", function (event) {
+      if (event.defaultPrevented) return;
       button.disabled = true;
       button.classList.add("is-loading");
 
@@ -387,8 +388,26 @@ function initEnvironmentStatusPolling() {
   pollEnvironmentStatus();
 }
 
+function bindRequiredAnswers() {
+  document.querySelectorAll("textarea[data-required-message]").forEach(function (field) {
+    function validate() {
+      field.setCustomValidity(field.value.trim() ? "" : field.dataset.requiredMessage);
+    }
+    field.addEventListener("input", validate);
+    validate();
+    field.form.addEventListener("submit", function (event) {
+      validate();
+      if (!field.form.checkValidity()) {
+        event.preventDefault();
+        field.form.reportValidity();
+      }
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   initLucide();
+  bindRequiredAnswers();
   removeTerminalFramesBeforeSubmit();
   removeTerminalFramesBeforeLinks();
   bindLoadingButtons();

@@ -257,7 +257,7 @@ class AIReviewerTests(SimpleTestCase):
     def test_prompt_version_setting_defaults_to_v1_and_reads_environment(self):
         # Import real settings in an isolated process, without loading a local
         # .env or changing the environment of the running test suite.
-        for value, expected in ((None, "v1"), ("v1", "v1"), ("v2", "v2"), (" ", "v1")):
+        for value, expected in ((None, "v1"), ("v1", "v1"), ("v2", "v2"), ("v3", "v3"), (" ", "v1")):
             with self.subTest(value=value):
                 env = {**os.environ, "SENTRY_DSN": ""}
                 env.pop("TWC_AI_PROMPT_VERSION", None)
@@ -363,6 +363,8 @@ class AIReviewerTests(SimpleTestCase):
         for saved, current, label in (
             ("v1", "v2", "Известные факты:"),
             ("v2", "v1", "Эталонный контекст задания:"),
+            ("v1", "v3", "Известные факты:"),
+            ("v2", "v3", "Эталонный контекст задания:"),
         ):
             with self.subTest(saved=saved), self.settings(TWC_AI_PROMPT_VERSION=current):
                 result = build_review_input(self.task, "Ответ.", prompt_version=saved)
@@ -370,7 +372,7 @@ class AIReviewerTests(SimpleTestCase):
 
     def test_unsupported_version_is_not_silently_formatted_as_v1_or_v2(self):
         with self.assertRaisesMessage(AIReviewerError, "Unsupported AI review prompt version"):
-            build_review_input(self.task, "Ответ.", prompt_version="v3")
+            build_review_input(self.task, "Ответ.", prompt_version="v999")
 
 
 @override_settings(TWC_AI_PROMPT_VERSION="v1")
@@ -547,7 +549,7 @@ class AIReviewDatabaseTests(SandboxTestCase):
         self.assertEqual(review.client_answer, self.attempt.client_answer)
         self.assertEqual(review.status, AIReview.Status.PENDING)
 
-    @override_settings(TWC_AI_PROMPT_VERSION="v3")
+    @override_settings(TWC_AI_PROMPT_VERSION="v999")
     def test_unsupported_config_does_not_create_mislabeled_review(self):
         with self.assertRaisesMessage(AIReviewerError, "Unsupported AI review prompt version"):
             create_ai_review(self.attempt)
@@ -577,6 +579,8 @@ class AIReviewDatabaseTests(SandboxTestCase):
         for saved, current, expected_label, forbidden_label in (
             ("v1", "v2", "Выполненное решение:", "Эталонный вариант решения:"),
             ("v2", "v1", "Эталонный вариант решения:", "Выполненное решение:"),
+            ("v1", "v3", "Выполненное решение:", "Эталонный вариант решения:"),
+            ("v2", "v3", "Эталонный вариант решения:", "Выполненное решение:"),
         ):
             for status in (AIReview.Status.PENDING, AIReview.Status.RUNNING):
                 with self.subTest(saved=saved, status=status):
@@ -613,11 +617,11 @@ class AIReviewDatabaseTests(SandboxTestCase):
     @patch("sandbox.services.ai_reviewer.requests.post")
     def test_unsupported_saved_version_records_error_without_http_request(self, post_mock):
         review = create_ai_review(self.attempt)
-        review.prompt_version = "v3"
+        review.prompt_version = "v999"
         review.save(update_fields=["prompt_version"])
         with self.assertRaisesMessage(AIReviewerError, "Unsupported AI review prompt version"):
             run_ai_review(review)
         post_mock.assert_not_called()
         review.refresh_from_db()
-        self.assertEqual(review.prompt_version, "v3")
+        self.assertEqual(review.prompt_version, "v999")
         self.assertEqual(review.status, AIReview.Status.ERROR)

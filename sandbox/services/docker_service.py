@@ -135,14 +135,25 @@ def check_task_container(container_name: str):
     container = client.containers.get(container_name)
 
     timeout_seconds = settings.CHECK_TASK_TIMEOUT_SECONDS
+    check_command = ["bash", "/task/check.sh"]
+    if (
+        container.labels.get("ticket-sandbox.queue") == "l1"
+        and container.labels.get("ticket-sandbox.task") == "wordpress-500-after-move"
+    ):
+        # Keep validation logic outside the trainee image: no solution hints in
+        # /task/check.sh and no writable local checker that can grant a pass.
+        source = (
+            Path(__file__).resolve().parent.parent
+            / "task_checks" / "wordpress_runtime.php"
+        ).read_text(encoding="utf-8")
+        check_command = ["php", "-r", source.removeprefix("<?php\n")]
 
     exit_code, output = container.exec_run(
         cmd=[
             "timeout",
             "--kill-after=5s",
             f"{timeout_seconds}s",
-            "bash",
-            "/task/check.sh",
+            *check_command,
         ],
         stdout=True,
         stderr=True,

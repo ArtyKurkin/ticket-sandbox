@@ -6,6 +6,7 @@ RUN apt-get update \
 COPY files/start.sh /start.sh
 COPY files/check.sh /task/check.sh
 COPY files/index.php /var/www/html/index.php
+COPY files/app/ /var/www/customer-site/
 COPY files/systemctl /usr/local/bin/systemctl
 RUN chmod +x /start.sh /task/check.sh /usr/local/bin/systemctl
 CMD ["/start.sh"]

@@ -357,6 +357,8 @@
           <textarea
             class="task-answer-textarea"
             name="client_answer"
+            required
+            data-required-message="Напиши ответ клиенту перед отправкой."
             placeholder="Напиши ответ клиенту так, как отправил бы его в реальном тикете"
           >{{ attempt.client_answer }}</textarea>
 
@@ -364,6 +366,8 @@
           <textarea
             class="task-report-textarea"
             name="trainee_report"
+            required
+            data-required-message="Добавь внутренний комментарий с диагностикой."
             placeholder="Кратко опиши диагностику: что проверил, что нашел, что исправил"
           >{{ attempt.trainee_report }}</textarea>
 

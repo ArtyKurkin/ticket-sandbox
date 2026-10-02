@@ -1,9 +1,10 @@
+import hashlib
 import json
 import os
+from copy import deepcopy
+from pathlib import Path
 
 import requests
-
-from copy import deepcopy
 
 from django.conf import settings
 from django.utils import timezone
@@ -36,10 +37,25 @@ def _resolve_prompt_version(prompt_version=None):
     if prompt_version is None:
         prompt_version = settings.TWC_AI_PROMPT_VERSION
 
-    if prompt_version not in ("v1", "v2"):
+    if prompt_version not in ("v1", "v2", "v3"):
         raise AIReviewerError(f"Unsupported AI review prompt version: {prompt_version}")
 
     return prompt_version
+
+
+def load_system_prompt(prompt_version):
+    """Released prompts are immutable; new rules require a new version file."""
+    _resolve_prompt_version(prompt_version)
+    if prompt_version != "v3":
+        return None
+    path = Path(__file__).resolve().parent.parent / "ai_prompts" / "v3.txt"
+    try:
+        prompt = path.read_bytes().decode("utf-8")
+    except (OSError, UnicodeError) as error:
+        raise AIReviewerError("Cannot load AI review system prompt v3") from error
+    if not prompt.strip():
+        raise AIReviewerError("AI review system prompt v3 is empty")
+    return prompt
 
 
 def review_trainee_answer(
@@ -67,6 +83,17 @@ def review_trainee_answer(
         f"{agent_id}/v1/chat/completions"
     )
 
+    prompt_version = _resolve_prompt_version(prompt_version)
+    system_prompt = load_system_prompt(prompt_version)
+    context = task.ai_review_context if review_context is None else review_context
+    if system_prompt:
+        expected_hash = context.get("_review_metadata", {}).get("system_prompt_sha256")
+        actual_hash = hashlib.sha256(system_prompt.encode("utf-8")).hexdigest()
+        if expected_hash and expected_hash != actual_hash:
+            raise AIReviewerError(
+                "AI review system prompt hash mismatch; released prompts are immutable"
+            )
+
     payload = {
         "messages": [
             {
@@ -81,6 +108,8 @@ def review_trainee_answer(
         ],
         "stream": False,
     }
+    if system_prompt:
+        payload["messages"].insert(0, {"role": "system", "content": system_prompt})
 
     try:
         response = requests.post(
@@ -167,6 +196,14 @@ def build_review_input(
             f"{required_facts_text}\n\n"
         )
 
+    if prompt_version == "v3":
+        technical_passed = context.get("_review_metadata", {}).get("technical_check_passed")
+        context_text += (
+            "Результат технической автопроверки платформы: "
+            + ("passed" if technical_passed is True else "не предоставлен")
+            + ". Это проверка окружения, а не подтверждение каждого утверждения в ответе.\n\n"
+        )
+
     return (
         "Условие задания:\n"
         f"Имя клиента: {task.client_name}\n"
@@ -234,11 +271,19 @@ def validate_review_response(review):
 
 
 def create_ai_review(attempt):
+    prompt_version = _resolve_prompt_version()
+    task_context = deepcopy(attempt.task.ai_review_context)
+    system_prompt = load_system_prompt(prompt_version)
+    if system_prompt:
+        task_context["_review_metadata"] = {
+            "system_prompt_sha256": hashlib.sha256(system_prompt.encode("utf-8")).hexdigest(),
+            "technical_check_passed": bool(attempt.technical_passed_at),
+        }
     return AIReview.objects.create(
         attempt=attempt,
         client_answer=attempt.client_answer,
-        task_context=deepcopy(attempt.task.ai_review_context),
-        prompt_version=_resolve_prompt_version(),
+        task_context=task_context,
+        prompt_version=prompt_version,
     )
 
 

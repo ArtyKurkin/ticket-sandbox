@@ -15,6 +15,7 @@ from .services.trainee_dashboard import build_trainee_dashboard_context
 from .services.mentor_dashboard import build_mentor_dashboard_context
 from .services.attempts import get_next_attempt_number
 from .services.ai_reviewer import (
+    AIReviewerError,
     create_ai_review,
     start_ai_review_in_background,
 )
@@ -551,8 +552,13 @@ def check_task(request, attempt_id):
             )
             return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
-        client_answer = request.POST.get("client_answer", "").strip()
-        trainee_report = request.POST.get("trainee_report", "").strip()
+        # Keep the exact draft before validation, including whitespace. The
+        # redirect then renders both submitted values even without JavaScript.
+        attempt.client_answer = request.POST.get("client_answer", "")
+        attempt.trainee_report = request.POST.get("trainee_report", "")
+        attempt.save(update_fields=["client_answer", "trainee_report"])
+        client_answer = attempt.client_answer.strip()
+        trainee_report = attempt.trainee_report.strip()
 
         if not client_answer:
             messages.error(
@@ -570,32 +576,43 @@ def check_task(request, attempt_id):
 
         attempt.client_answer = client_answer
         attempt.trainee_report = trainee_report
-        attempt.status = TaskAttempt.Status.ON_REVIEW
-        attempt.mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
-        attempt.mentor_reviewed_by = None
-        attempt.mentor_reviewed_at = None
-        attempt.mentor_feedback_seen_at = timezone.now()
-
-        attempt.save(
-            update_fields=[
-                "client_answer",
-                "trainee_report",
-                "status",
-                "mentor_decision",
-                "mentor_reviewed_by",
-                "mentor_reviewed_at",
-                "mentor_feedback_seen_at",
-            ]
-        )
-
-        if attempt.task.ai_review_context:
-            ai_review = create_ai_review(attempt)
-
-            transaction.on_commit(
-                lambda ai_review=ai_review: start_ai_review_in_background(
-                    ai_review
+        try:
+            with transaction.atomic():
+                ai_review = (
+                    create_ai_review(attempt)
+                    if attempt.task.ai_review_context else None
                 )
+
+                attempt.status = TaskAttempt.Status.ON_REVIEW
+                attempt.mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
+                attempt.mentor_reviewed_by = None
+                attempt.mentor_reviewed_at = None
+                attempt.mentor_feedback_seen_at = timezone.now()
+                attempt.save(
+                    update_fields=[
+                        "client_answer",
+                        "trainee_report",
+                        "status",
+                        "mentor_decision",
+                        "mentor_reviewed_by",
+                        "mentor_reviewed_at",
+                        "mentor_feedback_seen_at",
+                    ]
+                )
+
+                if ai_review is not None:
+                    transaction.on_commit(
+                        lambda ai_review=ai_review: start_ai_review_in_background(
+                            ai_review
+                        )
+                    )
+        except AIReviewerError:
+            messages.error(
+                request,
+                "Не удалось подготовить AI-проверку. Текст сохранён. "
+                "Попробуй отправить ответ позже или обратись к наставнику."
             )
+            return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
         cleanup_attempt_environment(attempt)
 

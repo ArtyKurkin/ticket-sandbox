@@ -1190,6 +1190,8 @@ class TaskFlowTests(SandboxTestCase):
         )
 
     def test_check_task_requires_client_answer(self):
+        self.attempt.task.requires_manual_review = True
+        self.attempt.task.save(update_fields=["requires_manual_review"])
         self.attempt.status = TaskAttempt.Status.IN_PROGRESS
         self.attempt.technical_passed_at = timezone.now()
         self.attempt.save(
@@ -1214,9 +1216,11 @@ class TaskFlowTests(SandboxTestCase):
         self.assertEqual(self.attempt.status, TaskAttempt.Status.IN_PROGRESS)
         self.assertEqual(self.attempt.attempts_count, 0)
         self.assertEqual(self.attempt.client_answer, "")
-        self.assertEqual(self.attempt.trainee_report, "")
+        self.assertEqual(self.attempt.trainee_report, "Проверил nginx.")
 
     def test_check_task_requires_trainee_report(self):
+        self.attempt.task.requires_manual_review = True
+        self.attempt.task.save(update_fields=["requires_manual_review"])
         self.attempt.status = TaskAttempt.Status.IN_PROGRESS
         self.attempt.technical_passed_at = timezone.now()
         self.attempt.save(
@@ -1240,7 +1244,7 @@ class TaskFlowTests(SandboxTestCase):
 
         self.assertEqual(self.attempt.status, TaskAttempt.Status.IN_PROGRESS)
         self.assertEqual(self.attempt.attempts_count, 0)
-        self.assertEqual(self.attempt.client_answer, "")
+        self.assertEqual(self.attempt.client_answer, "Здравствуйте, проблема исправлена.")
         self.assertEqual(self.attempt.trainee_report, "")
 
     def test_check_task_after_technical_pass_sends_answer_to_review(self):

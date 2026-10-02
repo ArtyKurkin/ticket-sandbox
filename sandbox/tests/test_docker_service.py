@@ -200,6 +200,26 @@ class DockerServiceSecurityTests(SimpleTestCase):
             stderr=True,
         )
 
+    @override_settings(CHECK_TASK_TIMEOUT_SECONDS=60)
+    @patch("sandbox.services.docker_service.get_docker_client")
+    def test_wordpress_uses_platform_checker_not_mutable_task_script(self, get_client):
+        container = get_client.return_value.containers.get.return_value
+        container.labels = {
+            "ticket-sandbox.queue": "l1",
+            "ticket-sandbox.task": "wordpress-500-after-move",
+        }
+        container.exec_run.return_value = (0, "Задание пройдено.".encode())
+        code, output = check_task_container("wordpress-container")
+        self.assertEqual(code, 0)
+        self.assertIn("Задание пройдено", output)
+        command = container.exec_run.call_args.kwargs["cmd"]
+        self.assertEqual(command[:5], ["timeout", "--kill-after=5s", "60s", "php", "-r"])
+        self.assertNotIn("/task/check.sh", command)
+        self.assertIn("runtimeProbe", command[5])
+        self.assertNotIn("CorrectPass123", command[5])
+        self.assertNotIn("OldPassword999", command[5])
+        container.exec_run.assert_called_once()
+
     @override_settings(CHECK_TASK_TIMEOUT_SECONDS=30)
     @patch("sandbox.services.docker_service.get_docker_client")
     def test_check_task_container_returns_readable_message_on_timeout(

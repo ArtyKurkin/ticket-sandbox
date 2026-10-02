@@ -5,13 +5,10 @@ echo
 
 ok=true
 
-if ! /usr/local/bin/customer-app status >/dev/null 2>&1; then
-  echo "❌ Приложение не запущено."
-  ok=false
-fi
-
-local_body="$(curl -fsS --max-time 2 http://127.0.0.1:8080/ 2>/dev/null || true)"
-if ! printf '%s' "$local_body" | grep -q "APP OK: customer service is running"; then
+# Successful application responses prove a live listener on port 8080,
+# independently of launcher, PID file, command line or process manager.
+local_body="$(curl -fsS --noproxy '*' --max-time 2 http://127.0.0.1:8080/ 2>/dev/null || true)"
+if [ "$local_body" != "APP OK: customer service is running" ]; then
   echo "❌ Приложение не отвечает локально на ожидаемом порту."
   ok=false
 fi
@@ -28,7 +25,7 @@ if [ -z "$container_ip" ]; then
 else
   network_body="$(curl -fsS --noproxy '*' --max-time 2 "http://${container_ip}:8080/" 2>/dev/null || true)"
 
-  if ! printf '%s' "$network_body" | grep -q "APP OK: customer service is running"; then
+  if [ "$network_body" != "APP OK: customer service is running" ]; then
     echo "❌ Сервис всё ещё недоступен через сетевой интерфейс."
     ok=false
   else
