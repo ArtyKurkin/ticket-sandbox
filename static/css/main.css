@@ -1576,6 +1576,57 @@ pre {
   line-height: 1.6;
 }
 
+.answer-field-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.button.answer-code-button {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+}
+
+.answer-code-button[hidden] {
+  display: none;
+}
+
+.client-answer {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+pre.client-answer-code {
+  max-width: 100%;
+  min-width: 0;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-soft);
+  color: var(--text);
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+  overflow-x: auto;
+}
+
+:root[data-theme] pre.client-answer-code,
+:root[data-theme] .client-answer-code code {
+  color-scheme: var(--control-color-scheme);
+}
+
+:root[data-theme] .client-answer-code code {
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
 
 /* ===== 13. Card titles ===== */
 

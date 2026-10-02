@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load answer_formatting %}
 
 {% block title %}Тикет #{{ attempt.id|stringformat:"06d" }}{% endblock %}
 
@@ -294,8 +295,8 @@
 
           <div class="readonly-answer-block">
             <h3>Ответ клиенту</h3>
-            <div class="text-preview">
-              {{ attempt.client_answer|linebreaksbr|default:"Ответ не был указан." }}
+            <div class="text-preview client-answer">
+              {{ attempt.client_answer|default:"Ответ не был указан."|render_client_answer }}
             </div>
 
             <h3>Внутренний комментарий</h3>
@@ -320,8 +321,8 @@
 
         <div class="readonly-answer-block">
           <h3>Ответ клиенту</h3>
-          <div class="text-preview">
-            {{ attempt.client_answer|linebreaksbr|default:"Ответ не был указан." }}
+          <div class="text-preview client-answer">
+            {{ attempt.client_answer|default:"Ответ не был указан."|render_client_answer }}
           </div>
 
           <h3>Внутренний комментарий</h3>
@@ -353,8 +354,21 @@
         <form method="post" action="{% url 'sandbox:check_task' attempt.id %}">
           {% csrf_token %}
 
-          <p>Ответ клиенту</p>
+          <div class="answer-field-toolbar">
+            <label for="client-answer">Ответ клиенту</label>
+            <button
+              type="button"
+              class="button secondary answer-code-button"
+              data-code-target="client-answer"
+              aria-label="Вставить блок кода"
+              title="Вставить блок кода или обернуть выделенный текст"
+              hidden
+            >
+              <i data-lucide="code" aria-hidden="true"></i>
+            </button>
+          </div>
           <textarea
+            id="client-answer"
             class="task-answer-textarea"
             name="client_answer"
             required
@@ -391,7 +405,7 @@
           <h2>Ответ клиенту</h2>
         </div>
 
-        <pre>{{ attempt.client_answer|default:"Ответ не был указан." }}</pre>
+        <div class="text-preview client-answer">{{ attempt.client_answer|default:"Ответ не был указан."|render_client_answer }}</div>
 
         <div class="card-title-bar card-title-bar-spaced">
           <i data-lucide="receipt-text"></i>
@@ -603,8 +617,8 @@
                   <div class="ai-review-history-content">
                     <h3>Ответ стажёра</h3>
 
-                    <div class="text-preview">
-                      {{ item.review.client_answer|linebreaksbr }}
+                    <div class="text-preview client-answer">
+                      {{ item.review.client_answer|render_client_answer }}
                     </div>
 
                     {% if item.review.status == "completed" %}

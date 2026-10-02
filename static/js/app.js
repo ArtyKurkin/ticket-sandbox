@@ -388,6 +388,33 @@ function initEnvironmentStatusPolling() {
   pollEnvironmentStatus();
 }
 
+function insertCodeBlock(field) {
+  const start = field.selectionStart;
+  const end = field.selectionEnd;
+  const direction = field.selectionDirection;
+  const selected = field.value.slice(start, end);
+  const prefix = "[code]\n";
+  const suffix = selected ? "\n[/code]" : "[/code]";
+
+  field.setRangeText(prefix + selected + suffix, start, end, "end");
+  field.focus();
+  field.setSelectionRange(start + prefix.length, start + prefix.length + selected.length, direction);
+  // Programmatic edits must notify the existing required-field validation.
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function bindCodeButtons() {
+  document.querySelectorAll("[data-code-target]").forEach(function (button) {
+    const field = document.getElementById(button.dataset.codeTarget);
+    if (!field) return;
+
+    button.hidden = false;
+    button.addEventListener("click", function () {
+      if (!field.disabled && !field.readOnly) insertCodeBlock(field);
+    });
+  });
+}
+
 function bindRequiredAnswers() {
   document.querySelectorAll("textarea[data-required-message]").forEach(function (field) {
     function validate() {
@@ -408,6 +435,7 @@ function bindRequiredAnswers() {
 document.addEventListener("DOMContentLoaded", function () {
   initLucide();
   bindRequiredAnswers();
+  bindCodeButtons();
   removeTerminalFramesBeforeSubmit();
   removeTerminalFramesBeforeLinks();
   bindLoadingButtons();
