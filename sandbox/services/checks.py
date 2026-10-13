@@ -15,6 +15,7 @@ from sandbox.services.docker_service import (
     remove_terminal_container,
 )
 from sandbox.services.notifications import notify_user_completed_all_tasks
+from sandbox.services.completions import record_completion_after_success
 
 terminal_logger = logging.getLogger("sandbox.terminal")
 
@@ -143,15 +144,6 @@ def run_attempt_check(
             ),
         )
 
-    CheckRun.objects.create(
-        attempt=attempt,
-        result=CheckRun.Result.PASSED
-        if exit_code == 0
-        else CheckRun.Result.FAILED,
-        output=output,
-        exit_code=exit_code,
-    )
-
     if exit_code == 0:
         check_finished_at = timezone.now()
 
@@ -220,26 +212,35 @@ def run_attempt_check(
                     "Техническая проверка пройдена успешно."
                 )
 
-        attempt.save(
-            update_fields=[
-                "status",
-                "finished_at",
-                "technical_passed_at",
-                "last_check_output",
-                "container_id",
-                "container_name",
-                "shell_command",
-                "terminal_container_name",
-                "terminal_url",
-                "terminal_port",
-                "check_status",
-                "check_finished_at",
-            ]
-        )
+        with transaction.atomic():
+            check_run = CheckRun.objects.create(
+                attempt=attempt, result=CheckRun.Result.PASSED,
+                output=output, exit_code=0,
+            )
+            attempt.save(
+                update_fields=[
+                    "status",
+                    "finished_at",
+                    "technical_passed_at",
+                    "last_check_output",
+                    "container_id",
+                    "container_name",
+                    "shell_command",
+                    "terminal_container_name",
+                    "terminal_url",
+                    "terminal_port",
+                    "check_status",
+                    "check_finished_at",
+                ]
+            )
 
-        transaction.on_commit(
-            lambda: notify_user_completed_all_tasks(attempt)
-        )
+            record_completion_after_success(
+                attempt_id=attempt.pk, check_run_id=check_run.pk,
+            )
+
+            transaction.on_commit(
+                lambda: notify_user_completed_all_tasks(attempt)
+            )
 
         terminal_logger.info(
             "task_check_passed user_id=%s attempt_id=%s task_slug=%s queue_slug=%s exit_code=%s requires_manual_review=%s is_credit_attempt=%s status=%s",
@@ -257,6 +258,11 @@ def run_attempt_check(
             is_success=True,
             message=success_message,
         )
+
+    CheckRun.objects.create(
+        attempt=attempt, result=CheckRun.Result.FAILED,
+        output=output, exit_code=exit_code,
+    )
 
     attempt.status = TaskAttempt.Status.FAILED
     attempt.last_check_output = output

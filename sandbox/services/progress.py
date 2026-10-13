@@ -1,8 +1,9 @@
 """Technical queue progress. All builders only read the database."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from datetime import datetime
 
-from sandbox.models import Queue, Task, TaskAttempt
+from sandbox.models import Queue, SandboxProgramCompletion, Task, TaskAttempt
 from sandbox.services.technical_evidence import (
     ProgressDiagnostic,
     diagnose_technical_evidence,
@@ -34,6 +35,15 @@ class SandboxQueueProgress:
     technically_completed_task_ids: tuple[int, ...] = ()
     diagnostics: tuple[ProgressDiagnostic, ...] = ()
 
+    completion_id: int | None = None
+    completed_at: datetime | None = None
+    completion_fingerprint: str = ""
+    completion_task_ids: tuple[int, ...] = ()
+
+    @property
+    def is_completed(self):
+        return self.completion_id is not None
+
     @property
     def technical_completed_count(self):
         return self.passed_count
@@ -61,16 +71,42 @@ def build_sandbox_queue_progress_map(users, queue_slug=L1_QUEUE_SLUG):
     user_ids = {user.pk for user in users if user.pk is not None}
     if not user_ids:
         return {}
+    completions = {
+        record.user_id: record
+        for record in SandboxProgramCompletion.objects.filter(
+            user_id__in=user_ids,
+            program_key=queue_slug,
+        )
+    }
+
+    def attach_completion(user_id, progress):
+        record = completions.get(user_id)
+        if record is None:
+            return progress
+        return replace(
+            progress,
+            completion_id=record.pk,
+            completed_at=record.completed_at,
+            completion_fingerprint=record.composition_fingerprint,
+            completion_task_ids=tuple(
+                entry["task_id"] for entry in record.snapshot["tasks"]
+            ),
+        )
+
     queue = Queue.objects.filter(slug=queue_slug, is_active=True).first()
     if queue is None:
-        return {user_id: _empty_progress(queue_slug) for user_id in user_ids}
+        return {
+            user_id: attach_completion(user_id, _empty_progress(queue_slug))
+            for user_id in user_ids
+        }
     tasks = list(
         Task.objects.filter(queue=queue, is_active=True).order_by("order", "pk")
     )
     if not tasks:
         return {
-            user_id: _empty_progress(
-                queue_slug, queue_exists=True, queue_name=queue.name
+            user_id: attach_completion(
+                user_id,
+                _empty_progress(queue_slug, queue_exists=True, queue_name=queue.name),
             )
             for user_id in user_ids
         }
@@ -135,7 +171,9 @@ def build_sandbox_queue_progress_map(users, queue_slug=L1_QUEUE_SLUG):
             ),
             diagnostics=tuple(diagnostics),
         )
-    return progress
+    return {
+        user_id: attach_completion(user_id, item) for user_id, item in progress.items()
+    }
 
 
 def build_sandbox_queue_progress(user, queue_slug=L1_QUEUE_SLUG):

@@ -74,6 +74,72 @@ class Queue(models.Model):
         return self.name
 
 
+class ImmutableCompletionQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        from django.core.exceptions import ValidationError
+        raise ValidationError("Сохранённое завершение программы неизменяемо.")
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        from django.core.exceptions import ValidationError
+        raise ValidationError("Сохранённое завершение программы неизменяемо.")
+
+    def bulk_create(self, objs, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        raise ValidationError("Завершения создаются только явным сервисом фиксации.")
+
+    def delete(self):
+        from django.core.exceptions import ValidationError
+        raise ValidationError("Сохранённое завершение программы нельзя удалить.")
+
+
+class SandboxProgramCompletion(models.Model):
+    class Source(models.TextChoices):
+        TECHNICAL_CHECK = "technical_check", "Техническая проверка"
+        LEGACY_RESTORE = "legacy_restore", "Явное восстановление"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name="sandbox_program_completions",
+    )
+    # A stable program key survives queue/task deletion and slug/name changes.
+    program_key = models.SlugField(default="l1")
+    completed_at = models.DateTimeField()
+    recorded_at = models.DateTimeField(auto_now_add=True)
+    source = models.CharField(max_length=32, choices=Source.choices)
+    composition_fingerprint = models.CharField(max_length=64)
+    snapshot = models.JSONField()
+
+    objects = ImmutableCompletionQuerySet.as_manager()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["user", "program_key"], name="unique_sandbox_completion_user_program",
+        )]
+        verbose_name = "Техническое завершение программы Sandbox"
+        verbose_name_plural = "Технические завершения программ Sandbox"
+
+    def clean(self):
+        from .services.completions import validate_completion_snapshot
+        validate_completion_snapshot(self)
+
+    def save(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        if not self._state.adding:
+            raise ValidationError("Сохранённое завершение программы неизменяемо.")
+        # Uniqueness is checked atomically by the DB, so get_or_create can
+        # resolve a concurrent insert without a validation-before-insert race.
+        self.full_clean(validate_unique=False, validate_constraints=False)
+        kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        raise ValidationError("Сохранённое завершение программы нельзя удалить.")
+
+    def __str__(self):
+        return f"{self.user_id}: {self.program_key} ({self.completed_at})"
+
+
 class Task(models.Model):
     class Priority(models.TextChoices):
         LOW = "low", "Низкий"

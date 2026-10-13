@@ -7,7 +7,7 @@ from django.http import HttpResponseForbidden
 from django.template.response import TemplateResponse
 from django.urls import path
 
-from .models import CheckRun, Queue, Task, TaskAttempt, TraineeProfile
+from .models import CheckRun, Queue, SandboxProgramCompletion, Task, TaskAttempt, TraineeProfile
 
 
 @admin.register(Task)
@@ -498,3 +498,23 @@ class CheckRunAdmin(admin.ModelAdmin):
         "exit_code",
         "created_at",
     )
+
+
+@admin.register(SandboxProgramCompletion)
+class SandboxProgramCompletionAdmin(admin.ModelAdmin):
+    list_display = ("user", "program_key", "completed_at", "recorded_at", "source")
+    list_filter = ("program_key", "source")
+    search_fields = ("user__username", "composition_fingerprint")
+    readonly_fields = (
+        "user", "program_key", "completed_at", "recorded_at", "source",
+        "composition_fingerprint", "snapshot",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

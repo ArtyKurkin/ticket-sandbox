@@ -924,3 +924,8 @@ Runtime уже переведён на Docker Compose.
 ### Технический прогресс Sandbox
 
 Единый read-only сервис, правила исторического зачёта, диагностика и ограничения состава программы описаны в [SANDBOX_PROGRESS_FOUNDATION.md](SANDBOX_PROGRESS_FOUNDATION.md).
+
+
+### Зафиксированное завершение Sandbox
+
+Модель, транзакционная фиксация, неизменяемый снимок и безопасный dry-run восстановления описаны в [SANDBOX_COMPLETION_SNAPSHOT.md](SANDBOX_COMPLETION_SNAPSHOT.md).

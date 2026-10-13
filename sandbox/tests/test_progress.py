@@ -306,9 +306,9 @@ class SandboxProgressTests(SandboxTestCase):
         self.assertEqual(before, list(TaskAttempt.objects.values()))
         self.assertEqual(runs_before, list(CheckRun.objects.values()))
 
-    def test_batch_uses_three_queries_regardless_of_user_task_count(self):
+    def test_batch_uses_four_queries_regardless_of_user_task_count(self):
         self.attempt()
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(4):
             build_sandbox_queue_progress_map([self.user, self.other])
 
     def test_diagnostic_command_is_readonly_and_includes_inactive_history(self):
