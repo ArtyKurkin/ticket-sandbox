@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    "react_frontend",
     "sandbox.apps.SandboxConfig",
     "traineediary",
     "assessment.apps.AssessmentConfig",

@@ -28,3 +28,6 @@ venv/
 .vscode/
 
 backups/
+
+frontend/node_modules/
+static/frontend/

@@ -3154,3 +3154,10 @@ Runtime checker подтверждает:
 - накопить regression-набор реальных ответов;
 - следующие изменения prompt выпускать отдельной версией v4;
 - после достаточной выборки вернуться к вопросу частичной автоматизации AI Review.
+## React frontend foundation
+
+- Добавлена основа React + strict TypeScript + Vite в `frontend/`.
+- Добавлен защищённый технический React island `/internal/react-readiness/`.
+- Vite manifest интегрирован с Django staticfiles/WhiteNoise и Docker build.
+- Добавлены frontend проверки CI, тесты авторизации и collectstatic.
+- Инструкции: `frontend/README.md`. Trophy Room и Roadmap не реализованы.

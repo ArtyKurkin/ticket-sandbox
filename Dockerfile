@@ -1,3 +1,10 @@
+FROM node:22-alpine AS frontend-build
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
 FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -15,6 +22,8 @@ RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
 COPY --chown=app:app . .
+
+COPY --from=frontend-build --chown=app:app /static/frontend /app/static/frontend
 
 RUN python manage.py collectstatic --noinput
 

@@ -25,3 +25,6 @@ htmlcov
 .pytest_cache
 .mypy_cache
 backups/
+
+frontend/node_modules
+static/frontend
