@@ -1,0 +1,16 @@
+{% load vite %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>Мои достижения — Training Platform</title>
+  {% vite_assets "src/achievements/main.tsx" %}
+</head>
+<body>
+  {{ trophy_profile|json_script:"trophy-room-props" }}
+  <div data-react-island="trophy-room"></div>
+  <noscript>Для просмотра достижений включите JavaScript.</noscript>
+</body>
+</html>

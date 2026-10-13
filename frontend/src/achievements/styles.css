@@ -1,0 +1,151 @@
+@import "./fonts.css";
+
+/* Trophy Room styles are scoped to its island; no legacy page selectors. */
+.tp-trophy-room {
+  --tp-bg: #080c14; --tp-panel: #111827; --tp-text: #f1f5f9; --tp-muted: #94a3b8;
+  font-family: 'TP Inter', Inter, system-ui, sans-serif; color: #e2e8f0;
+  background: var(--tp-bg); position: fixed; inset: 0; display: flex; flex-direction: column; font-size: 15px;
+}
+.tp-trophy-room *, .tp-trophy-room *::before, .tp-trophy-room *::after { box-sizing: border-box; }
+.tp-trophy-room button, .tp-trophy-room a { -webkit-tap-highlight-color: transparent; }
+.tp-trophy-room button { font: inherit; cursor: pointer; color: inherit; }
+.tp-trophy-room button:disabled { cursor: default; }
+.tp-trophy-room button:focus-visible, .tp-trophy-room a:focus-visible { outline: 2px solid #38bdf8; outline-offset: 4px; }
+.tp-trophy-room h1, .tp-trophy-room h2, .tp-trophy-room p { margin: 0; }
+.tp-trophy-room h1, .tp-trophy-room h2, .tp-card-title, .tp-brand { font-family: 'TP Geist', Geist, Inter, system-ui, sans-serif; }
+.tp-topbar { height: 70px; flex: 0 0 auto; border-bottom: 1px solid #ffffff14; padding: 0 30px; display: flex; align-items: center; justify-content: space-between; background: #080c14f2; }
+.tp-brand { display: flex; align-items: center; gap: 16px; color: white; font-size: 15px; letter-spacing: -.4px; }
+.tp-brand strong span { color: #38bdf8; }
+.tp-brand-icon { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: linear-gradient(35deg,#2563eb,#0ea5e9,#22d3ee); box-shadow: 0 2px 8px #3b82f633; }
+.tp-brand-icon .tp-icon { width: 19px; height: 19px; }
+.tp-training-tag, .tp-title-line > span { color: #38bdf8; border: 1px solid #3b82f633; background: #3b82f61a; padding: 4px 8px; border-radius: 5px; font: 12px 'TP Mono',monospace; letter-spacing: .4px; }
+.tp-profile { display: flex; align-items: center; gap: 14px; }
+.tp-profile strong { font-size: 15px; font-weight: 500; }
+.tp-profile small { display: block; font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.tp-avatar { width: 35px; height: 35px; border: 1px solid #6366f1; border-radius: 11px; display: grid; place-items: center; font: 600 14px 'TP Mono',monospace; color: #7dd3fc; background: #0b101d; }
+.tp-bell { position: relative; background: none; border: 0; color: #94a3b8 !important; border-right: 1px solid #ffffff14; padding: 0 26px 0 0; margin-right: 10px; }
+.tp-bell i { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #38bdf8; top: -3px; left: 14px; }
+.tp-icon { width: 20px; height: 20px; flex-shrink: 0; }
+.tp-workspace { min-height: 0; flex: 1; display: flex; }
+.tp-sidebar { width: 280px; flex: 0 0 auto; border-right: 1px solid #ffffff14; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; }
+.tp-sidebar nav { display: flex; flex-direction: column; gap: 5px; }
+.tp-sidebar nav > * { display: flex; align-items: center; gap: 13px; text-align: left; background: none; color: #a4b4ca; border: 1px solid transparent; border-radius: 10px; padding: 9px 15px; text-decoration: none; font-size: 15px; font-weight: 500; }
+.tp-sidebar .tp-icon { color: #71839b; }
+.tp-sidebar a:hover { background: #ffffff0a; color: white; }
+.tp-sidebar [aria-current=page] { background: #3b82f61a; border-color: #3b82f640; color: white; }
+.tp-sidebar [aria-current=page] .tp-icon { color: #38bdf8; }
+.tp-sidebar footer { display: flex; justify-content: space-between; border-top: 1px solid #ffffff0d; padding: 15px 10px; font: 13px 'TP Mono',monospace; color: #94a3b8; }
+.tp-sidebar footer span:last-child { color: #38bdf8; }
+.tp-canvas { min-width: 0; flex: 1; position: relative; overflow: hidden; background: radial-gradient(ellipse at 35% 15%,#3b82f609,transparent 50%),radial-gradient(ellipse at 70% 25%,#f59e0b09,transparent 55%),#080c14; }
+.tp-canvas::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to top,#080c14, #080c14d9,transparent),linear-gradient(to right,#080c14,transparent,#080c14),url("./assets/server-room.jpg") center/cover; opacity: .09; pointer-events: none; }
+.tp-gallery { position: relative; height: 100%; overflow-y: auto; padding: 18px 35px 40px; scrollbar-width: thin; scrollbar-color: #ffffff30 #080c14; }
+.tp-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 16px; }
+.tp-title-line { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+.tp-title-line h1 { font-size: 32px; line-height: 40px; letter-spacing: -.8px; font-weight: 700; }
+.tp-title-line > span { border-color: #0ea5e940; background: #0ea5e91a; }
+.tp-heading p { color: #a4b4ca; font-size: 15px; margin-top: 2px; line-height: 22px; }
+.tp-demo-button { flex-shrink: 0; padding: 12px 16px; border: 1px solid #ffffff14; background: #1a2236; border-radius: 10px; font-size: 14px !important; box-shadow: 0 4px 10px #0003; }
+.tp-demo-button:hover { background: #2e3b5a; border-color: #0ea5e966; }
+.tp-demo-button > span { color: #38bdf8; margin-right: 8px; }
+.tp-statistics { display: flex; align-items: center; flex-wrap: wrap; gap: 20px; background: #111827d9; border: 1px solid #ffffff0f; border-radius: 16px; padding: 13px 20px; min-height: 52px; margin-bottom: 17px; font-size: 15px; }
+.tp-stat-count { display: flex; align-items: center; gap: 10px; color: #94a3b8; padding-right: 20px; border-right: 1px solid #ffffff1a; }
+.tp-stat-count strong { color: white; font-family: 'TP Mono',monospace; }
+.tp-cyan { color: #38bdf8; }
+.tp-stat-metals { display: flex; flex-wrap: wrap; gap: 15px; font: 13px 'TP Mono',monospace; }
+.tp-stat-metals > span { display: flex; align-items: center; gap: 5px; }
+.tp-stat-metals > span > span { color: #a4b4ca; }
+.tp-stat-metals i { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(40deg,var(--metal-low),var(--metal)); }
+.tp-bronze { --metal: #fcd34d; --metal-low: #d97706; --border: #f59e0b40; --light: #f59e0b29; color: #fcd34d; }
+.tp-silver { --metal: #cbd5e1; --metal-low: #94a3b8; --border: #38bdf84d; --light: #cbd5e12e; color: #cbd5e1; }
+.tp-gold { --metal: #facc15; --metal-low: #b45309; --border: #eab30840; --light: #facc1538; color: #facc15; }
+.tp-platinum { --metal: #c084fc; --metal-low: #38bdf8; --border: #a855f740; --light: #a855f738; color: #c084fc; }
+.tp-secret { --metal: #94a3b8; --metal-low: #334155; --border: #ffffff0d; --light: #33415533; color: #94a3b8; }
+.tp-room-progress { margin-left: auto; display: flex; align-items: center; gap: 14px; font: 13px 'TP Mono',monospace; color: #a4b4ca; }
+.tp-room-progress strong { color: #7dd3fc; margin-left: 6px; }
+.tp-trophy-room progress { appearance: none; border: 0; height: 8px; border-radius: 10px; overflow: hidden; background: #242e47; }
+.tp-trophy-room progress::-webkit-progress-bar { background: #242e47; }
+.tp-trophy-room progress::-webkit-progress-value { background: linear-gradient(90deg,#38bdf8,#3b82f6,#34d399); border-radius: 10px; }
+.tp-trophy-room progress::-moz-progress-bar { background: linear-gradient(90deg,#38bdf8,#3b82f6,#34d399); border-radius: 10px; }
+.tp-room-progress progress { width: 140px; }
+.tp-filters { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.tp-status-filters, .tp-metal-filters { display: flex; gap: 5px; flex-wrap: wrap; }
+.tp-filters button { background: #111827; border: 0; border-radius: 9px; padding: 7px 15px; color: #a4b4ca; font-size: 14px; font-weight: 500; white-space: nowrap; }
+.tp-filters button:hover { background: #1a2236; color: white; }
+.tp-filters button[aria-pressed=true] { background: #2563eb; color: white; }
+.tp-metal-filters button { font: 13px 'TP Mono',monospace; padding: 7px 12px; color: var(--metal,#e2e8f0); border-radius: 7px; }
+.tp-metal-filters button[aria-pressed=true] { background: #242e47; }
+.tp-trophy-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 30px; }
+.tp-trophy-card { position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 25px; min-width: 0; min-height: 438px; border: 1px solid var(--border); border-radius: 20px; overflow: hidden; background: radial-gradient(circle at 50% 55%,var(--light) 0%,color-mix(in srgb,var(--light) 30%,transparent) 55%,transparent 75%),#0f172abf; text-align: center; transition: transform .3s,border-color .3s,background-color .3s,box-shadow .3s; }
+.tp-trophy-card:hover { transform: translateY(-7px); border-color: var(--metal); background-color: #131d36; box-shadow: 0 20px 35px #0006; }
+.tp-trophy-card.tp-secret { background-color: #090d18b3; }
+.tp-card-art { flex: 1; display: grid; place-items: center; padding: 10px 0 15px; }
+.tp-medallion-stage { position: relative; display: inline-flex; align-items: center; justify-content: center; filter: drop-shadow(0 16px 28px #000a) drop-shadow(0 4px 10px #0006); transition: transform .3s,filter .3s; }
+.tp-trophy-card:hover .tp-medallion-stage { transform: scale(1.05) rotate(1deg); filter: drop-shadow(0 20px 34px #000b); }
+.tp-medallion { width: 240px; height: 240px; max-width: 100%; flex-shrink: 0; }
+.tp-medallion-lock { position: absolute; bottom: 10px; right: 10px; width: 35px; height: 35px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--border); background: #111827; color: var(--metal); }
+.tp-medallion-lock svg { width: 18px; height: 18px; }
+.tp-card-caption { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; border-top: 1px solid #ffffff0f; padding-top: 17px; }
+.tp-card-title { color: #f1f5f9; font-size: 21px; line-height: 25px; font-weight: 700; }
+.tp-locked .tp-card-title { color: #cbd5e1; }
+.tp-secret .tp-card-title { color: #94a3b8; }
+.tp-card-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; }
+.tp-metal-badge { display: inline-block; padding: 4px 10px; font: 600 12px 'TP Mono',monospace; color: var(--metal); border: 1px solid var(--border); border-radius: 5px; background: color-mix(in srgb,var(--metal-low) 20%,transparent); }
+.tp-card-status { font-size: 14px; color: #a4b4ca; display: flex; align-items: center; gap: 6px; }
+.tp-earned .tp-card-status { color: #34d399; }
+.tp-check { border: 1.5px solid #34d399; width: 15px; height: 15px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+.tp-gleam { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg,transparent 15%,#ffffff14 35%,#ffffff73 50%,#ffffff14 65%,transparent 85%); transform: translateX(-160%); transition: transform .9s cubic-bezier(.16,1,.3,1); z-index: 1; }
+.tp-trophy-card:hover .tp-gleam { transform: translateX(160%); }
+.tp-empty { text-align: center; padding: 50px; color: #94a3b8; }
+.tp-details { width: min(680px,calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; border: 1px solid #ffffff1a; border-radius: 20px; padding: 35px; background: radial-gradient(circle at 20% 10%,var(--light),transparent 50%),#0f172a; color: #e2e8f0; box-shadow: 0 30px 80px #0008; }
+.tp-details::backdrop { background: #000c; backdrop-filter: blur(12px); }
+.tp-close { position: absolute; top: 18px; right: 22px; font-size: 28px !important; border: 0; border-radius: 10px; padding: 4px 10px; background: transparent; color: #94a3b8 !important; }
+.tp-close:hover { background: #ffffff10; color: white !important; }
+.tp-detail-art { display: flex; justify-content: center; padding: 20px 0; }
+.tp-detail-art .tp-medallion { width: 300px; height: 300px; }
+.tp-detail-heading { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; font-size: 14px; }
+.tp-details h2 { text-align: center; color: white; font-size: 30px; margin: 12px 0 20px; }
+.tp-details > p { text-align: center; font-size: 16px; line-height: 1.6; color: #cbd5e1; }
+.tp-mentor { margin: 18px 0 0; padding: 20px; background: #111827; border: 1px solid #0ea5e933; border-radius: 15px; font-size: 14px; }
+.tp-mentor strong { color: #38bdf8; }
+.tp-mentor p { margin-top: 12px; font-style: italic; line-height: 1.5; }
+.tp-mentor footer { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; color: #94a3b8; margin-top: 10px; font-size: 12px; }
+.tp-detail-progress { background: #0b101c; border: 1px solid #ffffff0a; border-radius: 15px; padding: 18px; margin-top: 20px; font-size: 14px; }
+.tp-detail-progress p { margin: 12px 0 6px; color: #a4b4ca; }
+.tp-detail-progress strong { display: block; line-height: 1.5; }
+.tp-detail-progress progress { width: 100%; margin-top: 10px; }
+.tp-muted { color: #a4b4ca; }
+.tp-detail-footer { display: flex; justify-content: flex-end; margin-top: 25px; }
+.tp-detail-footer button { padding: 10px 25px; background: none; border: 1px solid #33415599; border-radius: 15px; font-size: 14px; }
+.tp-detail-footer button:hover { background: #1e293b80; }
+.tp-unlock-toast { position: fixed; top: 30px; right: 30px; z-index: 50; display: flex; align-items: center; width: min(470px,calc(100vw - 32px)); background: #0f172af2; border: 1px solid #fbbf2480; border-radius: 20px; box-shadow: 0 15px 40px #0008; backdrop-filter: blur(16px); animation: tp-toast-in .5s ease-out both; }
+.tp-toast-open { display: flex; align-items: center; gap: 18px; flex: 1; min-width: 0; background: none; border: 0; padding: 18px 12px 18px 20px; text-align: left; border-radius: 20px; }
+.tp-toast-art { width: 60px; height: 60px; background: linear-gradient(135deg,#f59e0b,#b45309,#78350f); border-radius: 15px; display: grid; place-items: center; flex: 0 0 auto; }
+.tp-toast-art .tp-medallion { width: 56px; height: 56px; }
+.tp-toast-copy { display: flex; flex-direction: column; gap: 4px; }
+.tp-toast-copy > span { color: #fbbf24; font: 700 12px 'TP Mono',monospace; letter-spacing: 1px; }
+.tp-toast-copy strong { color: white; font-size: 17px; }
+.tp-toast-copy small { color: #a4b4ca; font-size: 13px; }
+.tp-toast-dismiss { padding: 10px; margin-right: 8px; border: 0; background: none; font-size: 23px !important; border-radius: 8px; color: #94a3b8 !important; }
+.tp-unlock-glow { animation: tp-unlock-glow 2s ease-out; }
+.tp-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@keyframes tp-toast-in { from { transform: translateY(-140%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes tp-unlock-glow { 0%,100% { box-shadow: none; } 35% { box-shadow: 0 0 40px #facc1566,inset 0 0 25px #facc1540; border-color: #fde047; } }
+@media (max-width: 1450px) { .tp-heading { flex-wrap: wrap; } .tp-filters { flex-wrap: wrap; } .tp-gallery { padding-left: 28px; padding-right: 28px; } .tp-trophy-card { padding: 22px 16px; } }
+@media (max-width: 1199px) { .tp-sidebar { width: 224px; } .tp-trophy-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; } .tp-room-progress { margin-left: 0; } }
+@media (max-width: 760px) { .tp-sidebar { width: 68px; padding: 10px 7px; } .tp-sidebar nav > * { padding: 12px; justify-content: center; } .tp-sidebar nav span,.tp-sidebar footer { display: none; } .tp-gallery { padding: 20px 18px; } .tp-trophy-grid { grid-template-columns: minmax(0,1fr); } .tp-topbar { padding: 0 18px; height: 60px; } .tp-profile > span:last-child,.tp-bell,.tp-training-tag { display: none; } .tp-demo-button { white-space: normal; text-align: left; } .tp-statistics { padding: 12px; gap: 12px; } .tp-stat-metals { gap: 10px; } .tp-room-progress { flex-wrap: wrap; } .tp-title-line h1 { font-size: 26px; } .tp-details { padding: 24px 18px; } .tp-detail-art .tp-medallion { width: 240px; height: 240px; } .tp-unlock-toast { right: 16px; top: 16px; } }
+@media (max-width: 380px) { .tp-sidebar { width: 52px; padding: 8px 3px; } .tp-sidebar nav > * { padding: 10px; } .tp-gallery { padding: 16px 12px; } .tp-medallion { width: 210px; height: 210px; } .tp-trophy-card { padding: 18px 12px; } .tp-stat-metals { font-size: 11px; } .tp-room-progress { font-size: 11px; } }
+@media (prefers-reduced-motion: reduce) { .tp-trophy-room *, .tp-trophy-room *::before, .tp-trophy-room *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } .tp-gleam { display: none; } .tp-trophy-card:hover { transform: none; } .tp-trophy-card:hover .tp-medallion-stage { transform: none; } }
+
+.tp-silver.tp-earned .tp-metal-badge { --metal: #7dd3fc; --metal-low: #0ea5e9; border-color: #0ea5e94d; }
+
+.tp-trophy-card.tp-locked:not(.tp-secret) { background-color: #0f172a8c; --light: #3341550d; }
+.tp-trophy-card.tp-locked .tp-medallion-stage { opacity: .8; }
+.tp-trophy-card.tp-locked:hover .tp-medallion-stage { opacity: 1; }
+.tp-card-title { font-size: 20px; }
+
+.tp-trophy-card.tp-silver.tp-locked { --border: #94a3b840; }
+@media (max-width: 760px) {
+  .tp-demo-button { max-width: 100%; width: 100%; line-height: 1.5; }
+  .tp-toast-copy { min-width: 0; overflow-wrap: anywhere; }
+  .tp-toast-copy > span { font-size: 10px; }
+}

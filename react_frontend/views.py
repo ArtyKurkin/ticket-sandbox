@@ -9,3 +9,18 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 @ensure_csrf_cookie
 def readiness(request):
     return render(request, "react_frontend/readiness.html")
+
+
+@login_required
+@never_cache
+@ensure_csrf_cookie
+def achievements(request):
+    from django.urls import reverse
+
+    return render(request, "react_frontend/achievements.html", {
+        "trophy_profile": {
+            "displayName": request.user.get_full_name() or request.user.get_username(),
+            "role": "Наставник" if request.user.is_staff else "Стажёр",
+            "sandboxUrl": reverse("sandbox:dashboard"),
+        },
+    })

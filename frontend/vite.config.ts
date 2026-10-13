@@ -6,6 +6,6 @@ export default defineConfig({
     outDir: '../static/frontend',
     emptyOutDir: true,
     manifest: 'manifest.json',
-    rollupOptions: { input: 'src/main.tsx' },
+    rollupOptions: { input: { readiness: 'src/main.tsx', achievements: 'src/achievements/main.tsx' } },
   },
 });
