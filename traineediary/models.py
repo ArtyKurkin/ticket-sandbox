@@ -40,6 +40,17 @@ class EntryType(models.TextChoices):
     INTERNAL_TRANSFER = "internal_transfer", "Внутренний переход"
 
 
+class StageScheme(models.TextChoices):
+    LEGACY = "legacy", "Прежняя программа"
+    UNIFIED = "unified", "Единая программа"
+
+
+class StageScope(models.TextChoices):
+    LEGACY = "legacy", "Прежняя программа"
+    UNIFIED = "unified", "Единая программа"
+    SHARED = "shared", "Обе программы"
+
+
 class RiskLevel(models.TextChoices):
     LOW = "low", "Низкий"
     MEDIUM = "medium", "Средний"
@@ -65,7 +76,14 @@ PROBATION_DAYS_BY_ENTRY_TYPE = {
 }
 
 
+class TraineeStageManager(models.Manager):
+    def get_by_natural_key(self, slug):
+        return self.get(slug=slug)
+
+
 class TraineeStage(models.Model):
+    objects = TraineeStageManager()
+
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
     order = models.PositiveIntegerField()
@@ -75,6 +93,10 @@ class TraineeStage(models.Model):
     color = models.CharField(max_length=7, default="#9CA3AF")
     group = models.CharField(max_length=32, choices=StageGroup.choices)
     is_active = models.BooleanField(default=True)
+    catalog_scope = models.CharField(
+        max_length=16, choices=StageScope.choices, default=StageScope.SHARED,
+        verbose_name="Применимость к схеме",
+    )
 
     # Внутренний переход приходит на ИС уже с пройденным Teachbase
     # и заданиями в ticket-sandbox — эти этапы для него неприменимы.
@@ -93,6 +115,9 @@ class TraineeStage(models.Model):
     def __str__(self):
         return self.name
 
+    def natural_key(self):
+        return (self.slug,)
+
     def applies_to_entry_type(self, entry_type):
         if entry_type == EntryType.INTERNAL_TRANSFER:
             return self.applies_to_internal_transfer
@@ -104,6 +129,10 @@ class TraineeJourney(models.Model):
         User, on_delete=models.CASCADE, related_name="trainee_journey",
     )
     entry_type = models.CharField(max_length=32, choices=EntryType.choices)
+    stage_scheme = models.CharField(
+        max_length=16, choices=StageScheme.choices, default=StageScheme.UNIFIED,
+        verbose_name="Схема адаптации",
+    )
     probation_start_date = models.DateField(verbose_name="Дата старта ИС")
     current_stage = models.ForeignKey(
         TraineeStage, on_delete=models.PROTECT, related_name="+",
@@ -181,6 +210,26 @@ class TraineeJourney(models.Model):
                 "Этот этап не применим "
                 "к выбранному типу входа."
             )
+
+        if self.current_stage_id:
+            from .services.stages import stage_applies
+
+            if not stage_applies(
+                self.current_stage, self.stage_scheme, self.entry_type,
+            ):
+                errors["current_stage"] = (
+                    "Этот этап не применим к выбранной схеме адаптации."
+                )
+
+        if self.pk:
+            stored_scheme = (
+                type(self).objects.filter(pk=self.pk)
+                .values_list("stage_scheme", flat=True).first()
+            )
+            if stored_scheme is not None and stored_scheme != self.stage_scheme:
+                errors["stage_scheme"] = (
+                    "Смена схемы требует отдельного согласованного переноса."
+                )
 
         has_completion_data = any(
             (
@@ -345,19 +394,9 @@ class TraineeJourney(models.Model):
     # --- прогресс ---
 
     def _applicable_stages(self):
-        field_name = (
-            "applies_to_internal_transfer"
-            if self.entry_type
-            == EntryType.INTERNAL_TRANSFER
-            else "applies_to_new_hire"
-        )
+        from .services.stages import journey_stages
 
-        return TraineeStage.objects.filter(
-            is_active=True,
-            **{
-                field_name: True,
-            },
-        )
+        return journey_stages(self, include_current=True)
 
     @property
     def progress_percent(self):
@@ -391,10 +430,16 @@ class TraineeJourney(models.Model):
         return round(raw / total_weight * 100)
 
     @property
+    def current_stage_label(self):
+        from .services.stages import stage_label
+
+        return stage_label(self.current_stage, self.stage_scheme)
+
+    @property
     def auto_status(self):
         if self.current_stage.group == StageGroup.DONE:
             return "Готов"
-        return self.current_stage.name
+        return self.current_stage_label
 
     @property
     def quality_is_required(self):
@@ -525,15 +570,6 @@ class TraineeJourney(models.Model):
                 "Испытательный срок уже завершён.",
             )
 
-        applicable_field = (
-            "applies_to_internal_transfer"
-            if (
-                self.entry_type
-                == EntryType.INTERNAL_TRANSFER
-            )
-            else "applies_to_new_hire"
-        )
-
         if (
             self.current_stage.group
             == StageGroup.DONE
@@ -541,14 +577,8 @@ class TraineeJourney(models.Model):
             done_stage = self.current_stage
         else:
             done_stage = (
-                TraineeStage.objects
-                .filter(
-                    group=StageGroup.DONE,
-                    is_active=True,
-                    **{
-                        applicable_field: True,
-                    },
-                )
+                self._applicable_stages()
+                .filter(group=StageGroup.DONE, is_active=True)
                 .order_by(
                     "order",
                     "id",
@@ -683,6 +713,17 @@ class TraineeJourney(models.Model):
         # Не сбрасываем дату и не создаём дубликат истории.
         if self.current_stage_id == new_stage.pk:
             return previous_stage
+
+        from .services.stages import selectable_stages
+
+        if not selectable_stages(self.stage_scheme, self.entry_type).filter(
+            pk=new_stage.pk,
+        ).exists():
+            raise ValidationError({
+                "current_stage": (
+                    "Переход на этот этап не разрешён для данной схемы и типа входа."
+                ),
+            })
 
         transition_date = transition_date or timezone.localdate()
         today = timezone.localdate()

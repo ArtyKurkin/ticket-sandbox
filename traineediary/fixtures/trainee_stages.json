@@ -1,7 +1,6 @@
 [
 {
   "model": "traineediary.traineestage",
-  "pk": 1,
   "fields": {
     "name": "Первый день",
     "slug": "first-day",
@@ -12,13 +11,13 @@
     "color": "#9CA3AF",
     "group": "teachbase",
     "is_active": true,
+    "catalog_scope": "legacy",
     "applies_to_new_hire": true,
     "applies_to_internal_transfer": false
   }
 },
 {
   "model": "traineediary.traineestage",
-  "pk": 2,
   "fields": {
     "name": "VDS",
     "slug": "vds",
@@ -29,13 +28,13 @@
     "color": "#3B82F6",
     "group": "teachbase",
     "is_active": true,
+    "catalog_scope": "legacy",
     "applies_to_new_hire": true,
     "applies_to_internal_transfer": false
   }
 },
 {
   "model": "traineediary.traineestage",
-  "pk": 3,
   "fields": {
     "name": "Управляемые сервисы",
     "slug": "managed-services",
@@ -46,13 +45,13 @@
     "color": "#8B5CF6",
     "group": "teachbase",
     "is_active": true,
+    "catalog_scope": "legacy",
     "applies_to_new_hire": true,
     "applies_to_internal_transfer": false
   }
 },
 {
   "model": "traineediary.traineestage",
-  "pk": 4,
   "fields": {
     "name": "Клиентский сервис",
     "slug": "client-service",
@@ -63,13 +62,13 @@
     "color": "#06B6D4",
     "group": "teachbase",
     "is_active": true,
+    "catalog_scope": "legacy",
     "applies_to_new_hire": true,
     "applies_to_internal_transfer": false
   }
 },
 {
   "model": "traineediary.traineestage",
-  "pk": 5,
   "fields": {
     "name": "Перед выходом в тикеты",
     "slug": "before-tickets",
@@ -80,13 +79,13 @@
     "color": "#F59E0B",
     "group": "teachbase",
     "is_active": true,
+    "catalog_scope": "legacy",
     "applies_to_new_hire": true,
     "applies_to_internal_transfer": false
   }
 },
 {
   "model": "traineediary.traineestage",
-  "pk": 6,
   "fields": {
     "name": "Задания в ticket-sandbox",
     "slug": "sandbox-candidate",
@@ -97,13 +96,13 @@
     "color": "#14B8A6",
     "group": "sandbox_candidate",
     "is_active": true,
+    "catalog_scope": "shared",
     "applies_to_new_hire": true,
     "applies_to_internal_transfer": false
   }
 },
 {
   "model": "traineediary.traineestage",
-  "pk": 7,
   "fields": {
     "name": "В тикетах с проверками",
     "slug": "with-review",
@@ -114,13 +113,13 @@
     "color": "#FACC15",
     "group": "with_review",
     "is_active": true,
+    "catalog_scope": "shared",
     "applies_to_new_hire": true,
     "applies_to_internal_transfer": true
   }
 },
 {
   "model": "traineediary.traineestage",
-  "pk": 8,
   "fields": {
     "name": "Кнопка по желанию",
     "slug": "optional-review",
@@ -131,13 +130,13 @@
     "color": "#84CC16",
     "group": "optional_review",
     "is_active": true,
+    "catalog_scope": "shared",
     "applies_to_new_hire": true,
     "applies_to_internal_transfer": true
   }
 },
 {
   "model": "traineediary.traineestage",
-  "pk": 9,
   "fields": {
     "name": "Без проверок",
     "slug": "no-review",
@@ -148,13 +147,13 @@
     "color": "#22C55E",
     "group": "no_review",
     "is_active": true,
+    "catalog_scope": "shared",
     "applies_to_new_hire": true,
     "applies_to_internal_transfer": true
   }
 },
 {
   "model": "traineediary.traineestage",
-  "pk": 10,
   "fields": {
     "name": "Выход с ИС",
     "slug": "done",
@@ -165,6 +164,7 @@
     "color": "#15803D",
     "group": "done",
     "is_active": true,
+    "catalog_scope": "shared",
     "applies_to_new_hire": true,
     "applies_to_internal_transfer": true
   }

@@ -104,6 +104,11 @@ def check_journey_integrity(
             ),
         )
 
+    from .stages import stage_applies
+
+    if not stage_applies(journey.current_stage, journey.stage_scheme, journey.entry_type):
+        add_issue("STAGE_SCHEME_MISMATCH", "Текущий этап не соответствует схеме адаптации.")
+
     # --- История этапов ---
 
     history_entries = sorted(

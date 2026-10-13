@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.utils import timezone
 
 from sandbox.models import (
     Queue,
@@ -45,6 +46,7 @@ class SandboxQueueProgressTests(TestCase):
             order=1,
             description="Тестовое задание.",
             is_active=True,
+            requires_manual_review=True,
         )
 
         self.second_task = Task.objects.create(
@@ -54,6 +56,7 @@ class SandboxQueueProgressTests(TestCase):
             order=2,
             description="Тестовое задание.",
             is_active=True,
+            requires_manual_review=True,
         )
 
     def test_returns_empty_progress_for_missing_queue(self):
@@ -108,6 +111,7 @@ class SandboxQueueProgressTests(TestCase):
             attempt_number=1,
             is_current=True,
             status=TaskAttempt.Status.PASSED,
+            technical_passed_at=timezone.now(),
         )
 
         TaskAttempt.objects.create(
@@ -157,6 +161,7 @@ class SandboxQueueProgressTests(TestCase):
                 attempt_number=1,
                 is_current=True,
                 status=TaskAttempt.Status.PASSED,
+            technical_passed_at=timezone.now(),
             )
 
         progress = build_sandbox_queue_progress(
@@ -194,6 +199,7 @@ class SandboxQueueProgressTests(TestCase):
             attempt_number=2,
             is_current=True,
             status=TaskAttempt.Status.PASSED,
+            technical_passed_at=timezone.now(),
         )
 
         progress = build_sandbox_queue_progress(
@@ -220,6 +226,7 @@ class SandboxQueueProgressTests(TestCase):
             attempt_number=1,
             is_current=True,
             status=TaskAttempt.Status.PASSED,
+            technical_passed_at=timezone.now(),
         )
 
         progress = build_sandbox_queue_progress(
@@ -250,6 +257,7 @@ class SandboxQueueProgressTests(TestCase):
             attempt_number=1,
             is_current=True,
             status=TaskAttempt.Status.PASSED,
+            technical_passed_at=timezone.now(),
         )
 
         TaskAttempt.objects.create(
@@ -258,6 +266,7 @@ class SandboxQueueProgressTests(TestCase):
             attempt_number=1,
             is_current=True,
             status=TaskAttempt.Status.PASSED,
+            technical_passed_at=timezone.now(),
         )
         TaskAttempt.objects.create(
             user=second_user,
@@ -265,6 +274,7 @@ class SandboxQueueProgressTests(TestCase):
             attempt_number=1,
             is_current=True,
             status=TaskAttempt.Status.PASSED,
+            technical_passed_at=timezone.now(),
         )
 
         progress_map = (

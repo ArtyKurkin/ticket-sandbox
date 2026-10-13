@@ -82,7 +82,7 @@
 
     <p>
       {{ journey.get_entry_type_display }}
-      · {{ journey.current_stage.name }}
+      · {{ journey.current_stage_label }}
     </p>
   </div>
 </div>
@@ -221,7 +221,7 @@
           Текущий этап
         </span>
         <strong class="stage-accent" style="--stage-color: {{ journey.current_stage.color }};">
-          {{ journey.current_stage.name }}
+          {{ journey.current_stage_label }}
         </strong>
       </div>
 
@@ -345,7 +345,7 @@
 
       <strong>
         {% if assessment.readiness.next_stage %}
-          {{ assessment.readiness.next_stage.name }}
+          {{ assessment.readiness.next_stage.display_name }}
         {% else %}
           Не определён
         {% endif %}
@@ -591,8 +591,8 @@
           </strong>
 
           <p>
-            После проверки прогресс обновится
-            автоматически.
+            Технический прогресс обновляется после автопроверки.
+            Проверка текста учитывается отдельно.
           </p>
         </div>
       </div>
@@ -615,6 +615,8 @@
     {% endif %}
   {% endif %}
 </div>
+
+{% include "sandbox/_answer_progress.html" with progress=sandbox_l1_progress %}
 
 <div class="card trainee-metrics-card">
   <div class="card-title-bar trainee-metrics-title">
@@ -1031,7 +1033,7 @@
               style="background: {{ row.stage.color }};"
             ></span>
 
-            <strong>{{ row.stage.name }}</strong>
+            <strong>{{ row.stage.display_name }}</strong>
 
             {% if row.is_current %}
               <span class="status status-success">
@@ -1077,7 +1079,7 @@
           class="trainee-gantt-track"
           role="img"
           aria-label="
-            {{ row.stage.name }}.
+            {{ row.stage.display_name }}.
             План от {{ row.stage.min_days }}
             до {{ row.stage.max_days }} дней.
             {% if row.has_started %}

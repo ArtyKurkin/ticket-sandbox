@@ -1,4 +1,5 @@
 from django.urls import reverse
+from django.utils import timezone
 
 from sandbox.models import TaskAttempt, TraineeProfile
 
@@ -58,6 +59,7 @@ class TaskAvailabilityTests(SandboxTestCase):
             user=self.user,
             task=self.first_task,
             status=TaskAttempt.Status.PASSED,
+            technical_passed_at=timezone.now(),
         )
 
         second_attempt = TaskAttempt.objects.create(

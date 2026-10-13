@@ -13,6 +13,7 @@ from traineediary.models import (
     EntryType,
     RiskLevel,
     StageGroup,
+    StageScheme,
     StageHistory,
     TraineeJourney,
     TraineeStage,
@@ -493,6 +494,7 @@ class TraineeProgressCalculationTests(TestCase):
         journey = TraineeJourney.objects.create(
             user=user,
             entry_type=EntryType.NEW_HIRE,
+            stage_scheme=StageScheme.LEGACY,
             probation_start_date=(
                 date.today()
                 - timedelta(days=5)

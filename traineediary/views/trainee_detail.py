@@ -19,13 +19,12 @@ from ..constants import (
     WEEKLY_SPEED_TARGET,
 )
 from ..models import (
-    EntryType,
     StageGroup,
     StageHistory,
     TraineeJourney,
-    TraineeStage,
     WeeklyMetric,
 )
+from ..services.stages import journey_stages, stage_label
 from ..services.assessment import (
     build_trainee_assessment,
 )
@@ -51,30 +50,9 @@ def _build_gantt_rows(
     - состояние этапа;
     - превышение максимального срока.
     """
-    applicable_field = (
-        "applies_to_internal_transfer"
-        if (
-            journey.entry_type
-            == EntryType.INTERNAL_TRANSFER
-        )
-        else "applies_to_new_hire"
-    )
-
-    stages = (
-        TraineeStage.objects
-        .filter(
-            is_active=True,
-            **{
-                applicable_field: True,
-            },
-        )
-        .exclude(
-            group=StageGroup.DONE,
-        )
-        .order_by(
-            "order",
-        )
-    )
+    stages = journey_stages(
+        journey, include_current=True, history_entries=history_entries,
+    ).exclude(group=StageGroup.DONE)
 
     history_by_stage = {}
 
@@ -89,6 +67,7 @@ def _build_gantt_rows(
     gantt_rows = []
 
     for stage in stages:
+        stage.display_name = stage_label(stage, journey.stage_scheme)
         stage_history = (
             history_by_stage.get(
                 stage.id,

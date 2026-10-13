@@ -1,9 +1,10 @@
-from sandbox.models import Task
+from sandbox.models import Task, TaskAttempt
 from sandbox.services.attempt_display import enrich_attempts_display_state
 from sandbox.services.attempts import (
     get_current_attempt,
-    task_was_technically_completed,
 )
+
+from .progress import build_sandbox_queue_progress
 
 
 def build_trainee_dashboard_context(user):
@@ -21,16 +22,11 @@ def build_trainee_dashboard_context(user):
     )
 
     queue_sections = {}
-    unread_feedback_attempts = []
-
     for task in tasks:
         attempt = get_current_attempt(
             user=user,
             task=task,
         )
-
-        if attempt.has_unread_mentor_feedback:
-            unread_feedback_attempts.append(attempt)
 
         queue = attempt.task.queue
 
@@ -46,16 +42,21 @@ def build_trainee_dashboard_context(user):
         section["attempts"].append(attempt)
         section["total_count"] += 1
 
-        if task_was_technically_completed(
-            user=user,
-            task=task,
-        ):
-            section["completed_count"] += 1
-
     for section in queue_sections.values():
+        progress = build_sandbox_queue_progress(user, section["queue"].slug)
+        section["progress"] = progress
+        section["completed_count"] = progress.technical_completed_count
+        section["total_count"] = progress.total_count
         section["attempts"] = enrich_attempts_display_state(
             section["attempts"]
         )
+
+    credit_attempts = TaskAttempt.objects.filter(
+        user=user, attempt_number=1, task__in=tasks,
+    ).select_related("task", "task__queue")
+    unread_feedback_attempts = [
+        attempt for attempt in credit_attempts if attempt.has_unread_mentor_feedback
+    ]
 
     return {
         "queue_sections": queue_sections.values(),

@@ -4,10 +4,12 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from traineediary.models import (
     EntryType,
     StageGroup,
+    StageScheme,
     TraineeJourney,
     TraineeStage,
     WeeklyMetric,
@@ -59,6 +61,7 @@ class TraineeDetailViewTests(TestCase):
         self.journey = TraineeJourney.objects.create(
             user=self.trainee_user,
             entry_type=EntryType.NEW_HIRE,
+            stage_scheme=StageScheme.LEGACY,
             probation_start_date=date.today() - timedelta(days=20),
             current_stage=self.stage,
             stage_started_at=date.today() - timedelta(days=7),
@@ -501,6 +504,7 @@ class TraineeDetailViewTests(TestCase):
             order=1,
             description="Тестовое задание.",
             is_active=True,
+            requires_manual_review=True,
         )
 
         second_task = Task.objects.create(
@@ -510,6 +514,7 @@ class TraineeDetailViewTests(TestCase):
             order=2,
             description="Тестовое задание.",
             is_active=True,
+            requires_manual_review=True,
         )
 
         return first_task, second_task
@@ -525,6 +530,7 @@ class TraineeDetailViewTests(TestCase):
             attempt_number=1,
             is_current=True,
             status=TaskAttempt.Status.PASSED,
+            technical_passed_at=timezone.now(),
         )
 
         TaskAttempt.objects.create(
@@ -583,6 +589,7 @@ class TraineeDetailViewTests(TestCase):
                 attempt_number=1,
                 is_current=True,
                 status=TaskAttempt.Status.PASSED,
+                technical_passed_at=timezone.now(),
             )
 
         self.client.login(
@@ -700,6 +707,7 @@ class TraineeDetailViewTests(TestCase):
                 attempt_number=1,
                 is_current=True,
                 status=TaskAttempt.Status.PASSED,
+                technical_passed_at=timezone.now(),
             )
 
         self.client.login(

@@ -8,6 +8,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from sandbox.models import CheckRun, TaskAttempt
+from .technical_evidence import get_technical_evidence, with_technical_evidence
 from sandbox.services.docker_service import (
     check_task_container,
     remove_task_container,
@@ -27,6 +28,8 @@ class AttemptCheckResult:
 
 
 def mark_attempt_check_running(*, attempt: TaskAttempt) -> None:
+    if attempt.technical_passed:
+        return
     attempt.attempts_count += 1
     attempt.status = TaskAttempt.Status.IN_PROGRESS
     attempt.check_status = TaskAttempt.CheckStatus.RUNNING
@@ -57,8 +60,8 @@ def try_mark_attempt_check_running(*, attempt: TaskAttempt) -> bool:
     now = timezone.now()
 
     updated_count = (
-        TaskAttempt.objects
-        .filter(id=attempt.id)
+        with_technical_evidence(TaskAttempt.objects.filter(id=attempt.id))
+        .filter(technical_passed_at__isnull=True, technical_check_id__isnull=True)
         .exclude(check_status=TaskAttempt.CheckStatus.RUNNING)
         .update(
             attempts_count=F("attempts_count") + 1,
@@ -87,6 +90,14 @@ def run_attempt_check(
     Функция содержит основную синхронную логику проверки
     и может выполняться из Celery worker.
     """
+    # Also guard worker/direct calls: an old queued job must not rerun a success.
+    attempt.refresh_from_db()
+    if get_technical_evidence(attempt, use_cached=False).is_completed:
+        return AttemptCheckResult(
+            is_success=True,
+            message="Техническая часть уже засчитана. Повторная проверка не требуется.",
+        )
+
     if mark_as_running:
         mark_attempt_check_running(attempt=attempt)
 

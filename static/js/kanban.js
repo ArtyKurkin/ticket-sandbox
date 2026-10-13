@@ -109,10 +109,9 @@ function initStageMoveDialog(container) {
 }
 
 function attachDragHandlers(container) {
-  const scrollBox = container.querySelector(".kanban-board");
-  if (!scrollBox) return;
-
   container.querySelectorAll(".kanban-card").forEach(function (card) {
+    const scrollBox = card.closest(".kanban-board");
+    if (!scrollBox) return;
     card.addEventListener("pointerdown", function (event) {
       startPointerDrag(event, card, container, scrollBox);
     });
@@ -310,6 +309,9 @@ function startPointerDrag(startEvent, card, container, scrollBox) {
 
   function updateCurrentDropTarget() {
     currentDropColumn = findDropColumn(pointerX, pointerY, ghost);
+    if (currentDropColumn && !isStageTargetAllowed(card, currentDropColumn)) {
+      currentDropColumn = null;
+    }
 
     clearDropTargetHighlight(container);
     if (currentDropColumn) {
@@ -451,6 +453,15 @@ function positionGhost(ghost, x, y) {
   ghost.style.top = y + "px";
 }
 
+function isStageTargetAllowed(card, target) {
+  if (target.dataset.stageActive === "false") return false;
+  if (target.dataset.stageScheme &&
+      card.dataset.stageScheme !== target.dataset.stageScheme) return false;
+  const applicable = card.dataset.entryType === "internal_transfer"
+    ? target.dataset.appliesInternalTransfer : target.dataset.appliesNewHire;
+  return applicable !== "false";
+}
+
 function openStageMoveDialog(
   card,
   dropZone,
@@ -460,6 +471,11 @@ function openStageMoveDialog(
 
   const targetStageId =
     dropZone.dataset.stageId;
+
+  if (!isStageTargetAllowed(card, dropZone)) {
+    showMoveError("Этот этап недоступен для программы и типа входа сотрудника.");
+    return;
+  }
 
   // Отпустили карточку в её же колонке.
   if (
@@ -694,10 +710,11 @@ function moveTraineeStage(options) {
 function refreshKanbanBoard(container) {
   const refreshUrl =
     container.dataset.refreshUrl;
-  const scrollBox =
-    container.querySelector(".kanban-board");
-  const scrollLeft =
-    scrollBox ? scrollBox.scrollLeft : 0;
+  const scrollPositions = new Map();
+  container.querySelectorAll("[data-kanban-scheme]").forEach(function (section) {
+    const scrollBox = section.querySelector(".kanban-board");
+    if (scrollBox) scrollPositions.set(section.dataset.kanbanScheme, scrollBox.scrollLeft);
+  });
 
   if (!refreshUrl) {
     return Promise.reject(
@@ -729,12 +746,12 @@ function refreshKanbanBoard(container) {
         lucide.createIcons();
       }
 
-      const newScrollBox =
-        container.querySelector(".kanban-board");
-
-      if (newScrollBox) {
-        newScrollBox.scrollLeft = scrollLeft;
-      }
+      container.querySelectorAll("[data-kanban-scheme]").forEach(function (section) {
+        const scrollBox = section.querySelector(".kanban-board");
+        if (scrollBox) {
+          scrollBox.scrollLeft = scrollPositions.get(section.dataset.kanbanScheme) || 0;
+        }
+      });
     });
 }
 

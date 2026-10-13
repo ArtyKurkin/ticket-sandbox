@@ -167,7 +167,7 @@ class TraineeAssessmentTests(TestCase):
             self.with_review_stage,
         )
 
-    def test_sandbox_stage_is_almost_ready_when_tasks_wait_for_review(
+    def test_sandbox_stage_is_not_ready_without_all_technical_evidence(
         self,
     ):
         journey = self.create_journey(
@@ -191,12 +191,10 @@ class TraineeAssessmentTests(TestCase):
             sandbox_progress=progress,
         )
 
-        self.assertTrue(
-            assessment.readiness.is_almost_ready,
-        )
+        self.assertEqual(assessment.readiness.state, "not_ready")
         self.assertEqual(
             assessment.readiness.reasons[0].code,
-            "sandbox_tasks_on_review",
+            "sandbox_tasks_remaining",
         )
 
     def test_with_review_requires_minimum_days_and_target_quality(

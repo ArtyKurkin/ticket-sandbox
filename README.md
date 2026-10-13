@@ -913,3 +913,14 @@ Runtime уже переведён на Docker Compose.
 Долгие Docker-операции Ticket Sandbox выполняются через Redis + Celery worker.
 
 `web` работает без Docker socket, а Docker-доступ вынесен в worker. Контейнеры приложения запускаются от non-root пользователя `app`.
+
+
+### Схемы этапов TraineeDiary
+
+Для новых адаптаций используется единая программа, существующие сохраняют legacy-схему.
+Миграции, preflight, изолированная проверка и контракт подтверждений будущих учебных модулей описаны в [TRAINEEDIARY_STAGE_SCHEMES.md](TRAINEEDIARY_STAGE_SCHEMES.md).
+
+
+### Технический прогресс Sandbox
+
+Единый read-only сервис, правила исторического зачёта, диагностика и ограничения состава программы описаны в [SANDBOX_PROGRESS_FOUNDATION.md](SANDBOX_PROGRESS_FOUNDATION.md).

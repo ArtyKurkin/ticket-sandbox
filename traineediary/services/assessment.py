@@ -64,32 +64,9 @@ class TraineeAssessment:
 def _get_next_applicable_stage(
     journey,
 ):
-    applicable_field = (
-        "applies_to_internal_transfer"
-        if (
-            journey.entry_type
-            == EntryType.INTERNAL_TRANSFER
-        )
-        else "applies_to_new_hire"
-    )
+    from .stages import next_stage
 
-    return (
-        TraineeStage.objects
-        .filter(
-            is_active=True,
-            order__gt=(
-                journey.current_stage.order
-            ),
-            **{
-                applicable_field: True,
-            },
-        )
-        .order_by(
-            "order",
-            "id",
-        )
-        .first()
-    )
+    return next_stage(journey)
 
 
 def _get_latest_metric(
@@ -239,32 +216,6 @@ def _build_sandbox_readiness(
             next_stage=next_stage,
         )
 
-    all_tasks_completed_or_on_review = (
-        (
-            sandbox_progress.passed_count
-            + sandbox_progress.on_review_count
-        )
-        == sandbox_progress.total_count
-    )
-
-    if (
-        all_tasks_completed_or_on_review
-        and sandbox_progress.on_review_count > 0
-    ):
-        return _almost_ready(
-            reasons=[
-                ReadinessReason(
-                    code="sandbox_tasks_on_review",
-                    label="Задания ждут проверки",
-                    description=(
-                        f"На проверке: "
-                        f"{sandbox_progress.on_review_count}."
-                    ),
-                ),
-            ],
-            next_stage=next_stage,
-        )
-
     return _not_ready(
         reasons=[
             ReadinessReason(
@@ -368,6 +319,24 @@ def _build_time_based_readiness(
     journey,
     next_stage,
 ):
+    if journey.current_stage.slug == "training-program":
+        # Elapsed days are planning metrics, never proof of education completion.
+        return TraineeReadinessSummary(
+            state="not_ready",
+            label="Ожидается подтверждение наставника",
+            reasons=(
+                ReadinessReason(
+                    code="manual_training_confirmation",
+                    label="Программа подтверждается наставником",
+                    description=(
+                        "После завершения обучения наставник подтверждает "
+                        "его переходом на следующий этап."
+                    ),
+                ),
+            ),
+            next_stage=next_stage,
+        )
+
     days_until_minimum = max(
         journey.current_stage.min_days
         - journey.days_on_stage,

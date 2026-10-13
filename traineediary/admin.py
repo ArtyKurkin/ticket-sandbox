@@ -17,6 +17,7 @@ class TraineeStageAdmin(admin.ModelAdmin):
         "name",
         "order",
         "group",
+        "catalog_scope",
         "min_days",
         "max_days",
         "progress_weight_percent",
@@ -38,6 +39,7 @@ class TraineeStageAdmin(admin.ModelAdmin):
 
     list_filter = (
         "group",
+        "catalog_scope",
         "is_active",
     )
 
@@ -127,6 +129,7 @@ class TraineeJourneyAdmin(admin.ModelAdmin):
     list_display = (
         "user",
         "entry_type",
+        "stage_scheme",
         "current_stage",
         "completion_status",
         "completed_at",
@@ -139,6 +142,7 @@ class TraineeJourneyAdmin(admin.ModelAdmin):
 
     list_filter = (
         "entry_type",
+        "stage_scheme",
         "current_stage",
         "current_stage__group",
         "completion_status",
@@ -155,6 +159,7 @@ class TraineeJourneyAdmin(admin.ModelAdmin):
     readonly_fields = (
         "user",
         "entry_type",
+        "stage_scheme",
         "probation_start_date",
         "current_stage",
         "stage_started_at",
@@ -174,6 +179,7 @@ class TraineeJourneyAdmin(admin.ModelAdmin):
                 "fields": (
                     "user",
                     "entry_type",
+                    "stage_scheme",
                     "probation_start_date",
                     "diary_link",
                 ),

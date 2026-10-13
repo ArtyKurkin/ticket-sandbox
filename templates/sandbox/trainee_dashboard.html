@@ -74,6 +74,7 @@
           {{ section.total_count }} {{ section.total_count|ru_plural:"тикет,тикета,тикетов" }}
         </span>
       </div>
+      {% include "sandbox/_answer_progress.html" with progress=section.progress %}
       <table class="table ticket-table trainee-ticket-table">
         <thead>
           <tr>
@@ -95,6 +96,9 @@
 
               <td class="ticket-title-cell">
                 <strong>{{ attempt.task.ticket_title|default:attempt.task.title }}</strong>
+                {% if attempt.credit_attempt.needs_text_revision %}
+                  <a href="{% url 'sandbox:task_detail' attempt.credit_attempt.id %}">Доработать зачётный ответ</a>
+                {% endif %}
               </td>
 
               <td>

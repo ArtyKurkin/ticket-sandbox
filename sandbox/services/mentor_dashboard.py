@@ -4,6 +4,7 @@ from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 
 from sandbox.models import CheckRun, Queue, TaskAttempt
+from .technical_evidence import with_technical_evidence
 
 
 def build_mentor_dashboard_context(request):
@@ -11,7 +12,7 @@ def build_mentor_dashboard_context(request):
     selected_queue = request.GET.get("queue", "")
     search_query = request.GET.get("q", "").strip()
 
-    attempts = (
+    attempts = with_technical_evidence(
         TaskAttempt.objects
         .filter(attempt_number=1)
         .select_related("user", "task", "task__queue")
@@ -41,6 +42,9 @@ def build_mentor_dashboard_context(request):
 
     dashboard_stats = attempts.aggregate(
         total=Count("id"),
+        technical_completed=Count(
+            "id", filter=Q(technical_passed_at__isnull=False) | Q(technical_check_id__isnull=False),
+        ),
         new=Count(
             "id",
             filter=Q(status=TaskAttempt.Status.NEW),
@@ -72,7 +76,6 @@ def build_mentor_dashboard_context(request):
     pending_review_count = TaskAttempt.objects.filter(
         status=TaskAttempt.Status.ON_REVIEW,
         attempt_number=1,
-        is_current=True,
         task__requires_manual_review=True,
     ).count()
 

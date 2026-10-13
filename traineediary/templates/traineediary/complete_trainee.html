@@ -27,7 +27,7 @@
 
     <p>
       {{ journey.user.get_full_name|default:journey.user.username }}
-      · {{ journey.current_stage.name }}
+      · {{ journey.current_stage_label }}
     </p>
   </div>
 </div>
@@ -181,7 +181,7 @@
         <span>Текущий этап</span>
 
         <strong>
-          {{ journey.current_stage.name }}
+          {{ journey.current_stage_label }}
         </strong>
       </div>
 

@@ -1,5 +1,4 @@
 from django.db import IntegrityError
-from django.db.models import Q
 
 from sandbox.models import TaskAttempt
 
@@ -73,15 +72,6 @@ def get_next_attempt_number(user, task):
 
 
 def task_was_technically_completed(user, task):
-    return (
-        TaskAttempt.objects
-        .filter(
-            user=user,
-            task=task,
-        )
-        .filter(
-            Q(status=TaskAttempt.Status.PASSED)
-            | Q(technical_passed_at__isnull=False)
-        )
-        .exists()
-    )
+    from .technical_evidence import credit_task_completed
+
+    return credit_task_completed(user=user, task=task)

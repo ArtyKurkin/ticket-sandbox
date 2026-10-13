@@ -35,6 +35,10 @@
 
   <div class="mentor-stats">
     <div class="mentor-stat-card">
+      <span>Технически выполнено</span>
+      <strong>{{ dashboard_stats.technical_completed }}</strong>
+    </div>
+    <div class="mentor-stat-card">
       <span>Всего попыток</span>
       <strong>{{ dashboard_stats.total }}</strong>
     </div>
@@ -155,6 +159,9 @@
                   <i data-lucide="circle-check-big"></i>
                   {{ attempt.get_status_display }}
                 </span>
+                {% if not attempt.technical_passed %}
+                  <span class="status status-warning">Технический зачёт не подтверждён</span>
+                {% endif %}
               {% elif attempt.status == "failed" %}
                 {% if attempt.mentor_decision == "needs_revision" %}
                   <span class="status status-danger">

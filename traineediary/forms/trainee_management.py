@@ -9,9 +9,17 @@ from sandbox.models import TraineeProfile
 
 from ..models import (
     EntryType,
+    StageScheme,
     TraineeJourney,
     TraineeStage,
 )
+
+from ..services.stages import selectable_stages, stage_label
+
+
+class StageChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return stage_label(obj, StageScheme.UNIFIED)
 
 
 class NewTraineeForm(forms.Form):
@@ -59,14 +67,10 @@ class NewTraineeForm(forms.Form):
         ),
     )
 
-    current_stage = forms.ModelChoiceField(
+    current_stage = StageChoiceField(
         label="Текущий этап",
         required=False,
-        queryset=(
-            TraineeStage.objects
-            .filter(is_active=True)
-            .order_by("order")
-        ),
+        queryset=selectable_stages(StageScheme.UNIFIED, EntryType.NEW_HIRE),
         widget=forms.Select(
             attrs={
                 "class": "form-select",
@@ -273,7 +277,7 @@ class StartAdaptationForm(forms.Form):
         ),
     )
 
-    current_stage = forms.ModelChoiceField(
+    current_stage = StageChoiceField(
         label="Текущий этап",
         queryset=TraineeStage.objects.none(),
         widget=forms.Select(
@@ -324,13 +328,8 @@ class StartAdaptationForm(forms.Form):
                 f"{current_class} trainee-start-control"
             ).strip()
 
-        available_stages = (
-            TraineeStage.objects
-            .filter(
-                is_active=True,
-                applies_to_internal_transfer=True,
-            )
-            .order_by("order")
+        available_stages = selectable_stages(
+            StageScheme.UNIFIED, EntryType.INTERNAL_TRANSFER,
         )
 
         self.fields[

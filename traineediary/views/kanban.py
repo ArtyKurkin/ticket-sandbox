@@ -22,6 +22,7 @@ from django.views.decorators.http import (
 
 from ..models import (
     StageGroup,
+    StageScheme,
     TraineeJourney,
     TraineeStage,
     WeeklyMetric,
@@ -36,19 +37,10 @@ from ..services.sandbox_progress import (
     build_sandbox_queue_progress_map,
 )
 
+from ..services.stages import board_stages, selectable_stages, stage_label
 
-def _build_kanban_columns():
-    stages = list(
-        TraineeStage.objects
-        .filter(
-            is_active=True,
-        )
-        .order_by(
-            "order",
-            "id",
-        )
-    )
 
+def _build_kanban_boards():
     weekly_metrics_queryset = (
         WeeklyMetric.objects
         .order_by(
@@ -118,37 +110,44 @@ def _build_kanban_columns():
         }
 
         cards_by_stage.setdefault(
-            journey.current_stage_id,
+            (journey.stage_scheme, journey.current_stage_id),
             [],
         ).append(
             card,
         )
 
-    working_columns = []
-    done_column = None
+    boards = []
+    for scheme, label in StageScheme.choices:
+        scheme_journeys = [j for j in journeys if j.stage_scheme == scheme]
+        if scheme == StageScheme.LEGACY and not scheme_journeys:
+            continue
+        columns = []
+        done_columns = []
+        for stage in board_stages(scheme, scheme_journeys):
+            stage.display_name = stage_label(stage, scheme)
+            column = {
+                "stage": stage,
+                "cards": cards_by_stage.get((scheme, stage.id), []),
+            }
+            if stage.group == StageGroup.DONE:
+                done_columns.append(column)
+            else:
+                columns.append(column)
+        boards.append({
+            "scheme": scheme, "label": label,
+            "columns": columns, "done_columns": done_columns,
+        })
+    return boards
 
-    for stage in stages:
-        column = {
-            "stage": stage,
-            "cards": (
-                cards_by_stage.get(
-                    stage.id,
-                    [],
-                )
-            ),
-        }
 
-        if stage.group == StageGroup.DONE:
-            done_column = column
-        else:
-            working_columns.append(
-                column,
-            )
-
-    return (
-        working_columns,
-        done_column,
-    )
+def _kanban_context():
+    boards = _build_kanban_boards()
+    done_columns = [column for board in boards for column in board["done_columns"]]
+    return {
+        "boards": boards,
+        "columns": [column for board in boards for column in board["columns"]],
+        "done_column": done_columns[-1] if done_columns else None,
+    }
 
 
 @login_required
@@ -156,18 +155,8 @@ def trainees_kanban(request):
     if not request.user.is_staff:
         raise PermissionDenied
 
-    working_columns, done_column = (
-        _build_kanban_columns()
-    )
-
-    context = {
-        "columns": working_columns,
-        "done_column": done_column,
-        "pre_adaptation_count": (
-            get_pre_adaptation_users_queryset()
-            .count()
-        ),
-    }
+    context = _kanban_context()
+    context["pre_adaptation_count"] = get_pre_adaptation_users_queryset().count()
 
     return render(
         request,
@@ -181,14 +170,7 @@ def kanban_board_fragment(request):
     if not request.user.is_staff:
         raise PermissionDenied
 
-    working_columns, done_column = (
-        _build_kanban_columns()
-    )
-
-    context = {
-        "columns": working_columns,
-        "done_column": done_column,
-    }
+    context = _kanban_context()
 
     return render(
         request,
@@ -313,6 +295,14 @@ def move_trainee_stage(
                     "probation_completed"
                 ),
             },
+            status=400,
+        )
+
+    if not selectable_stages(journey.stage_scheme, journey.entry_type).filter(
+        pk=new_stage.pk,
+    ).exists():
+        return JsonResponse(
+            {"error": "Этот этап не разрешён для схемы и типа входа сотрудника."},
             status=400,
         )
 

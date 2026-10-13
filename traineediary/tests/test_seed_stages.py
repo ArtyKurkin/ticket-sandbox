@@ -1,146 +1,82 @@
 from io import StringIO
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase
 
-from traineediary.models import (
-    StageGroup,
-    TraineeStage,
-)
+from traineediary.models import EntryType, StageScheme, StageScope, TraineeStage
+from traineediary.services.stage_catalog import contract
+from traineediary.services.stages import selectable_stages
 
 
 class SeedStagesCommandTests(TestCase):
-    def test_seed_stages_creates_current_stage_order(
-        self,
-    ):
-        stdout = StringIO()
-
-        call_command(
-            "seed_stages",
-            stdout=stdout,
-        )
-
-        stage_slugs = list(
-            TraineeStage.objects
-            .order_by("order")
-            .values_list(
-                "slug",
-                flat=True,
-            )
-        )
-
+    def test_seed_creates_six_unified_stages_and_is_idempotent(self):
+        call_command("seed_stages", stdout=StringIO())
+        before = list(TraineeStage.objects.order_by("pk").values())
+        call_command("seed_stages", stdout=StringIO())
+        self.assertEqual(before, list(TraineeStage.objects.order_by("pk").values()))
+        stages = selectable_stages(StageScheme.UNIFIED, EntryType.NEW_HIRE)
         self.assertEqual(
-            stage_slugs,
+            list(stages.values_list("slug", flat=True)),
             [
-                "first-day",
-                "vds",
-                "managed-services",
-                "client-service",
+                "training-program",
                 "sandbox-candidate",
-                "before-tickets",
                 "with-review",
                 "optional-review",
                 "no-review",
                 "done",
             ],
         )
+        self.assertEqual(sum(s.progress_weight_percent for s in stages), 100)
+        self.assertEqual(TraineeStage.objects.count(), 6)
 
-        sandbox_stage = (
-            TraineeStage.objects.get(
-                slug="sandbox-candidate",
+    def test_seed_preserves_legacy_records_and_shared_names_and_colors(self):
+        for slug, fields in contract.LEGACY_CATALOG.items():
+            TraineeStage.objects.create(
+                slug=slug,
+                **fields,
+                color="#000000",
+                catalog_scope=(
+                    StageScope.LEGACY
+                    if slug in contract.LEGACY_SLUGS
+                    else StageScope.SHARED
+                ),
             )
-        )
-        before_tickets_stage = (
-            TraineeStage.objects.get(
-                slug="before-tickets",
-            )
-        )
+        before = list(TraineeStage.objects.order_by("pk").values())
+        call_command("seed_stages", stdout=StringIO())
+        self.assertEqual(before, list(TraineeStage.objects.order_by("pk").values()))
+        self.assertEqual(TraineeStage.objects.count(), 11)
 
-        self.assertEqual(
-            sandbox_stage.order,
-            5,
-        )
-        self.assertEqual(
-            sandbox_stage.group,
-            StageGroup.SANDBOX_L1,
-        )
-        self.assertEqual(
-            before_tickets_stage.order,
-            6,
-        )
-
-        self.assertIn(
-            "создано 10",
-            stdout.getvalue(),
-        )
-
-    def test_seed_stages_updates_existing_data_without_duplicates(
-        self,
-    ):
+    def test_seed_refuses_nonstandard_parameters_without_any_changes(self):
         TraineeStage.objects.create(
-            name="Старое название",
-            slug="sandbox-candidate",
-            order=99,
-            min_days=10,
-            max_days=20,
-            progress_weight_percent=1,
-            color="#000000",
-            group=StageGroup.TEACHBASE,
-            applies_to_new_hire=False,
-            applies_to_internal_transfer=True,
+            slug="sandbox-candidate", name="Custom", order=99, group="teachbase"
         )
+        before = list(TraineeStage.objects.values())
+        with self.assertRaisesMessage(CommandError, "Seed остановлен"):
+            call_command("seed_stages", stdout=StringIO())
+        self.assertEqual(before, list(TraineeStage.objects.values()))
 
-        call_command(
-            "seed_stages",
-            stdout=StringIO(),
+    def test_seed_refuses_unknown_stages(self):
+        TraineeStage.objects.create(
+            slug="custom-course", name="Custom", order=99, group="teachbase"
         )
-        call_command(
-            "seed_stages",
-            stdout=StringIO(),
-        )
+        with self.assertRaisesMessage(CommandError, "неизвестный этап"):
+            call_command("seed_stages", stdout=StringIO())
+        self.assertFalse(TraineeStage.objects.filter(slug="with-review").exists())
 
-        self.assertEqual(
-            TraineeStage.objects.count(),
-            10,
-        )
+    def test_seed_does_not_reactivate_stages(self):
+        call_command("seed_stages", stdout=StringIO())
+        TraineeStage.objects.filter(slug="training-program").update(is_active=False)
+        call_command("seed_stages", stdout=StringIO())
+        self.assertFalse(TraineeStage.objects.get(slug="training-program").is_active)
 
-        sandbox_stage = (
-            TraineeStage.objects.get(
-                slug="sandbox-candidate",
-            )
-        )
-
-        self.assertEqual(
-            sandbox_stage.name,
-            "Задания в ticket-sandbox",
-        )
-        self.assertEqual(
-            sandbox_stage.order,
-            5,
-        )
-        self.assertEqual(
-            sandbox_stage.min_days,
-            1,
-        )
-        self.assertEqual(
-            sandbox_stage.max_days,
-            2,
-        )
-        self.assertEqual(
-            sandbox_stage.progress_weight_percent,
-            5,
-        )
-        self.assertEqual(
-            sandbox_stage.color,
-            "#14B8A6",
-        )
-        self.assertEqual(
-            sandbox_stage.group,
-            StageGroup.SANDBOX_L1,
-        )
-        self.assertTrue(
-            sandbox_stage.applies_to_new_hire,
-        )
-        self.assertFalse(
-            sandbox_stage.applies_to_internal_transfer,
-        )
+    def test_historical_fixture_resolves_slugs_without_overwriting_program_pk(self):
+        program = TraineeStage.objects.get(slug="training-program")
+        call_command("seed_stages", stdout=StringIO())
+        shared_pk = TraineeStage.objects.get(slug="with-review").pk
+        call_command("loaddata", "trainee_stages", stdout=StringIO())
+        program.refresh_from_db()
+        self.assertEqual(program.slug, "training-program")
+        self.assertEqual(program.catalog_scope, StageScope.UNIFIED)
+        self.assertEqual(TraineeStage.objects.get(slug="with-review").pk, shared_pk)
+        self.assertEqual(TraineeStage.objects.count(), 11)

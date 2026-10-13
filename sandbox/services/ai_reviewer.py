@@ -277,7 +277,7 @@ def create_ai_review(attempt):
     if system_prompt:
         task_context["_review_metadata"] = {
             "system_prompt_sha256": hashlib.sha256(system_prompt.encode("utf-8")).hexdigest(),
-            "technical_check_passed": bool(attempt.technical_passed_at),
+            "technical_check_passed": attempt.technical_passed,
         }
     return AIReview.objects.create(
         attempt=attempt,

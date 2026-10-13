@@ -1,0 +1,10 @@
+{% if progress.needs_revision_count or progress.on_review_count or progress.unsubmitted_count or progress.unread_feedback_count or progress.feedback_read_state_unknown_count %}
+  <div class="muted-text" aria-label="Состояние клиентских ответов">
+    {% if progress.needs_revision_count %}<span>Доработать ответы: {{ progress.needs_revision_count }}.</span>{% endif %}
+    {% if progress.on_review_count %}<span>Ответы на проверке: {{ progress.on_review_count }}.</span>{% endif %}
+    {% if progress.unsubmitted_count %}<span>Технически выполнены, ответ не отправлен: {{ progress.unsubmitted_count }}.</span>{% endif %}
+    {% if progress.unread_feedback_count %}<span>Непрочитанные комментарии: {{ progress.unread_feedback_count }}.</span>{% endif %}
+    {% if progress.feedback_read_state_unknown_count %}<span>Статус прочтения неизвестен: {{ progress.feedback_read_state_unknown_count }}.</span>{% endif %}
+    <span>Доработка текста не уменьшает технический прогресс.</span>
+  </div>
+{% endif %}

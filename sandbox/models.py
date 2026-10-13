@@ -392,14 +392,13 @@ class TaskAttempt(models.Model):
 
     @property
     def is_technically_completed(self):
-        return (
-            self.technical_passed_at is not None
-            or self.status == self.Status.PASSED
-        )
+        return self.technical_passed
 
     @property
     def technical_passed(self):
-        return self.technical_passed_at is not None
+        from .services.technical_evidence import get_technical_evidence
+
+        return get_technical_evidence(self).is_completed
 
     @property
     def technical_locked(self):
@@ -441,6 +440,11 @@ class TaskAttempt(models.Model):
         ):
             return False
 
+        # Workflow locks are independent of whether a legacy technical pass
+        # can be proved. An answer on review/passed must never reopen a terminal.
+        if self.status in (self.Status.ON_REVIEW, self.Status.PASSED):
+            return False
+
         if not self.technical_locked:
             return True
 
@@ -461,6 +465,10 @@ class TaskAttempt(models.Model):
 
     @property
     def can_go_next(self):
+        if self.is_extra_attempt:
+            from .services.technical_evidence import credit_task_completed
+
+            return credit_task_completed(user=self.user, task=self.task)
         return self.is_technically_completed
 
     @property
@@ -480,6 +488,20 @@ class TaskAttempt(models.Model):
         )
 
     @property
+    def can_edit_client_answer(self):
+        """A returned credit answer stays editable after starting a practice attempt."""
+        return (
+            self.task.requires_manual_review
+            and self.is_credit_attempt
+            and self.technical_passed
+            and self.status not in (self.Status.ON_REVIEW, self.Status.PASSED)
+            and (
+                self.is_current
+                or self.mentor_decision == self.MentorDecision.NEEDS_REVISION
+            )
+        )
+
+    @property
     def mentor_approved(self):
         return self.mentor_decision == self.MentorDecision.APPROVED
 
@@ -492,37 +514,44 @@ class TaskAttempt(models.Model):
         if self.task.order == 1:
             return True
 
-        previous_attempt = (
-            TaskAttempt.objects
-            .filter(
+        from .services.technical_evidence import (
+            get_technical_evidence,
+            with_technical_evidence,
+        )
+
+        previous_attempts = with_technical_evidence(
+            TaskAttempt.objects.filter(
                 user=self.user,
                 task__queue=self.task.queue,
                 task__order=self.task.order - 1,
+                attempt_number=1,
             )
-            .filter(
-                models.Q(status=TaskAttempt.Status.PASSED)
-                | models.Q(technical_passed_at__isnull=False)
-            )
-            .exists()
+        )
+        return any(
+            get_technical_evidence(attempt).is_completed
+            for attempt in previous_attempts
         )
 
-        return previous_attempt
+    @property
+    def mentor_feedback_read_state(self):
+        if (
+            self.mentor_decision == self.MentorDecision.NOT_REVIEWED
+            or not self.mentor_feedback
+        ):
+            return "none"
+        if self.mentor_feedback_seen_at is None:
+            return "unread"
+        if self.mentor_reviewed_at is None:
+            return "unknown"
+        return (
+            "unread"
+            if self.mentor_feedback_seen_at < self.mentor_reviewed_at
+            else "read"
+        )
 
     @property
     def has_unread_mentor_feedback(self):
-        if self.mentor_decision == self.MentorDecision.NOT_REVIEWED:
-            return False
-
-        if not self.mentor_feedback:
-            return False
-
-        if not self.mentor_feedback_seen_at:
-            return True
-
-        if not self.mentor_reviewed_at:
-            return True
-
-        return self.mentor_feedback_seen_at < self.mentor_reviewed_at
+        return self.mentor_feedback_read_state == "unread"
 
     @property
     def is_extra_attempt(self):

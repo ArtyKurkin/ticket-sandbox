@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from traineediary.models import (
     CompletionStatus,
@@ -61,6 +62,7 @@ class TraineeKanbanAndCreationTests(TestCase):
             order=1,
             description="Тестовое задание.",
             is_active=True,
+            requires_manual_review=True,
         )
 
         second_task = Task.objects.create(
@@ -70,6 +72,7 @@ class TraineeKanbanAndCreationTests(TestCase):
             order=2,
             description="Тестовое задание.",
             is_active=True,
+            requires_manual_review=True,
         )
 
         return first_task, second_task
@@ -944,6 +947,7 @@ class TraineeKanbanAndCreationTests(TestCase):
             attempt_number=1,
             is_current=True,
             status=TaskAttempt.Status.PASSED,
+            technical_passed_at=timezone.now(),
         )
 
         TaskAttempt.objects.create(
@@ -1042,6 +1046,7 @@ class TraineeKanbanAndCreationTests(TestCase):
             attempt_number=1,
             is_current=True,
             status=TaskAttempt.Status.PASSED,
+            technical_passed_at=timezone.now(),
         )
 
         self.client.login(

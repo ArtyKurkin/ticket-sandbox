@@ -20,10 +20,12 @@ from ..models import (
     CompletionStatus,
     EntryType,
     StageGroup,
+    StageScheme,
     TraineeJourney,
     TraineeStage,
     WeeklyMetric,
 )
+from ..services.stages import board_stages
 from ..services.assessment import (
     build_trainee_assessment,
 )
@@ -587,15 +589,16 @@ def dashboard(request):
             in EntryType.choices
             if value
         ],
-        "stage_choices": (
-            TraineeStage.objects
-            .filter(
-                is_active=True,
-            )
-            .order_by(
-                "order",
-            )
-        ),
+        "stage_choices": TraineeStage.objects.filter(
+            Q(pk__in=board_stages(
+                StageScheme.LEGACY,
+                [j for j in journeys if j.stage_scheme == StageScheme.LEGACY],
+            ).values("pk"))
+            | Q(pk__in=board_stages(
+                StageScheme.UNIFIED,
+                [j for j in journeys if j.stage_scheme == StageScheme.UNIFIED],
+            ).values("pk")),
+        ).order_by("order", "id"),
         "completion_summary_cards": (
             completion_summary_cards
         ),

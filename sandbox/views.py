@@ -190,8 +190,7 @@ def task_detail(request, attempt_id):
 
     answer_can_be_edited = (
         answer_flow_enabled
-        and attempt.is_current
-        and technical_part_passed
+        and attempt.can_edit_client_answer
         and not answer_is_locked
     )
 
@@ -514,13 +513,10 @@ def check_task(request, attempt_id):
         user=request.user,
     )
 
-    historical_attempt_response = block_historical_attempt_action(
-        request,
-        attempt,
-    )
-
-    if historical_attempt_response is not None:
-        return historical_attempt_response
+    if not attempt.can_edit_client_answer:
+        historical_attempt_response = block_historical_attempt_action(request, attempt)
+        if historical_attempt_response is not None:
+            return historical_attempt_response
 
     if not attempt.is_available:
         messages.error(request, "Этот тикет пока недоступен.")
@@ -544,7 +540,7 @@ def check_task(request, attempt_id):
         )
         return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
-    if attempt.technical_passed_at:
+    if attempt.technical_passed:
         if not attempt.task.requires_manual_review:
             messages.info(
                 request,
@@ -614,7 +610,10 @@ def check_task(request, attempt_id):
             )
             return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
-        cleanup_attempt_environment(attempt)
+        # A historical credit revision only changes text; its old container
+        # references must not affect the current practice environment.
+        if attempt.is_current:
+            cleanup_attempt_environment(attempt)
 
         transaction.on_commit(
             lambda: notify_manual_review_required(attempt)
