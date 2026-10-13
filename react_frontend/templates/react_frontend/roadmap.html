@@ -1,0 +1,13 @@
+{% load vite %}
+<!doctype html>
+<html lang="ru"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>Roadmap стажёра — Training Platform</title>
+  {% vite_assets "src/roadmap/main.tsx" %}
+</head><body>
+  {{ roadmap_profile|json_script:"roadmap-props" }}
+  <div data-react-island="roadmap"></div>
+  <noscript>Для просмотра интерактивной карты включите JavaScript.</noscript>
+</body></html>

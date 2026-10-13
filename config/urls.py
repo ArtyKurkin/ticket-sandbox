@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
-from react_frontend.views import achievements, readiness
+from react_frontend.views import achievements, readiness, roadmap
 from config.views import (
     healthz,
     home,
@@ -12,6 +12,8 @@ from config.views import (
 
 urlpatterns = [
     path("", home, name="home"),
+
+    path("roadmap/", roadmap, name="roadmap"),
 
     path("achievements/", achievements, name="achievements"),
 

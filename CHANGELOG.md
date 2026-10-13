@@ -3161,3 +3161,19 @@ Runtime checker подтверждает:
 - Vite manifest интегрирован с Django staticfiles/WhiteNoise и Docker build.
 - Добавлены frontend проверки CI, тесты авторизации и collectstatic.
 - Инструкции: `frontend/README.md`. Trophy Room и Roadmap не реализованы.
+
+## Trophy Room React
+
+- Перенесён экран достижений из Stitch в отдельный React island `/achievements/`.
+- Сохранены металлические SVG-медальоны; добавлены локальные шрифты и фон.
+- Реализованы фильтры, доступная модалка и демонстрационное уведомление получения.
+- Данные остаются локальными; добавлены проверки авторизации и production assets.
+- Документация: `frontend/src/achievements/README.md`.
+
+## Data Center Journey React
+
+- Перенесён утверждённый Roadmap из `design-references/roadmap/` в React island `/roadmap/`.
+- Сохранены восемь этапов, SVG-маршрут, исходные иконки и фон дата-центра.
+- Добавлены инспектор с проверкой пересечений, Living Data Center и staff-only демо.
+- Добавлена ссылка из Trophy Room, тесты frontend и Django; данные остаются демонстрационными.
+- Инструкции: `frontend/src/roadmap/README.md`.

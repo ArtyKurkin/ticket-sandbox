@@ -11,7 +11,7 @@ export function TrophyShell({ children, profile }: { children: ReactNode; profil
       <div className="tp-profile"><button type="button" className="tp-bell" aria-label="Уведомления пока недоступны" disabled><BellIcon /><i /></button><span className="tp-avatar">{initials}</span><span><strong>{profile.displayName}</strong><small>{profile.role}</small></span></div>
     </header>
     <div className="tp-workspace"><aside className="tp-sidebar"><nav aria-label="Навигация Training Platform">
-      <button type="button" disabled title="Раздел пока недоступен"><RoadmapIcon /><span>Roadmap</span></button>
+      <a href="/roadmap/" aria-label="Roadmap"><RoadmapIcon /><span>Roadmap</span></a>
       <a href={profile.sandboxUrl} aria-label="Ticket Sandbox"><SandboxIcon /><span>Ticket Sandbox</span></a>
       {inactive.slice(1, 3).map(([Icon, label]) => <button type="button" disabled title="Раздел пока недоступен" key={label}><Icon /><span>{label}</span></button>)}
       <a href="/achievements/" aria-label="Достижения" aria-current="page"><AchievementIcon /><span>Достижения</span></a>
