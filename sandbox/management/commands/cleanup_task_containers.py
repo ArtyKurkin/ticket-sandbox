@@ -1,3 +1,5 @@
+from sandbox.services import ledger
+from django.db import transaction
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand
@@ -20,6 +22,7 @@ class Command(BaseCommand):
             help="Show attempts that would be cleaned up without removing containers.",
         )
 
+    @ledger.trusted
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
         expired_time = timezone.now() - timedelta(hours=72)
@@ -62,6 +65,11 @@ class Command(BaseCommand):
                 f"Cleanup attempt #{attempt.id}"
             )
 
+            with transaction.atomic():
+                fresh=TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+                ledger.interrupt(fresh,"maintenance_cleanup")
+                cleanup_request,_=ledger.request_environment(fresh,'cleanup',origin='maintenance')
+                ledger.environment_phase(cleanup_request,'started')
             if attempt.container_name:
                 remove_task_container(
                     attempt.container_name
@@ -80,36 +88,45 @@ class Command(BaseCommand):
             attempt.terminal_url = ""
             attempt.terminal_port = None
 
-            attempt.status = TaskAttempt.Status.NEW
+            attempt.refresh_from_db()
+            # Keep the container deletions above reflected even if a worker committed concurrently.
+            attempt.container_id=attempt.container_name=attempt.shell_command=''
+            attempt.terminal_container_name=attempt.terminal_url='';attempt.terminal_port=None
+            if not attempt.technical_passed:
+                attempt.status = TaskAttempt.Status.NEW
 
             attempt.environment_status = TaskAttempt.EnvironmentStatus.IDLE
             attempt.environment_started_at = None
             attempt.environment_finished_at = None
 
-            attempt.check_status = TaskAttempt.CheckStatus.IDLE
-            attempt.check_started_at = None
-            attempt.check_finished_at = None
+            if not attempt.technical_passed:
+                attempt.check_status = TaskAttempt.CheckStatus.IDLE
+                attempt.check_started_at = None
+                attempt.check_finished_at = None
 
             attempt.stuck_reason = TaskAttempt.StuckReason.NONE
 
-            attempt.save(
-                update_fields=[
-                    "container_id",
-                    "container_name",
-                    "shell_command",
-                    "terminal_container_name",
-                    "terminal_url",
-                    "terminal_port",
-                    "status",
-                    "environment_status",
-                    "environment_started_at",
-                    "environment_finished_at",
-                    "check_status",
-                    "check_started_at",
-                    "check_finished_at",
-                    "stuck_reason",
-                ]
-            )
+            with transaction.atomic():
+                TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+                ledger.environment_phase(cleanup_request,"finished",outcome="success")
+                attempt.save(
+                    update_fields=[
+                        "container_id",
+                        "container_name",
+                        "shell_command",
+                        "terminal_container_name",
+                        "terminal_url",
+                        "terminal_port",
+                        "status",
+                        "environment_status",
+                        "environment_started_at",
+                        "environment_finished_at",
+                        "check_status",
+                        "check_started_at",
+                        "check_finished_at",
+                        "stuck_reason",
+                    ]
+                )
 
             cleaned_count += 1
 
@@ -131,6 +148,11 @@ class Command(BaseCommand):
                 f"Cleanup passed attempt #{attempt.id}"
             )
 
+            with transaction.atomic():
+                fresh=TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+                ledger.interrupt(fresh,"maintenance_cleanup")
+                cleanup_request,_=ledger.request_environment(fresh,'cleanup',origin='maintenance')
+                ledger.environment_phase(cleanup_request,'started')
             if attempt.container_name:
                 remove_task_container(
                     attempt.container_name
@@ -159,20 +181,23 @@ class Command(BaseCommand):
                 TaskAttempt.StuckReason.NONE
             )
 
-            attempt.save(
-                update_fields=[
-                    "container_id",
-                    "container_name",
-                    "shell_command",
-                    "terminal_container_name",
-                    "terminal_url",
-                    "terminal_port",
-                    "environment_status",
-                    "environment_started_at",
-                    "environment_finished_at",
-                    "stuck_reason",
-                ]
-            )
+            with transaction.atomic():
+                TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+                ledger.environment_phase(cleanup_request,"finished",outcome="success")
+                attempt.save(
+                    update_fields=[
+                        "container_id",
+                        "container_name",
+                        "shell_command",
+                        "terminal_container_name",
+                        "terminal_url",
+                        "terminal_port",
+                        "environment_status",
+                        "environment_started_at",
+                        "environment_finished_at",
+                        "stuck_reason",
+                    ]
+                )
 
             cleaned_count += 1
             preserved_technical_count += 1

@@ -1,0 +1,153 @@
+{
+  "user_id": 1,
+  "program_key": "l1",
+  "ledger_enabled_at": "2026-10-14T13:36:22.602951+00:00",
+  "manifest": {
+    "id": 1,
+    "digest": "95541ec570b10cdebed1e3900307ea4c2d9a52bf37f5b7af60aa187763ff1453",
+    "source": "from_start",
+    "recorded_at": "2026-10-14T13:36:23.366683+00:00",
+    "schema_version": 1,
+    "program_key": "l1",
+    "requirements_version": 1,
+    "tasks": [
+      {
+        "task_id": 1,
+        "task_slug": "https-ipv4-listener",
+        "order": 1,
+        "requires_review": true,
+        "criteria_version": "technical-v1",
+        "criteria_digest": "7667f73495e2acfb5f5f949208b291ec434a8ab0c04e9f83eb25ba497d2b0f10"
+      }
+    ]
+  },
+  "completion_id": 1,
+  "coverage": {
+    "status": "complete",
+    "reasons": [],
+    "sources": {
+      "checks": {
+        "status": "complete",
+        "reasons": []
+      },
+      "resets": {
+        "status": "complete",
+        "reasons": []
+      },
+      "answers": {
+        "status": "complete",
+        "reasons": []
+      }
+    }
+  },
+  "attempts": [
+    {
+      "task_id": 1,
+      "requires_review": true,
+      "attempt_id": 1,
+      "credit": true,
+      "coverage": {
+        "status": "complete",
+        "ledger_version": 1,
+        "origin": "creation",
+        "recorded_at": "2026-10-14T13:36:23.368315+00:00",
+        "reasons": [],
+        "sources": {
+          "checks": {
+            "status": "complete",
+            "reasons": []
+          },
+          "resets": {
+            "status": "complete",
+            "reasons": []
+          },
+          "answers": {
+            "status": "complete",
+            "reasons": []
+          }
+        }
+      },
+      "successful_resets": 0,
+      "observed_successful_resets": 0,
+      "technical_checks": [
+        {
+          "run_id": "42ed2995-f201-44e9-8412-1d47bc8a35ff",
+          "ordinal": 1,
+          "requested_at": "2026-10-14T13:36:23.389239+00:00",
+          "result": "passed",
+          "failure_class": "none",
+          "checker_started": true,
+          "check_run_id": 1,
+          "reason": ""
+        }
+      ],
+      "first_check": {
+        "run_id": "42ed2995-f201-44e9-8412-1d47bc8a35ff",
+        "ordinal": 1,
+        "requested_at": "2026-10-14T13:36:23.389239+00:00",
+        "result": "passed",
+        "failure_class": "none",
+        "checker_started": true,
+        "check_run_id": 1,
+        "reason": ""
+      },
+      "observed_first_check": {
+        "run_id": "42ed2995-f201-44e9-8412-1d47bc8a35ff",
+        "ordinal": 1,
+        "requested_at": "2026-10-14T13:36:23.389239+00:00",
+        "result": "passed",
+        "failure_class": "none",
+        "checker_started": true,
+        "check_run_id": 1,
+        "reason": ""
+      },
+      "submissions": [
+        {
+          "submission_id": 1,
+          "ordinal": 1,
+          "submitted_at": "2026-10-14T13:36:23.429875+00:00",
+          "digest": "ede63e30fd9c8fa35a2fb4671b8ebc1ba3fa1f40724f4304b910113a922661dc",
+          "decision": "approved",
+          "review_ids": [
+            1
+          ],
+          "valid_return": false
+        }
+      ],
+      "valid_returns": 0,
+      "first_answer_approved": true,
+      "technical_completed": true
+    }
+  ],
+  "successful_resets": 0,
+  "valid_returns": 0,
+  "first_five_answers": [
+    {
+      "task_id": 1,
+      "submission_id": 1,
+      "ordinal": 1,
+      "submitted_at": "2026-10-14T13:36:23.429875+00:00",
+      "digest": "ede63e30fd9c8fa35a2fb4671b8ebc1ba3fa1f40724f4304b910113a922661dc",
+      "decision": "approved",
+      "review_ids": [
+        1
+      ],
+      "valid_return": false
+    }
+  ],
+  "observed_first_answers": [
+    {
+      "task_id": 1,
+      "submission_id": 1,
+      "ordinal": 1,
+      "submitted_at": "2026-10-14T13:36:23.429875+00:00",
+      "digest": "ede63e30fd9c8fa35a2fb4671b8ebc1ba3fa1f40724f4304b910113a922661dc",
+      "decision": "approved",
+      "review_ids": [
+        1
+      ],
+      "valid_return": false
+    }
+  ],
+  "all_required_answers_approved": true
+}

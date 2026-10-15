@@ -196,7 +196,7 @@ def _locked_candidate(user_id):
 
 
 def _store(candidate, source):
-    return SandboxProgramCompletion.objects.get_or_create(
+    completion, created = SandboxProgramCompletion.objects.get_or_create(
         user_id=candidate.user_id,
         program_key=PROGRAM_KEY,
         defaults={
@@ -206,6 +206,11 @@ def _store(candidate, source):
             "snapshot": candidate.snapshot,
         },
     )
+    if created:
+        from achievements.services.events import publish
+        publish(provider="sandbox_completion", external_id=completion.pk, user_id=completion.user_id,
+                context={"program_key": PROGRAM_KEY}, payload={"completion_id": completion.pk})
+    return completion, created
 
 
 @_retry_sqlite_contention

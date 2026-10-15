@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { BrandIcon, RoadmapIcon, SandboxIcon, EscalationIcon, AnalysisIcon, AchievementIcon, ProgressIcon, BellIcon } from './icons';
 
-export interface TrophyPageProps { displayName: string; role: string; sandboxUrl: string }
+export interface TrophyPageProps { displayName: string; role: string; sandboxUrl: string; canDemo: boolean; achievementsApiUrl: string; loginUrl: string }
 export function TrophyShell({ children, profile }: { children: ReactNode; profile: TrophyPageProps }) {
   const initials = profile.displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase();
   const inactive = [[RoadmapIcon, 'Roadmap'], [EscalationIcon, 'Карта эскалаций'], [AnalysisIcon, 'Анализ тикетов'], [ProgressIcon, 'Мой прогресс']] as const;

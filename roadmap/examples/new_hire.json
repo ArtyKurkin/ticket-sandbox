@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "requirements_version": 1,
+  "journey": {
+    "id": 1,
+    "state": "active",
+    "entry_type": "new_hire",
+    "scheme": "unified",
+    "current_stage": {
+      "id": 3,
+      "slug": "with-review",
+      "title": "В тикетах с проверками",
+      "started_at": "2026-10-14"
+    },
+    "probation_outcome": "active",
+    "completed_at": null,
+    "metrics": [
+      {
+        "week_number": 1,
+        "week_start_date": null,
+        "speed_tickets_per_hour": "4.5",
+        "quality_percent": 93
+      }
+    ],
+    "fixed_quality_percent": null
+  },
+  "overall": {
+    "completed_count": 2,
+    "applicable_count": 6,
+    "exempt_count": 0,
+    "percent": 33.3,
+    "adaptation_progress_percent": 40
+  },
+  "stages": [
+    {
+      "id": "training",
+      "order": 1,
+      "title": "Программа обучения",
+      "availability": "enabled",
+      "applicable": true,
+      "state": "completed",
+      "display_status": "completed",
+      "source": "manual",
+      "description": "",
+      "actions": [
+        {
+          "code": "open_training",
+          "label": "Перейти к обучению",
+          "url": null,
+          "enabled": false,
+          "kind": "learning",
+          "external": true,
+          "reason": "Ссылка на программу Teachbase не настроена. Обратитесь к наставнику."
+        }
+      ],
+      "evidence": {
+        "event_id": 1,
+        "action": "confirmed",
+        "recorded_at": "2026-10-14T06:13:50.038Z",
+        "actor_id": 1
+      }
+    },
+    {
+      "id": "sandbox",
+      "order": 2,
+      "title": "Ticket Sandbox",
+      "availability": "enabled",
+      "applicable": true,
+      "state": "completed",
+      "display_status": "completed",
+      "source": "sandbox",
+      "description": "",
+      "actions": [
+        {
+          "code": "open_sandbox",
+          "label": "Перейти к заданиям",
+          "url": "/sandbox/",
+          "enabled": true,
+          "kind": "learning",
+          "external": false
+        }
+      ],
+      "progress": {
+        "completed": 3,
+        "total": 3,
+        "unit": "tasks",
+        "basis": "technical",
+        "scope": "current_catalog"
+      },
+      "completion": {
+        "id": 1,
+        "completed_at": "2026-10-14T06:46:03.803Z",
+        "task_ids": [
+          1,
+          2,
+          3
+        ],
+        "total": 3
+      },
+      "notifications": [
+        {
+          "code": "text_revision_required",
+          "count": 3,
+          "blocking": false
+        },
+        {
+          "code": "text_waiting_for_review",
+          "count": 0,
+          "blocking": false
+        },
+        {
+          "code": "text_answer_not_submitted",
+          "count": 0,
+          "blocking": false
+        },
+        {
+          "code": "unread_mentor_feedback",
+          "count": 3,
+          "blocking": false
+        }
+      ],
+      "data_quality": []
+    },
+    {
+      "id": "escalation",
+      "order": 3,
+      "title": "Карта эскалаций",
+      "availability": "coming_soon",
+      "applicable": false,
+      "state": null,
+      "display_status": "coming_soon",
+      "source": "escalation",
+      "description": "Интерактивная карта маршрутизации обращений, небольшая теория и тренажёр.",
+      "actions": [],
+      "badge": "COMING SOON"
+    },
+    {
+      "id": "ticket_analysis",
+      "order": 4,
+      "title": "Анализ тикетов",
+      "availability": "coming_soon",
+      "applicable": false,
+      "state": null,
+      "display_status": "coming_soon",
+      "source": "ticket_analysis",
+      "description": "Учебная тикет-система и тренажёр анализа обращений.",
+      "actions": [],
+      "badge": "COMING SOON"
+    },
+    {
+      "id": "with_review",
+      "order": 5,
+      "title": "Тикеты с проверками",
+      "availability": "enabled",
+      "applicable": true,
+      "state": "in_progress",
+      "display_status": "in_progress",
+      "source": "traineediary",
+      "description": "",
+      "actions": [],
+      "evidence": {
+        "completed": false,
+        "code": "no_completion_evidence",
+        "transition_id": null
+      },
+      "readiness": {
+        "state": "not_ready",
+        "label": "Пока не готов",
+        "reasons": [
+          {
+            "code": "minimum_stage_days",
+            "label": "Не пройден минимальный срок",
+            "description": "До минимального срока этапа осталось 15 дн."
+          }
+        ],
+        "next_stage_id": 4
+      },
+      "periods": [
+        {
+          "history_id": 5,
+          "started_at": "2026-10-14",
+          "ended_at": null,
+          "duration_days": 0
+        }
+      ],
+      "action_notice": "Персональная страница дневника для стажёра пока недоступна. Прогресс показан в этой карточке."
+    },
+    {
+      "id": "optional_review",
+      "order": 6,
+      "title": "Проверки по желанию",
+      "availability": "enabled",
+      "applicable": true,
+      "state": "locked",
+      "display_status": "locked",
+      "source": "traineediary",
+      "description": "",
+      "actions": [],
+      "evidence": {
+        "completed": false,
+        "code": "no_completion_evidence",
+        "transition_id": null
+      },
+      "periods": [],
+      "action_notice": "Персональная страница дневника для стажёра пока недоступна. Прогресс показан в этой карточке."
+    },
+    {
+      "id": "no_review",
+      "order": 7,
+      "title": "Тикеты без проверок",
+      "availability": "enabled",
+      "applicable": true,
+      "state": "locked",
+      "display_status": "locked",
+      "source": "traineediary",
+      "description": "",
+      "actions": [],
+      "evidence": {
+        "completed": false,
+        "code": "no_completion_evidence",
+        "transition_id": null
+      },
+      "periods": [],
+      "action_notice": "Персональная страница дневника для стажёра пока недоступна. Прогресс показан в этой карточке."
+    },
+    {
+      "id": "probation",
+      "order": 8,
+      "title": "Выход с ИС",
+      "availability": "enabled",
+      "applicable": true,
+      "state": "in_progress",
+      "display_status": "in_progress",
+      "source": "traineediary",
+      "description": "",
+      "actions": [],
+      "evidence": {
+        "outcome": "active"
+      },
+      "action_notice": "Отдельная страница результата ИС для стажёра пока недоступна. Фактический результат показан в этой карточке."
+    }
+  ],
+  "data_quality": [
+    {
+      "code": "unproven_stage_completion",
+      "stage": "optional_review",
+      "description": "Нет доказательства последовательного успешного завершения этапа."
+    },
+    {
+      "code": "unproven_stage_completion",
+      "stage": "no_review",
+      "description": "Нет доказательства последовательного успешного завершения этапа."
+    }
+  ]
+}

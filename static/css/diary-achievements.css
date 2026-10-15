@@ -1,0 +1,34 @@
+/* Scoped staff management, sharing the existing diary theme and buttons. */
+.diary-achievement-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; }
+.diary-achievement-tabs a { color: var(--muted,#9ca3af); border: 1px solid var(--border,#303746); border-radius: 10px; padding: 10px 18px; text-decoration: none; }
+.diary-achievement-tabs a[aria-current=page] { color: var(--text,#f3f4f6); border-color: #667bff; background: #667bff18; }
+#diary-adaptation-panel[hidden], #diary-achievement-panel[hidden], .da-dialog [hidden], .diary-achievements [hidden] { display: none !important; }
+.da-toolbar { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.da-toolbar h2 { margin: 0 0 8px; font-size: 20px; }
+.da-toolbar p { color: var(--muted,#94a3b8); margin: 0; line-height: 1.6; }
+.da-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.diary-achievements .da-actions .button, .da-dialog .button { width: auto; }
+.da-controls { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-bottom: 12px; color: var(--muted,#94a3b8); font-size: 14px; }
+.da-list { display: flex; flex-direction: column; gap: 9px; }
+.da-row { display: grid; grid-template-columns: 38px minmax(0,1fr) auto; gap: 14px; align-items: center; padding: 14px; border: 1px solid var(--border,#303746); border-radius: 12px; }
+.da-row h3 { margin: 0 0 6px; font-size: 15px; overflow-wrap: anywhere; }
+.da-row p { margin: 4px 0; color: var(--muted,#94a3b8); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.da-medal { --da-metal: #64748b; --da-dark: #263044; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff6; background: radial-gradient(circle at 30% 20%,#ffffff70,var(--da-metal) 30%,var(--da-dark) 85%); border: 2px solid var(--da-metal); box-shadow: inset 0 0 0 3px #0005,0 3px 6px #0004; font-size: 19px; text-shadow: 0 1px 2px #000; }
+.da-bronze { --da-metal: #d58c4c; --da-dark: #653313; }.da-silver { --da-metal: #d0d8e4; --da-dark: #596678; }.da-gold { --da-metal: #f1cb56; --da-dark: #846210; }.da-platinum { --da-metal: #c8b8ff; --da-dark: #5f68ac; }
+.da-disputed, .da-warning { color: var(--warning-text,#dbaa54) !important; }
+.da-message { padding: 12px; border-radius: 10px; border: 1px solid var(--border,#303746); line-height: 1.6; margin: 12px 0; overflow-wrap: anywhere; }
+.da-dialog { width: min(660px,calc(100vw - 28px)); max-height: calc(100dvh - 28px); overflow-y: auto; color: var(--text,#e5e7eb); background: var(--card,#151c28); border: 1px solid var(--border,#303746); border-radius: 16px; padding: 24px; }
+.da-dialog::backdrop { background: #0009; backdrop-filter: blur(3px); }
+.da-dialog form { margin: 0; }.da-dialog label { display: grid; gap: 8px; margin: 16px 0; font-size: 14px; }
+.da-dialog select,.da-dialog textarea { width: 100%; min-width: 0; color: inherit; background: var(--card,#101622); border: 1px solid var(--border,#303746); border-radius: 9px; padding: 10px 12px; font: inherit; }
+.da-dialog select option { background: var(--card,#151c28); }.da-dialog button:disabled { opacity: .55; cursor: wait; }
+.da-dialog blockquote { margin: 12px 0; padding: 12px; border-left: 3px solid #6b80f7; overflow-wrap: anywhere; white-space: pre-wrap; }
+.da-history ol { padding: 0; list-style: none; max-height: 320px; overflow-y: auto; scrollbar-width: thin; }
+.da-history li { border-left: 2px solid #667bff50; padding: 10px 12px; margin: 10px 0; display: grid; gap: 6px; line-height: 1.5; overflow-wrap: anywhere; }
+.da-history time,.da-history small { color: var(--muted,#94a3b8); }.da-history li p { margin: 0; white-space: pre-wrap; }
+.da-dialog :focus-visible,.diary-achievement-tabs a:focus-visible { outline: 2px solid #8ca4ff; outline-offset: 3px; }
+@media(max-width:640px) { .da-row { grid-template-columns: 36px minmax(0,1fr); gap: 10px; padding: 12px; }.da-row>.da-actions { grid-column: 1/-1; }.da-row .button { flex: 1; }.da-dialog { padding: 18px; }.da-toolbar>.da-actions { width: 100%; }.da-toolbar>.da-actions .button { flex: 1; } }
+.da-row .da-status-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.da-level { display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid currentColor; border-radius: 6px; font-size: 12px; font-weight: 700; }
+.da-level-bronze { color: #edb780; background: #d58c4c18; }.da-level-silver { color: #d0d8e4; background: #cbd5e118; }.da-level-gold { color: #f1cb56; background: #eab30818; }.da-level-platinum { color: #d0bbff; background: #a78bfa18; }
+:root[data-theme=light] .da-level-bronze { color: #854719; }:root[data-theme=light] .da-level-silver { color: #4b5b70; }:root[data-theme=light] .da-level-gold { color: #805d00; }:root[data-theme=light] .da-level-platinum { color: #6a40a8; }

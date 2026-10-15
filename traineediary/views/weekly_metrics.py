@@ -643,7 +643,8 @@ def save_weekly_metric(
         )
 
     metric.full_clean()
-    metric.save()
+    from achievements.services.events import save_metric_with_event
+    save_metric_with_event(metric=metric, actor=request.user)
 
     messages.success(
         request,

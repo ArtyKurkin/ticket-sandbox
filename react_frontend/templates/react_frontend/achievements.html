@@ -1,4 +1,5 @@
 {% load vite %}
+{% load achievement_notifications %}
 <!doctype html>
 <html lang="ru">
 <head>
@@ -12,5 +13,6 @@
   {{ trophy_profile|json_script:"trophy-room-props" }}
   <div data-react-island="trophy-room"></div>
   <noscript>Для просмотра достижений включите JavaScript.</noscript>
+  {% achievement_notification_host %}
 </body>
 </html>

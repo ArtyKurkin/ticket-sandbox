@@ -652,6 +652,11 @@ class TraineeJourney(models.Model):
                         "completed_by",
                     ],
                 )
+                if status == CompletionStatus.SUCCESS and completed_by is not None and completed_by.is_staff:
+                    from achievements.services.events import publish
+                    publish(provider="probation_completion", external_id=f"{self.pk}:{completed_at}",
+                            user_id=self.user_id, context={"journey_id": self.pk},
+                            payload={"status": status, "completed_at": completed_at.isoformat(), "actor_id": completed_by.pk})
 
         except Exception:
             # Транзакция откатит базу,
@@ -776,13 +781,18 @@ class TraineeJourney(models.Model):
                     ],
                 )
 
-                StageHistory.objects.create(
+                new_history = StageHistory.objects.create(
                     journey=self,
                     stage=new_stage,
                     started_at=transition_date,
                     changed_by=changed_by,
                     note=note.strip(),
                 )
+                if changed_by is not None and changed_by.is_staff:
+                    from achievements.services.events import publish
+                    publish(provider="stage_transition", external_id=new_history.pk, user_id=self.user_id,
+                            context={"journey_id": self.pk}, payload={"history_id": new_history.pk,
+                            "from_stage_id": previous_stage.pk, "to_stage_id": new_stage.pk, "actor_id": changed_by.pk})
 
         except Exception:
             # Транзакция откатывает БД, но не значения внутри self.

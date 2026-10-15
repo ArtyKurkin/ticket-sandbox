@@ -1,0 +1,46 @@
+{
+  "attempt_id": 2,
+  "credit": true,
+  "coverage": {
+    "status": "unknown",
+    "ledger_version": null,
+    "origin": null,
+    "recorded_at": null,
+    "reasons": [
+      "check_count_mismatch",
+      "history_not_recorded_from_creation",
+      "reset_count_mismatch"
+    ],
+    "sources": {
+      "checks": {
+        "status": "unknown",
+        "reasons": [
+          "check_count_mismatch",
+          "history_not_recorded_from_creation"
+        ]
+      },
+      "resets": {
+        "status": "unknown",
+        "reasons": [
+          "history_not_recorded_from_creation",
+          "reset_count_mismatch"
+        ]
+      },
+      "answers": {
+        "status": "unknown",
+        "reasons": [
+          "history_not_recorded_from_creation"
+        ]
+      }
+    }
+  },
+  "successful_resets": null,
+  "observed_successful_resets": 0,
+  "technical_checks": [],
+  "first_check": null,
+  "observed_first_check": null,
+  "submissions": [],
+  "valid_returns": null,
+  "first_answer_approved": null,
+  "technical_completed": false
+}

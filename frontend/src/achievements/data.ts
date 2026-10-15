@@ -1,7 +1,7 @@
-import type { Achievement } from "./types";
+import type { DemoAchievement } from "./types";
 
 // Temporary Google Stitch fixture. No backend persistence.
-export const demoAchievements: readonly Achievement[] = [
+export const demoAchievements: readonly DemoAchievement[] = [
   {
     "id": "1",
     "title": "Старт миссии",

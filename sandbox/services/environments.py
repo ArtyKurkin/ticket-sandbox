@@ -2,7 +2,9 @@ import logging
 
 from sentry_sdk import capture_exception
 
-from django.db import close_old_connections
+from django.db import close_old_connections, transaction
+from sandbox.services import ledger
+from sandbox.services.ledger_execution import environment
 from django.utils import timezone
 
 from sandbox.models import TaskAttempt
@@ -137,7 +139,10 @@ def cleanup_attempt_environment(attempt):
     return cleanup_complete
 
 
-def mark_environment_starting(attempt):
+@transaction.atomic
+@ledger.trusted
+def mark_environment_starting(attempt, *, actor=None, origin="unknown", operation_id=None):
+    ledger.request_environment(attempt,"start",actor,origin,operation_id)
     now = timezone.now()
 
     attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
@@ -157,7 +162,11 @@ def mark_environment_starting(attempt):
     )
 
 
-def try_mark_environment_starting(attempt):
+@transaction.atomic
+@ledger.trusted
+def try_mark_environment_starting(attempt, *, actor=None, origin="unknown", operation_id=None):
+    event,created=ledger.request_environment(attempt,"start",actor,origin,operation_id)
+    if not created:return False
     now = timezone.now()
 
     updated_count = (
@@ -179,6 +188,7 @@ def try_mark_environment_starting(attempt):
     )
 
     if updated_count == 0:
+        ledger.environment_phase(event,"finished",outcome="not_started",reason="already_running")
         return False
 
     attempt.environment_status = TaskAttempt.EnvironmentStatus.STARTING
@@ -190,7 +200,10 @@ def try_mark_environment_starting(attempt):
     return True
 
 
-def mark_environment_restarting(attempt):
+@transaction.atomic
+@ledger.trusted
+def mark_environment_restarting(attempt, *, actor=None, origin="unknown", operation_id=None):
+    ledger.request_environment(attempt,"reset",actor,origin,operation_id)
     now = timezone.now()
 
     attempt.environment_status = TaskAttempt.EnvironmentStatus.RESTARTING
@@ -219,7 +232,11 @@ def mark_environment_restarting(attempt):
     )
 
 
-def try_mark_environment_restarting(attempt):
+@transaction.atomic
+@ledger.trusted
+def try_mark_environment_restarting(attempt, *, actor=None, origin="unknown", operation_id=None):
+    event,created=ledger.request_environment(attempt,"reset",actor,origin,operation_id)
+    if not created:return False
     now = timezone.now()
 
     updated_count = (
@@ -245,6 +262,7 @@ def try_mark_environment_restarting(attempt):
     )
 
     if updated_count == 0:
+        ledger.environment_phase(event,"finished",outcome="not_started",reason="already_running")
         return False
 
     attempt.environment_status = TaskAttempt.EnvironmentStatus.RESTARTING
@@ -261,6 +279,7 @@ def try_mark_environment_restarting(attempt):
     return True
 
 
+@environment("start")
 def run_environment_start(attempt):
     container = create_task_container(
         queue_slug=attempt.task.queue.slug,
@@ -314,21 +333,25 @@ def run_environment_start(attempt):
     attempt.environment_status = TaskAttempt.EnvironmentStatus.READY
     attempt.environment_finished_at = timezone.now()
 
-    attempt.save(
-        update_fields=[
-            "status",
-            "started_at",
-            "container_id",
-            "container_name",
-            "terminal_container_name",
-            "terminal_port",
-            "terminal_url",
-            "shell_command",
-            "last_check_output",
-            "environment_status",
-            "environment_finished_at",
-        ]
-    )
+    with transaction.atomic():
+        TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+        request=ledger.environment_live(attempt)
+        attempt.save(
+            update_fields=[
+                "status",
+                "started_at",
+                "container_id",
+                "container_name",
+                "terminal_container_name",
+                "terminal_port",
+                "terminal_url",
+                "shell_command",
+                "last_check_output",
+                "environment_status",
+                "environment_finished_at",
+            ]
+        )
+        if request:ledger.environment_phase(request,"finished",outcome="success")
 
     environment_logger.info(
         "task_environment_started user_id=%s attempt_id=%s task_slug=%s queue_slug=%s container_name=%s terminal_container_name=%s terminal_port=%s terminal_gateway_enabled=%s",
@@ -345,6 +368,7 @@ def run_environment_start(attempt):
     return attempt
 
 
+@environment("reset")
 def run_environment_restart(attempt):
     old_terminal_container_name = attempt.terminal_container_name
     old_container_name = attempt.container_name
@@ -414,26 +438,30 @@ def run_environment_restart(attempt):
     attempt.environment_status = TaskAttempt.EnvironmentStatus.READY
     attempt.environment_finished_at = timezone.now()
 
-    attempt.save(
-        update_fields=[
-            "status",
-            "restart_count",
-            "started_at",
-            "finished_at",
-            "container_id",
-            "container_name",
-            "terminal_container_name",
-            "terminal_port",
-            "terminal_url",
-            "shell_command",
-            "last_check_output",
-            "check_status",
-            "check_started_at",
-            "check_finished_at",
-            "environment_status",
-            "environment_finished_at",
-        ]
-    )
+    with transaction.atomic():
+        TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+        request=ledger.environment_live(attempt)
+        attempt.save(
+            update_fields=[
+                "status",
+                "restart_count",
+                "started_at",
+                "finished_at",
+                "container_id",
+                "container_name",
+                "terminal_container_name",
+                "terminal_port",
+                "terminal_url",
+                "shell_command",
+                "last_check_output",
+                "check_status",
+                "check_started_at",
+                "check_finished_at",
+                "environment_status",
+                "environment_finished_at",
+            ]
+        )
+        if request:ledger.environment_phase(request,"finished",outcome="success")
 
     environment_logger.info(
         "task_environment_restarted user_id=%s attempt_id=%s task_slug=%s queue_slug=%s restart_count=%s container_name=%s terminal_container_name=%s terminal_port=%s terminal_gateway_enabled=%s",
@@ -451,7 +479,15 @@ def run_environment_restart(attempt):
     return attempt
 
 
+@transaction.atomic
+@ledger.trusted
 def mark_environment_start_error(attempt, error):
+    fresh=TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+    if fresh.environment_status not in (TaskAttempt.EnvironmentStatus.STARTING, TaskAttempt.EnvironmentStatus.RESTARTING):
+        if fresh.technical_passed or ledger.SandboxEnvironmentEvent.objects.filter(attempt_id=attempt.pk).exists():return
+        ledger.gap(attempt.pk,'legacy_environment_delivery')
+        ledger.request_environment(attempt,"start",origin='unknown')
+    ledger.interrupt(attempt,"environment_error")
     attempt.status = TaskAttempt.Status.FAILED
     attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
     attempt.environment_finished_at = timezone.now()
@@ -479,7 +515,15 @@ def mark_environment_start_error(attempt, error):
     )
 
 
+@transaction.atomic
+@ledger.trusted
 def mark_environment_restart_error(attempt, error):
+    fresh=TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+    if fresh.environment_status not in (TaskAttempt.EnvironmentStatus.STARTING, TaskAttempt.EnvironmentStatus.RESTARTING):
+        if fresh.technical_passed or ledger.SandboxEnvironmentEvent.objects.filter(attempt_id=attempt.pk).exists():return
+        ledger.gap(attempt.pk,'legacy_environment_delivery')
+        ledger.request_environment(attempt,"reset",origin='unknown')
+    ledger.interrupt(attempt,"environment_error")
     attempt.status = TaskAttempt.Status.FAILED
     attempt.environment_status = TaskAttempt.EnvironmentStatus.ERROR
     attempt.environment_finished_at = timezone.now()
@@ -509,13 +553,28 @@ def mark_environment_restart_error(attempt, error):
     )
 
 
-def start_environment_in_background(attempt_id):
+def start_environment_in_background(attempt_id, operation_id=None):
+    if operation_id is None:
+        attempt=TaskAttempt.objects.select_related('task','task__queue').get(pk=attempt_id)
+        request,_=ledger.request_environment(attempt,"start",origin='unknown')
+        operation_id=str(request.operation_id)
     from sandbox.tasks import start_environment_task
 
-    return start_environment_task.delay(attempt_id)
+    def dispatch():
+        try:
+            start_environment_task.delay(attempt_id, operation_id=operation_id)
+        except Exception as error:
+            attempt=TaskAttempt.objects.get(pk=attempt_id)
+            with transaction.atomic():
+                request=ledger.SandboxEnvironmentEvent.objects.filter(operation_id=operation_id,phase='requested').first()
+                if request:ledger.environment_phase(request,'finished',reason='dispatch_error')
+                mark_environment_start_error(attempt,error)
+            raise
+    transaction.on_commit(dispatch)
+    return operation_id
 
 
-def _run_environment_start_background(attempt_id):
+def _run_environment_start_background(attempt_id, operation_id=None):
     close_old_connections()
 
     try:
@@ -525,7 +584,7 @@ def _run_environment_start_background(attempt_id):
             .get(id=attempt_id)
         )
 
-        run_environment_start(attempt)
+        run_environment_start(attempt, operation_id=operation_id)
 
     except Exception as error:
         capture_exception(error)
@@ -533,13 +592,14 @@ def _run_environment_start_background(attempt_id):
         _mark_background_environment_start_error(
             attempt_id=attempt_id,
             error=error,
+            operation_id=operation_id,
         )
 
     finally:
         close_old_connections()
 
 
-def _mark_background_environment_start_error(attempt_id, error):
+def _mark_background_environment_start_error(attempt_id, error, operation_id=None):
     close_old_connections()
 
     try:
@@ -557,6 +617,9 @@ def _mark_background_environment_start_error(attempt_id, error):
         )
         return
 
+    if operation_id:
+        latest=ledger.SandboxEnvironmentEvent.objects.filter(attempt_id=attempt_id,phase='requested').order_by('-pk').first()
+        if latest is None or str(latest.operation_id)!=str(operation_id):return
     try:
         mark_environment_start_error(attempt, error)
 
@@ -564,13 +627,28 @@ def _mark_background_environment_start_error(attempt_id, error):
         close_old_connections()
 
 
-def start_environment_restart_in_background(attempt_id):
+def start_environment_restart_in_background(attempt_id, operation_id=None):
+    if operation_id is None:
+        attempt=TaskAttempt.objects.select_related('task','task__queue').get(pk=attempt_id)
+        request,_=ledger.request_environment(attempt,"reset",origin='unknown')
+        operation_id=str(request.operation_id)
     from sandbox.tasks import restart_environment_task
 
-    return restart_environment_task.delay(attempt_id)
+    def dispatch():
+        try:
+            restart_environment_task.delay(attempt_id, operation_id=operation_id)
+        except Exception as error:
+            attempt=TaskAttempt.objects.get(pk=attempt_id)
+            with transaction.atomic():
+                request=ledger.SandboxEnvironmentEvent.objects.filter(operation_id=operation_id,phase='requested').first()
+                if request:ledger.environment_phase(request,'finished',reason='dispatch_error')
+                mark_environment_restart_error(attempt,error)
+            raise
+    transaction.on_commit(dispatch)
+    return operation_id
 
 
-def _run_environment_restart_background(attempt_id):
+def _run_environment_restart_background(attempt_id, operation_id=None):
     close_old_connections()
 
     try:
@@ -580,7 +658,7 @@ def _run_environment_restart_background(attempt_id):
             .get(id=attempt_id)
         )
 
-        run_environment_restart(attempt)
+        run_environment_restart(attempt, operation_id=operation_id)
 
     except Exception as error:
         capture_exception(error)
@@ -588,13 +666,14 @@ def _run_environment_restart_background(attempt_id):
         _mark_background_environment_restart_error(
             attempt_id=attempt_id,
             error=error,
+            operation_id=operation_id,
         )
 
     finally:
         close_old_connections()
 
 
-def _mark_background_environment_restart_error(attempt_id, error):
+def _mark_background_environment_restart_error(attempt_id, error, operation_id=None):
     close_old_connections()
 
     try:
@@ -612,6 +691,9 @@ def _mark_background_environment_restart_error(attempt_id, error):
         )
         return
 
+    if operation_id:
+        latest=ledger.SandboxEnvironmentEvent.objects.filter(attempt_id=attempt_id,phase='requested').order_by('-pk').first()
+        if latest is None or str(latest.operation_id)!=str(operation_id):return
     try:
         mark_environment_restart_error(attempt, error)
 

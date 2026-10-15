@@ -4,7 +4,10 @@ from dataclasses import dataclass
 from sentry_sdk import capture_exception
 
 from django.db import close_old_connections, transaction
+from django.core.exceptions import PermissionDenied
 from django.db.models import F
+from sandbox.services import ledger
+from sandbox.services.ledger_execution import checked
 from django.utils import timezone
 
 from sandbox.models import CheckRun, TaskAttempt
@@ -28,9 +31,13 @@ class AttemptCheckResult:
     message: str
 
 
+@transaction.atomic
+@ledger.trusted
 def mark_attempt_check_running(*, attempt: TaskAttempt) -> None:
     if attempt.technical_passed:
         return
+    TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+    ledger.request_check(attempt)
     attempt.attempts_count += 1
     attempt.status = TaskAttempt.Status.IN_PROGRESS
     attempt.check_status = TaskAttempt.CheckStatus.RUNNING
@@ -50,7 +57,9 @@ def mark_attempt_check_running(*, attempt: TaskAttempt) -> None:
     )
 
 
-def try_mark_attempt_check_running(*, attempt: TaskAttempt) -> bool:
+@transaction.atomic
+@ledger.trusted
+def try_mark_attempt_check_running(*, attempt: TaskAttempt, operation_id=None) -> bool:
     """
     Атомарно переводит попытку в running.
 
@@ -58,6 +67,11 @@ def try_mark_attempt_check_running(*, attempt: TaskAttempt) -> bool:
     только один запрос должен реально увеличить attempts_count
     и поставить фоновую задачу в очередь.
     """
+    if operation_id:
+        old=ledger.TechnicalCheckExecution.objects.filter(run_id=ledger.operation_id(operation_id)).first()
+        if old:
+            if old.attempt_id != attempt.pk: raise PermissionDenied
+            return False
     now = timezone.now()
 
     updated_count = (
@@ -75,10 +89,13 @@ def try_mark_attempt_check_running(*, attempt: TaskAttempt) -> bool:
     )
 
     attempt.refresh_from_db()
+    if updated_count == 1:
+        ledger.request_check(attempt, run_id=operation_id)
 
     return updated_count == 1
 
 
+@checked
 def run_attempt_check(
     *,
     attempt: TaskAttempt,
@@ -118,14 +135,11 @@ def run_attempt_check(
         attempt.check_status = TaskAttempt.CheckStatus.ERROR
         attempt.check_finished_at = timezone.now()
 
-        attempt.save(
-            update_fields=[
-                "status",
-                "last_check_output",
-                "check_status",
-                "check_finished_at",
-            ]
-        )
+        with transaction.atomic():
+            TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+            ledger.check_live(attempt)
+            attempt.save(update_fields=["status", "last_check_output", "check_status", "check_finished_at"])
+            ledger.finish_check(attempt, failure_class="infrastructure", reason="docker_error", checker_started=getattr(error, "_sandbox_checker_started", None))
 
         terminal_logger.exception(
             "task_check_docker_error user_id=%s attempt_id=%s task_slug=%s queue_slug=%s container_name=%s",
@@ -143,6 +157,21 @@ def run_attempt_check(
                 "Попробуй перезапустить окружение или обратись к наставнику."
             ),
         )
+
+    if exit_code is None:
+        # CheckRun requires a real integer exit code; do not invent one.
+        with transaction.atomic():
+            TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+            ledger.check_live(attempt)
+            attempt.status = TaskAttempt.Status.FAILED
+            attempt.check_status = TaskAttempt.CheckStatus.ERROR
+            attempt.last_check_output = output
+            attempt.check_finished_at = timezone.now()
+            attempt.save(update_fields=[
+                "status", "check_status", "last_check_output", "check_finished_at",
+            ])
+            ledger.finish_check(attempt, reason="exit_code_missing")
+        return AttemptCheckResult(False, "Результат проверки неизвестен. Обратись к наставнику.")
 
     if exit_code == 0:
         check_finished_at = timezone.now()
@@ -213,6 +242,8 @@ def run_attempt_check(
                 )
 
         with transaction.atomic():
+            TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+            ledger.check_live(attempt)
             check_run = CheckRun.objects.create(
                 attempt=attempt, result=CheckRun.Result.PASSED,
                 output=output, exit_code=0,
@@ -234,9 +265,14 @@ def run_attempt_check(
                 ]
             )
 
+            ledger.finish_check(attempt, result="passed", failure_class="none", exit_code=0, check_run_id=check_run.pk, checker_started=True)
             record_completion_after_success(
                 attempt_id=attempt.pk, check_run_id=check_run.pk,
             )
+            if attempt.is_credit_attempt and attempt.task.queue.slug == "l1":
+                from achievements.services.events import publish
+                publish(provider="sandbox_technical", external_id=check_run.pk, user_id=attempt.user_id,
+                        context={"program_key": "l1"}, payload={"attempt_id": attempt.pk, "check_run_id": check_run.pk})
 
             transaction.on_commit(
                 lambda: notify_user_completed_all_tasks(attempt)
@@ -259,24 +295,47 @@ def run_attempt_check(
             message=success_message,
         )
 
-    CheckRun.objects.create(
-        attempt=attempt, result=CheckRun.Result.FAILED,
-        output=output, exit_code=exit_code,
-    )
+    with transaction.atomic():
+        TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+        ledger.check_live(attempt)
+        check_run = CheckRun.objects.create(
+            attempt=attempt, result=CheckRun.Result.FAILED,
+            output=output, exit_code=exit_code,
+        )
 
-    attempt.status = TaskAttempt.Status.FAILED
-    attempt.last_check_output = output
-    attempt.check_status = TaskAttempt.CheckStatus.FAILED
-    attempt.check_finished_at = timezone.now()
+        attempt.status = TaskAttempt.Status.FAILED
+        attempt.last_check_output = output
+        attempt.check_status = TaskAttempt.CheckStatus.FAILED
+        attempt.check_finished_at = timezone.now()
 
-    attempt.save(
-        update_fields=[
-            "status",
-            "last_check_output",
-            "check_status",
-            "check_finished_at",
-        ]
-    )
+        attempt.save(
+            update_fields=[
+                "status",
+                "last_check_output",
+                "check_status",
+                "check_finished_at",
+            ]
+        )
+
+        # Reserved timeout/launcher codes can also originate inside a checker.
+        # Only a confirmed pre-exec exception proves that it never started.
+        # Repository checkers declare their binary result with exit 0/1.
+        # Other codes may be shell/PHP runtime failures, not task failures.
+        ambiguous = exit_code != 1
+        if exit_code in (124, 137):
+            failure_class, reason = "timeout", "checker_timeout"
+        elif exit_code in (125, 126, 127):
+            failure_class, reason = "infrastructure", "checker_launch_error"
+        elif exit_code == 1:
+            failure_class, reason = "technical", ""
+        else:
+            failure_class, reason = "unknown", "checker_exit_unclassified"
+        ledger.finish_check(
+            attempt, result="unknown" if ambiguous else "failed",
+            failure_class=failure_class, reason=reason, exit_code=exit_code,
+            check_run_id=check_run.pk,
+            checker_started=True if exit_code == 124 or not ambiguous else None,
+        )
 
     terminal_logger.info(
         "task_check_failed user_id=%s attempt_id=%s task_slug=%s queue_slug=%s exit_code=%s",
@@ -297,6 +356,7 @@ def start_attempt_check_in_background(
     *,
     attempt: TaskAttempt,
     user_id: int,
+    operation_id=None,
 ):
     """
     Атомарно помечает попытку как running
@@ -304,6 +364,7 @@ def start_attempt_check_in_background(
     """
     was_marked_running = try_mark_attempt_check_running(
         attempt=attempt,
+        operation_id=operation_id,
     )
 
     if not was_marked_running:
@@ -316,16 +377,22 @@ def start_attempt_check_in_background(
 
     from sandbox.tasks import run_attempt_check_task
 
-    return run_attempt_check_task.delay(
-        attempt.id,
-        user_id,
-    )
+    run_id=attempt._ledger_check_id
+    def dispatch():
+        try:run_attempt_check_task.delay(attempt.id, user_id, run_id=run_id)
+        except Exception as error:
+            _mark_background_check_error(attempt_id=attempt.pk,user_id=user_id,error=error,run_id=run_id)
+            raise
+    transaction.on_commit(dispatch)
+    return run_id
+
 
 
 def _run_attempt_check_background(
     *,
     attempt_id: int,
     user_id: int,
+    run_id=None,
 ) -> None:
     close_old_connections()
 
@@ -340,6 +407,7 @@ def _run_attempt_check_background(
             attempt=attempt,
             user_id=user_id,
             mark_as_running=False,
+            run_id=run_id,
         )
 
     except TaskAttempt.DoesNotExist:
@@ -356,18 +424,33 @@ def _run_attempt_check_background(
             attempt_id=attempt_id,
             user_id=user_id,
             error=error,
+            run_id=run_id,
         )
 
     finally:
         close_old_connections()
 
 
+@transaction.atomic
+@ledger.trusted
 def _mark_background_check_error(
     *,
     attempt_id: int,
     user_id: int,
     error: Exception,
+    run_id=None,
 ) -> None:
+    attempt = TaskAttempt.objects.select_for_update().filter(pk=attempt_id, user_id=user_id).first()
+    if attempt is None or get_technical_evidence(attempt, use_cached=False).is_completed or attempt.check_status != TaskAttempt.CheckStatus.RUNNING:
+        return
+    if run_id:
+        execution = ledger.TechnicalCheckExecution.objects.filter(run_id=run_id, attempt_id=attempt_id).first()
+        latest = ledger.TechnicalCheckExecution.objects.filter(attempt_id=attempt_id).order_by('-ordinal').first()
+        if not execution or execution != latest: return
+        attempt._ledger_execution = execution
+        ledger.finish_check(attempt, reason='background_error')
+    else:
+        ledger.interrupt(attempt, 'background_error')
     output = (
         "Неожиданная ошибка фоновой автопроверки.\n\n"
         f"{error}"

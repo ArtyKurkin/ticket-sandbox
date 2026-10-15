@@ -1,0 +1,75 @@
+{
+  "attempt_id": 1,
+  "credit": true,
+  "coverage": {
+    "status": "complete",
+    "ledger_version": 1,
+    "origin": "creation",
+    "recorded_at": "2026-10-14T13:36:23.368315+00:00",
+    "reasons": [],
+    "sources": {
+      "checks": {
+        "status": "complete",
+        "reasons": []
+      },
+      "resets": {
+        "status": "complete",
+        "reasons": []
+      },
+      "answers": {
+        "status": "complete",
+        "reasons": []
+      }
+    }
+  },
+  "successful_resets": 0,
+  "observed_successful_resets": 0,
+  "technical_checks": [
+    {
+      "run_id": "42ed2995-f201-44e9-8412-1d47bc8a35ff",
+      "ordinal": 1,
+      "requested_at": "2026-10-14T13:36:23.389239+00:00",
+      "result": "passed",
+      "failure_class": "none",
+      "checker_started": true,
+      "check_run_id": 1,
+      "reason": ""
+    }
+  ],
+  "first_check": {
+    "run_id": "42ed2995-f201-44e9-8412-1d47bc8a35ff",
+    "ordinal": 1,
+    "requested_at": "2026-10-14T13:36:23.389239+00:00",
+    "result": "passed",
+    "failure_class": "none",
+    "checker_started": true,
+    "check_run_id": 1,
+    "reason": ""
+  },
+  "observed_first_check": {
+    "run_id": "42ed2995-f201-44e9-8412-1d47bc8a35ff",
+    "ordinal": 1,
+    "requested_at": "2026-10-14T13:36:23.389239+00:00",
+    "result": "passed",
+    "failure_class": "none",
+    "checker_started": true,
+    "check_run_id": 1,
+    "reason": ""
+  },
+  "submissions": [
+    {
+      "submission_id": 1,
+      "ordinal": 1,
+      "submitted_at": "2026-10-14T13:36:23.429875+00:00",
+      "digest": "ede63e30fd9c8fa35a2fb4671b8ebc1ba3fa1f40724f4304b910113a922661dc",
+      "decision": "approved",
+      "review_ids": [
+        1
+      ],
+      "valid_return": false
+    }
+  ],
+  "valid_returns": 0,
+  "first_answer_approved": true,
+  "technical_completed": true
+}

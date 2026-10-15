@@ -45,10 +45,11 @@ class CheckServiceTests(SandboxTestCase):
         celery_result = object()
         delay_mock.return_value = celery_result
 
-        result = start_attempt_check_in_background(
-            attempt=self.attempt,
-            user_id=self.user.id,
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            result = start_attempt_check_in_background(
+                attempt=self.attempt,
+                user_id=self.user.id,
+            )
 
         self.attempt.refresh_from_db()
 
@@ -71,8 +72,9 @@ class CheckServiceTests(SandboxTestCase):
         delay_mock.assert_called_once_with(
             self.attempt.id,
             self.user.id,
+            run_id=result,
         )
-        self.assertIs(result, celery_result)
+        self.assertEqual(str(self.attempt._ledger_check_id),result)
 
     @patch("sandbox.services.checks.check_task_container")
     def test_run_attempt_check_without_mark_as_running_does_not_increment_attempts_count(

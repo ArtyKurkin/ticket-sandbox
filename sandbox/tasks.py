@@ -7,25 +7,25 @@ def celery_ping():
 
 
 @shared_task(name="sandbox.start_environment")
-def start_environment_task(attempt_id):
+def start_environment_task(attempt_id, operation_id=None):
     from sandbox.services.environments import (
         _run_environment_start_background,
     )
 
-    _run_environment_start_background(attempt_id)
+    _run_environment_start_background(attempt_id, operation_id=operation_id)
 
 
 @shared_task(name="sandbox.restart_environment")
-def restart_environment_task(attempt_id):
+def restart_environment_task(attempt_id, operation_id=None):
     from sandbox.services.environments import (
         _run_environment_restart_background,
     )
 
-    _run_environment_restart_background(attempt_id)
+    _run_environment_restart_background(attempt_id, operation_id=operation_id)
 
 
 @shared_task(name="sandbox.run_attempt_check")
-def run_attempt_check_task(attempt_id, user_id):
+def run_attempt_check_task(attempt_id, user_id, run_id=None):
     from sandbox.services.checks import (
         _run_attempt_check_background,
     )
@@ -33,6 +33,7 @@ def run_attempt_check_task(attempt_id, user_id):
     _run_attempt_check_background(
         attempt_id=attempt_id,
         user_id=user_id,
+        run_id=run_id,
     )
 
 @shared_task(name="sandbox.run_ai_review")

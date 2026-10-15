@@ -518,3 +518,21 @@ class SandboxProgramCompletionAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+from sandbox import ledger_models
+
+class LedgerReadOnlyAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+for ledger_model in [ledger_models.SandboxLedgerBoundary, ledger_models.SandboxProgramManifest, ledger_models.SandboxAttemptCoverage,
+    ledger_models.SandboxEvidenceGap, ledger_models.TechnicalCheckExecution, ledger_models.TechnicalCheckExecutionEvent,
+    ledger_models.SandboxEnvironmentEvent, ledger_models.SandboxAnswerSubmission, ledger_models.SandboxAnswerReviewEvent]:
+    admin.site.register(ledger_model, LedgerReadOnlyAdmin)

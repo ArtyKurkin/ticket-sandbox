@@ -130,23 +130,28 @@ def create_task_container(queue_slug: str, task_slug: str, attempt_id: int):
 
 
 def check_task_container(container_name: str):
-    client = get_docker_client()
+    try:
+        client = get_docker_client()
 
-    container = client.containers.get(container_name)
+        container = client.containers.get(container_name)
 
-    timeout_seconds = settings.CHECK_TASK_TIMEOUT_SECONDS
-    check_command = ["bash", "/task/check.sh"]
-    if (
-        container.labels.get("ticket-sandbox.queue") == "l1"
-        and container.labels.get("ticket-sandbox.task") == "wordpress-500-after-move"
-    ):
-        # Keep validation logic outside the trainee image: no solution hints in
-        # /task/check.sh and no writable local checker that can grant a pass.
-        source = (
-            Path(__file__).resolve().parent.parent
-            / "task_checks" / "wordpress_runtime.php"
-        ).read_text(encoding="utf-8")
-        check_command = ["php", "-r", source.removeprefix("<?php\n")]
+        timeout_seconds = settings.CHECK_TASK_TIMEOUT_SECONDS
+        check_command = ["bash", "/task/check.sh"]
+        if (
+            container.labels.get("ticket-sandbox.queue") == "l1"
+            and container.labels.get("ticket-sandbox.task") == "wordpress-500-after-move"
+        ):
+            # Keep validation logic outside the trainee image: no solution hints in
+            # /task/check.sh and no writable local checker that can grant a pass.
+            source = (
+                Path(__file__).resolve().parent.parent
+                / "task_checks" / "wordpress_runtime.php"
+            ).read_text(encoding="utf-8")
+            check_command = ["php", "-r", source.removeprefix("<?php\n")]
+
+    except Exception as error:
+        error._sandbox_checker_started = False
+        raise
 
     exit_code, output = container.exec_run(
         cmd=[

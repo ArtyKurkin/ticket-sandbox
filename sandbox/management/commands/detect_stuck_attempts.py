@@ -1,3 +1,5 @@
+from sandbox.services import ledger
+from django.db import transaction
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand
@@ -113,6 +115,7 @@ class Command(BaseCommand):
             )
         )
 
+    @ledger.trusted
     def mark_stuck_environment_attempts(self, attempts, dry_run, now):
         marked_count = 0
 
@@ -153,7 +156,11 @@ class Command(BaseCommand):
                     ]
                 )
 
-            attempt.save(update_fields=update_fields)
+            with transaction.atomic():
+                fresh=TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+                if fresh.technical_passed or fresh.environment_status not in ('starting','restarting'):continue
+                ledger.interrupt(attempt,"watchdog")
+                attempt.save(update_fields=update_fields)
 
             notify_stuck_attempt_detected(
                 attempt=attempt,
@@ -164,6 +171,7 @@ class Command(BaseCommand):
 
         return marked_count
 
+    @ledger.trusted
     def mark_stuck_check_attempts(self, attempts, dry_run, now):
         marked_count = 0
 
@@ -186,15 +194,19 @@ class Command(BaseCommand):
             attempt.stuck_reason = TaskAttempt.StuckReason.CHECK
             attempt.last_check_output = CHECK_STUCK_MESSAGE
 
-            attempt.save(
-                update_fields=[
-                    "check_status",
-                    "check_finished_at",
-                    "status",
-                    "stuck_reason",
-                    "last_check_output",
-                ]
-            )
+            with transaction.atomic():
+                fresh=TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+                if fresh.technical_passed or fresh.check_status != 'running':continue
+                ledger.interrupt(attempt,"watchdog")
+                attempt.save(
+                    update_fields=[
+                        "check_status",
+                        "check_finished_at",
+                        "status",
+                        "stuck_reason",
+                        "last_check_output",
+                    ]
+                )
 
             notify_stuck_attempt_detected(
                 attempt=attempt,

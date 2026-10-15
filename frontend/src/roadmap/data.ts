@@ -1,15 +1,10 @@
-import type { Stage } from "./types";
+import type { StationGeometry } from './types';
 
-export const stages: readonly Stage[] = [
+// Approved map geometry and illustrations; learning data comes from Django.
+export const stations: readonly StationGeometry[] = [
   {
-    "id": "teachbase",
+    "id": "training",
     "order": 1,
-    "title": "Программа обучения",
-    "description": "Базовый теоретический онбординг: архитектура облака, сетевые протоколы и регламенты поддержки.",
-    "metricLabel": "12 из 12 уроков",
-    "initialPercent": 100,
-    "actionLabel": "Просмотреть материалы",
-    "condition": "",
     "preferredSide": "right",
     "position": {
       "x": 156,
@@ -20,12 +15,6 @@ export const stages: readonly Stage[] = [
   {
     "id": "sandbox",
     "order": 2,
-    "title": "Ticket Sandbox",
-    "description": "Практические задания на изолированных виртуальных серверах с симуляцией обращений клиентов.",
-    "metricLabel": "6 из 15 заданий",
-    "initialPercent": 40,
-    "actionLabel": "Продолжить выполнение",
-    "condition": "",
     "preferredSide": "right",
     "position": {
       "x": 348,
@@ -36,12 +25,6 @@ export const stages: readonly Stage[] = [
   {
     "id": "escalation",
     "order": 3,
-    "title": "Карта эскалаций",
-    "description": "Маршрутизация обращений между L1, L2, L3 и NOC. Открывается после завершения Ticket Sandbox.",
-    "metricLabel": "0 из 20 сценариев",
-    "initialPercent": 0,
-    "actionLabel": "Недоступно",
-    "condition": "Завершите этап «Ticket Sandbox»",
     "preferredSide": "bottom",
     "position": {
       "x": 600,
@@ -50,14 +33,8 @@ export const stages: readonly Stage[] = [
     "art": "EscalationArt"
   },
   {
-    "id": "audit",
+    "id": "ticket_analysis",
     "order": 4,
-    "title": "Анализ тикетов",
-    "description": "Анализ закрытых обращений на предмет SLA и скрытых ошибок. Открывается после 3-го этапа.",
-    "metricLabel": "0 из 10 кейсов",
-    "initialPercent": 0,
-    "actionLabel": "Недоступно",
-    "condition": "Завершите этап «Карта эскалаций»",
     "preferredSide": "left",
     "position": {
       "x": 888,
@@ -66,14 +43,8 @@ export const stages: readonly Stage[] = [
     "art": "AuditArt"
   },
   {
-    "id": "supervised",
+    "id": "with_review",
     "order": 5,
-    "title": "Тикеты с проверками",
-    "description": "Боевая очередь реальных клиентов под наблюдением старшего наставника L2.",
-    "metricLabel": "0 из 50 тикетов",
-    "initialPercent": 0,
-    "actionLabel": "Недоступно",
-    "condition": "Завершите этап «Анализ тикетов»",
     "preferredSide": "left",
     "position": {
       "x": 1002,
@@ -82,14 +53,8 @@ export const stages: readonly Stage[] = [
     "art": "SupervisedArt"
   },
   {
-    "id": "optionalReview",
+    "id": "optional_review",
     "order": 6,
-    "title": "Проверки по желанию",
-    "description": "Самостоятельная работа с тикетами с возможностью отправлять ответы наставнику на проверку.",
-    "metricLabel": "0 из 40 тикетов",
-    "initialPercent": 0,
-    "actionLabel": "Недоступно",
-    "condition": "Завершите этап «Тикеты с проверками»",
     "preferredSide": "top",
     "position": {
       "x": 816,
@@ -98,14 +63,8 @@ export const stages: readonly Stage[] = [
     "art": "OptionalArt"
   },
   {
-    "id": "autonomous",
+    "id": "no_review",
     "order": 7,
-    "title": "Тикеты без проверок",
-    "description": "Самостоятельное решение клиентских инцидентов с выборочным аудитом качества.",
-    "metricLabel": "0 из 100 тикетов",
-    "initialPercent": 0,
-    "actionLabel": "Недоступно",
-    "condition": "Завершите этап «Проверки по желанию»",
     "preferredSide": "top",
     "position": {
       "x": 528,
@@ -114,14 +73,8 @@ export const stages: readonly Stage[] = [
     "art": "AutonomousArt"
   },
   {
-    "id": "final",
+    "id": "probation",
     "order": 8,
-    "title": "Выход с ИС",
-    "description": "Финальная аттестация, сдача квалификационных нормативов и перевод в штат инженеров.",
-    "metricLabel": "Испытательный срок",
-    "initialPercent": 0,
-    "actionLabel": "Финальный рубеж",
-    "condition": "Завершите все предшествующие 7 этапов",
     "preferredSide": "right",
     "position": {
       "x": 216,
@@ -131,5 +84,4 @@ export const stages: readonly Stage[] = [
   }
 ];
 
-export const initialProgress = { completed: 1, trophyCount: 2 } as const;
 export const demoProgressOptions = [1, 3, 6, 8] as const;

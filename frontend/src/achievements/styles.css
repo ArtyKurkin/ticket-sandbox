@@ -60,6 +60,7 @@
 .tp-gold { --metal: #facc15; --metal-low: #b45309; --border: #eab30840; --light: #facc1538; color: #facc15; }
 .tp-platinum { --metal: #c084fc; --metal-low: #38bdf8; --border: #a855f740; --light: #a855f738; color: #c084fc; }
 .tp-secret { --metal: #94a3b8; --metal-low: #334155; --border: #ffffff0d; --light: #33415533; color: #94a3b8; }
+.tp-neutral { --metal: #94a3b8; --metal-low: #475569; --border: #94a3b830; --light: #33415533; color: #94a3b8; }
 .tp-room-progress { margin-left: auto; display: flex; align-items: center; gap: 14px; font: 13px 'TP Mono',monospace; color: #a4b4ca; }
 .tp-room-progress strong { color: #7dd3fc; margin-left: 6px; }
 .tp-trophy-room progress { appearance: none; border: 0; height: 8px; border-radius: 10px; overflow: hidden; background: #242e47; }
@@ -81,11 +82,12 @@
 .tp-card-art { flex: 1; display: grid; place-items: center; padding: 10px 0 15px; }
 .tp-medallion-stage { position: relative; display: inline-flex; align-items: center; justify-content: center; filter: drop-shadow(0 16px 28px #000a) drop-shadow(0 4px 10px #0006); transition: transform .3s,filter .3s; }
 .tp-trophy-card:hover .tp-medallion-stage { transform: scale(1.05) rotate(1deg); filter: drop-shadow(0 20px 34px #000b); }
-.tp-medallion { width: 240px; height: 240px; max-width: 100%; flex-shrink: 0; }
+.tp-medallion-stage { max-width: 100%; }
+.tp-medallion { width: 240px; height: auto; aspect-ratio: 1; max-width: 100%; flex-shrink: 1; }
 .tp-medallion-lock { position: absolute; bottom: 10px; right: 10px; width: 35px; height: 35px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--border); background: #111827; color: var(--metal); }
 .tp-medallion-lock svg { width: 18px; height: 18px; }
 .tp-card-caption { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; border-top: 1px solid #ffffff0f; padding-top: 17px; }
-.tp-card-title { color: #f1f5f9; font-size: 21px; line-height: 25px; font-weight: 700; }
+.tp-card-title { color: #f1f5f9; font-size: 21px; line-height: 25px; font-weight: 700; overflow-wrap: anywhere; }
 .tp-locked .tp-card-title { color: #cbd5e1; }
 .tp-secret .tp-card-title { color: #94a3b8; }
 .tp-card-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; }
@@ -149,3 +151,22 @@
   .tp-toast-copy { min-width: 0; overflow-wrap: anywhere; }
   .tp-toast-copy > span { font-size: 10px; }
 }
+
+.tp-room-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.tp-request-state, .tp-demo-notice { padding: 20px; border: 1px solid #38bdf840; border-radius: 14px; margin-bottom: 18px; background: #111827; line-height: 1.6; }
+.tp-request-state button, .tp-history button { padding: 9px 16px; border: 1px solid #64748b60; border-radius: 8px; background: #1a2236; margin-top: 12px; }
+.tp-request-state a { color: #7dd3fc; margin-right: 15px; }
+.tp-demo-notice { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border-color: #a855f760; }
+.tp-demo-notice > span { flex: 1; min-width: min(100%,240px); color: #cbd5e1; }
+.tp-disputed { color: #fbbf24; font-size: 13px; line-height: 1.5; }
+.tp-pending { color: #7dd3fc; margin-bottom: 16px !important; line-height: 1.5; }
+.tp-category-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; color: #a4b4ca; font-size: 13px; }
+.tp-category-filter select { color: #e2e8f0; background: #111827; border: 1px solid #334155; border-radius: 8px; padding: 7px; max-width: 100%; }
+.tp-details h3 { font-size: 16px; color: #e2e8f0; margin: 20px 0 10px; }
+.tp-details p, .tp-details strong, .tp-history li { overflow-wrap: anywhere; }
+.tp-tiers ul { padding: 0; margin: 0; list-style: none; }
+.tp-tiers li { display: grid; grid-template-columns: 90px minmax(0,1fr); gap: 12px; padding: 9px 0; border-bottom: 1px solid #ffffff0a; line-height: 1.5; font-size: 14px; }
+.tp-history-list { list-style: none; margin: 0; padding: 0 8px 0 0; max-height: 300px; overflow-y: auto; scrollbar-width: thin; }
+.tp-history-list li { display: flex; flex-direction: column; gap: 5px; border-left: 2px solid #38bdf840; padding: 8px 12px; margin-bottom: 12px; color: #cbd5e1; line-height: 1.5; }
+.tp-history-list time, .tp-history-list li > span { font-size: 12px; color: #94a3b8; }
+@media (max-width: 760px) { .tp-room-actions { width: 100%; } .tp-room-actions > button { width: auto; flex: 1; } .tp-trophy-card { min-height: 380px; } .tp-detail-art .tp-medallion { height: auto; } }

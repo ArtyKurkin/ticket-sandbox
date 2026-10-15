@@ -1,0 +1,428 @@
+{
+  "items": [
+    {
+      "public_id": "ac849077-345f-4cd6-bb12-e2fb54dc5ec5",
+      "secret": false,
+      "revealed": true,
+      "status": "locked",
+      "applicable": null,
+      "highest_tier": null,
+      "progress": null,
+      "earned_at": null,
+      "last_upgraded_at": null,
+      "revision": 0,
+      "code": "training_program",
+      "title": "Программа обучения",
+      "description": "Программа обучения",
+      "category": "training",
+      "kind": "tiered",
+      "rule_version": 1,
+      "art_key": "training",
+      "supported_tiers": [
+        {
+          "code": "bronze",
+          "rank": 1,
+          "rarity": "bronze",
+          "criterion": "Подтверждённое завершение программы",
+          "automatic": true
+        },
+        {
+          "code": "silver",
+          "rank": 2,
+          "rarity": "silver",
+          "criterion": "≤11 учебных рабочих дней и >90%",
+          "automatic": false
+        },
+        {
+          "code": "gold",
+          "rank": 3,
+          "rarity": "gold",
+          "criterion": "≤6 учебных рабочих дней и >95%",
+          "automatic": false
+        },
+        {
+          "code": "platinum",
+          "rank": 4,
+          "rarity": "platinum",
+          "criterion": "≤6 учебных рабочих дней и ровно 100%",
+          "automatic": false
+        }
+      ],
+      "data_quality": "not_evaluated",
+      "manual": false
+    },
+    {
+      "public_id": "4cffb974-b360-4449-b30a-8eb2fe6cc77b",
+      "secret": false,
+      "revealed": true,
+      "status": "locked",
+      "applicable": null,
+      "highest_tier": null,
+      "progress": null,
+      "earned_at": null,
+      "last_upgraded_at": null,
+      "revision": 0,
+      "code": "sandbox_program",
+      "title": "Ticket Sandbox",
+      "description": "Ticket Sandbox",
+      "category": "sandbox",
+      "kind": "tiered",
+      "rule_version": 1,
+      "art_key": "sandbox",
+      "supported_tiers": [
+        {
+          "code": "bronze",
+          "rank": 1,
+          "rarity": "bronze",
+          "criterion": "Обязательная программа технически завершена",
+          "automatic": true
+        },
+        {
+          "code": "silver",
+          "rank": 2,
+          "rarity": "silver",
+          "criterion": "Техническое завершение, ≤2 успешных перезапусков",
+          "automatic": false
+        },
+        {
+          "code": "gold",
+          "rank": 3,
+          "rarity": "gold",
+          "criterion": "Все ответы приняты, ≤2 перезапусков и ≤2 возвратов",
+          "automatic": false
+        },
+        {
+          "code": "platinum",
+          "rank": 4,
+          "rarity": "platinum",
+          "criterion": "Первая проверка и первая отправка успешны, без перезапусков",
+          "automatic": false
+        }
+      ],
+      "data_quality": "not_evaluated",
+      "manual": false
+    },
+    {
+      "public_id": "a814b141-6f80-4719-921d-a7377d45669f",
+      "secret": false,
+      "revealed": true,
+      "status": "locked",
+      "applicable": true,
+      "highest_tier": null,
+      "progress": null,
+      "earned_at": null,
+      "last_upgraded_at": null,
+      "revision": 0,
+      "code": "review_quality",
+      "title": "Качество тикетов",
+      "description": "Качество тикетов",
+      "category": "quality",
+      "kind": "tiered",
+      "rule_version": 1,
+      "art_key": "quality",
+      "supported_tiers": [
+        {
+          "code": "bronze",
+          "rank": 1,
+          "rarity": "bronze",
+          "criterion": "≥80% за достоверную неделю WITH_REVIEW",
+          "automatic": true
+        },
+        {
+          "code": "silver",
+          "rank": 2,
+          "rarity": "silver",
+          "criterion": "≥90% за достоверную неделю WITH_REVIEW",
+          "automatic": true
+        },
+        {
+          "code": "gold",
+          "rank": 3,
+          "rarity": "gold",
+          "criterion": ">95% за достоверную неделю WITH_REVIEW",
+          "automatic": true
+        }
+      ],
+      "data_quality": "not_evaluated",
+      "manual": false
+    },
+    {
+      "public_id": "6cb6bd5d-6093-4685-b37b-811e9c2f9851",
+      "secret": false,
+      "revealed": true,
+      "status": "locked",
+      "applicable": true,
+      "highest_tier": null,
+      "progress": null,
+      "earned_at": null,
+      "last_upgraded_at": null,
+      "revision": 0,
+      "code": "independent_speed",
+      "title": "Скорость обработки тикетов",
+      "description": "Скорость обработки тикетов",
+      "category": "speed",
+      "kind": "tiered",
+      "rule_version": 1,
+      "art_key": "speed",
+      "supported_tiers": [
+        {
+          "code": "bronze",
+          "rank": 1,
+          "rarity": "bronze",
+          "criterion": "≥5 т/ч на NO_REVIEW",
+          "automatic": true
+        },
+        {
+          "code": "silver",
+          "rank": 2,
+          "rarity": "silver",
+          "criterion": "≥7 т/ч на NO_REVIEW",
+          "automatic": true
+        },
+        {
+          "code": "gold",
+          "rank": 3,
+          "rarity": "gold",
+          "criterion": "≥9 т/ч на NO_REVIEW",
+          "automatic": true
+        },
+        {
+          "code": "platinum",
+          "rank": 4,
+          "rarity": "platinum",
+          "criterion": ">10 т/ч на NO_REVIEW",
+          "automatic": true
+        }
+      ],
+      "data_quality": "not_evaluated",
+      "manual": false
+    },
+    {
+      "public_id": "0f34fa06-629f-4161-a36b-e6cde7a35018",
+      "secret": false,
+      "revealed": true,
+      "status": "locked",
+      "applicable": null,
+      "highest_tier": null,
+      "progress": null,
+      "earned_at": null,
+      "last_upgraded_at": null,
+      "revision": 0,
+      "code": "probation_new_hire",
+      "title": "Завершение испытательного срока",
+      "description": "Завершение испытательного срока",
+      "category": "probation",
+      "kind": "tiered",
+      "rule_version": 1,
+      "art_key": "probation",
+      "supported_tiers": [
+        {
+          "code": "bronze",
+          "rank": 1,
+          "rarity": "bronze",
+          "criterion": "Успешный выход позднее 60-го дня",
+          "automatic": true
+        },
+        {
+          "code": "silver",
+          "rank": 2,
+          "rarity": "silver",
+          "criterion": "Успешный выход на 46–60-й день",
+          "automatic": true
+        },
+        {
+          "code": "gold",
+          "rank": 3,
+          "rarity": "gold",
+          "criterion": "Успешный выход на 31–45-й день",
+          "automatic": true
+        },
+        {
+          "code": "platinum",
+          "rank": 4,
+          "rarity": "platinum",
+          "criterion": "Успешный выход не позднее 30-го дня",
+          "automatic": true
+        }
+      ],
+      "data_quality": "not_evaluated",
+      "manual": false
+    },
+    {
+      "public_id": "2dc9c9bb-21d8-4442-b617-f4aa52737d1c",
+      "secret": false,
+      "revealed": true,
+      "status": "locked",
+      "applicable": null,
+      "highest_tier": null,
+      "progress": null,
+      "earned_at": null,
+      "last_upgraded_at": null,
+      "revision": 0,
+      "code": "sandbox_first_success",
+      "title": "Первый запуск",
+      "description": "Первый запуск",
+      "category": "sandbox",
+      "kind": "fixed",
+      "rule_version": 1,
+      "art_key": "sandbox",
+      "supported_tiers": [
+        {
+          "code": "bronze",
+          "rank": 1,
+          "rarity": "bronze",
+          "criterion": "Первое технически успешное зачётное задание",
+          "automatic": true
+        }
+      ],
+      "data_quality": "not_evaluated",
+      "manual": false
+    },
+    {
+      "public_id": "8c444636-7bf2-431d-b37c-18c68374a286",
+      "secret": false,
+      "revealed": true,
+      "status": "locked",
+      "applicable": null,
+      "highest_tier": null,
+      "progress": null,
+      "earned_at": null,
+      "last_upgraded_at": null,
+      "revision": 0,
+      "code": "sandbox_five_successes",
+      "title": "Пять из пяти",
+      "description": "Пять из пяти",
+      "category": "sandbox",
+      "kind": "fixed",
+      "rule_version": 1,
+      "art_key": "sandbox",
+      "supported_tiers": [
+        {
+          "code": "silver",
+          "rank": 2,
+          "rarity": "silver",
+          "criterion": "Пять различных технически успешных зачётных заданий",
+          "automatic": true
+        }
+      ],
+      "data_quality": "not_evaluated",
+      "manual": false
+    },
+    {
+      "public_id": "4811c5ef-e8ad-409f-af93-37f3e6eda98c",
+      "secret": false,
+      "revealed": true,
+      "status": "locked",
+      "applicable": null,
+      "highest_tier": null,
+      "progress": null,
+      "earned_at": null,
+      "last_upgraded_at": null,
+      "revision": 0,
+      "code": "sandbox_first_five_clean_answers",
+      "title": "Без замечаний",
+      "description": "Без замечаний",
+      "category": "sandbox",
+      "kind": "fixed",
+      "rule_version": 1,
+      "art_key": "sandbox",
+      "supported_tiers": [
+        {
+          "code": "gold",
+          "rank": 3,
+          "rarity": "gold",
+          "criterion": "Первые пять разных ответов приняты с первой отправки",
+          "automatic": false
+        }
+      ],
+      "data_quality": "not_evaluated",
+      "manual": false
+    },
+    {
+      "public_id": "0fdb73ba-d025-4f47-b4af-b4d1713c4f01",
+      "secret": false,
+      "revealed": true,
+      "status": "locked",
+      "applicable": true,
+      "highest_tier": null,
+      "progress": null,
+      "earned_at": null,
+      "last_upgraded_at": null,
+      "revision": 0,
+      "code": "review_quality_streak",
+      "title": "Стабильность — признак мастерства",
+      "description": "Стабильность — признак мастерства",
+      "category": "quality",
+      "kind": "fixed",
+      "rule_version": 1,
+      "art_key": "quality",
+      "supported_tiers": [
+        {
+          "code": "gold",
+          "rank": 3,
+          "rarity": "gold",
+          "criterion": "Три полные последовательные недели WITH_REVIEW с ≥90%",
+          "automatic": false
+        }
+      ],
+      "data_quality": "not_evaluated",
+      "manual": false
+    },
+    {
+      "public_id": "09ef54de-5e1f-480d-b97f-5a46b702cc27",
+      "secret": false,
+      "revealed": true,
+      "status": "locked",
+      "applicable": true,
+      "highest_tier": null,
+      "progress": null,
+      "earned_at": null,
+      "last_upgraded_at": null,
+      "revision": 0,
+      "code": "independent_engineer",
+      "title": "Самостоятельный инженер",
+      "description": "Самостоятельный инженер",
+      "category": "independent",
+      "kind": "fixed",
+      "rule_version": 1,
+      "art_key": "independent",
+      "supported_tiers": [
+        {
+          "code": "silver",
+          "rank": 2,
+          "rarity": "silver",
+          "criterion": "Подтверждённый переход OPTIONAL_REVIEW → NO_REVIEW",
+          "automatic": true
+        }
+      ],
+      "data_quality": "not_evaluated",
+      "manual": false
+    },
+    {
+      "public_id": "6bb71982-b558-4069-8671-92d4ef432649",
+      "secret": true,
+      "revealed": false,
+      "status": "locked",
+      "applicable": true,
+      "highest_tier": null,
+      "progress": null,
+      "earned_at": null,
+      "last_upgraded_at": null,
+      "revision": 0,
+      "title": "Секретное достижение",
+      "description": null,
+      "art_key": "generic"
+    }
+  ],
+  "stats": {
+    "earned": 0,
+    "applicable_total": 5,
+    "rarities": {
+      "bronze": 0,
+      "silver": 0,
+      "gold": 0,
+      "platinum": 0
+    }
+  },
+  "pending_source_events": 0
+}

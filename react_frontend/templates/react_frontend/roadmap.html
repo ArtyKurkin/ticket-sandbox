@@ -1,4 +1,5 @@
 {% load vite %}
+{% load achievement_notifications %}
 <!doctype html>
 <html lang="ru"><head>
   <meta charset="utf-8">
@@ -10,4 +11,5 @@
   {{ roadmap_profile|json_script:"roadmap-props" }}
   <div data-react-island="roadmap"></div>
   <noscript>Для просмотра интерактивной карты включите JavaScript.</noscript>
+  {% achievement_notification_host %}
 </body></html>

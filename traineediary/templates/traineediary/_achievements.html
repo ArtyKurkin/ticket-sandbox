@@ -1,0 +1,38 @@
+<section id="diary-achievement-panel" class="card diary-achievements" {% if not achievements_selected %}hidden{% endif %} aria-labelledby="diary-achievement-title">
+  <div class="da-toolbar">
+    <div><h2 id="diary-achievement-title">Достижения сотрудника</h2><p>Текущие уровни и история выдач. Ручные решения сохраняются с автором и причиной.</p></div>
+    <div class="da-actions"><button type="button" class="button secondary" data-da-refresh>Обновить</button><button type="button" class="button" data-da-grant disabled>Выдать награду</button></div>
+  </div>
+  <p class="da-message" data-da-notice role="status" aria-live="polite" hidden></p>
+  <div data-da-state role="status">Загружаем достижения…</div>
+  <div class="da-controls" hidden data-da-controls><span data-da-summary></span><label><input type="checkbox" data-da-show-all> Показать неприменимые</label></div>
+  <div data-da-list class="da-list"></div>
+  <noscript>Для просмотра и управления достижениями включите JavaScript. Остальные разделы карточки доступны без него.</noscript>
+</section>
+
+<dialog class="da-dialog" data-da-detail aria-labelledby="da-detail-title">
+  <div class="da-toolbar"><h2 id="da-detail-title">Достижение</h2><button type="button" class="button secondary" data-da-close aria-label="Закрыть подробности">Закрыть</button></div>
+  <div data-da-detail-state role="status"></div><div data-da-detail-content></div>
+  <section class="da-history" aria-label="История достижений"><h3>История изменений</h3><ol data-da-history></ol><button type="button" class="button secondary" data-da-more hidden>Показать ещё</button></section>
+</dialog>
+
+<dialog class="da-dialog" data-da-action aria-labelledby="da-action-title">
+  <div class="da-toolbar"><h2 id="da-action-title">Выдать награду</h2><button type="button" class="button secondary" data-da-close>Закрыть</button></div>
+  <form data-da-form>
+    <div data-da-edit>
+      <label>Награда<select name="definition" required></select></label>
+      <label data-da-tier-field>Уровень<select name="tier" required></select></label>
+      <p class="da-warning" data-da-rule-note hidden></p>
+      <label>Причина<textarea name="reason" required maxlength="10000" rows="4" placeholder="Укажите проверенное основание решения"></textarea></label>
+      <div class="da-actions"><button type="submit" class="button" data-da-review>Продолжить</button></div>
+    </div>
+    <div data-da-confirm hidden>
+      <p data-da-confirm-text></p><blockquote data-da-confirm-reason></blockquote>
+      <p class="da-warning" data-da-revoke-warning hidden>Отзыв полностью снимет активную награду. После отзыва награду можно выдать повторно только вручную. Предыдущий уровень не восстановится. История сохранится.</p>
+      <div class="da-actions"><button type="button" class="button secondary" data-da-back>Изменить</button><button type="button" class="button" data-da-submit>Подтвердить выдачу</button></div>
+    </div>
+    <p class="da-message" data-da-action-state role="status" aria-live="polite" hidden></p>
+    <div data-da-recovery hidden class="da-actions"><button type="button" class="button secondary" data-da-check>Проверить состояние</button><button type="button" class="button" data-da-retry>Повторить ту же операцию</button></div>
+    <div data-da-conflict hidden><p>Данные обновлены. Проверьте текущий уровень и заново выберите действие. Повторная отправка не выполнялась.</p><button type="button" class="button secondary" data-da-reopen>Проверить действие заново</button></div>
+  </form>
+</dialog>

@@ -1,3 +1,4 @@
+from unittest.mock import ANY
 import os
 
 from types import SimpleNamespace
@@ -500,15 +501,17 @@ class EnvironmentServiceTests(SandboxTestCase):
         self,
         delay_mock,
     ):
-        start_environment_in_background(self.attempt.id)
+        with self.captureOnCommitCallbacks(execute=True):
+            start_environment_in_background(self.attempt.id)
 
-        delay_mock.assert_called_once_with(self.attempt.id)
+        delay_mock.assert_called_once_with(self.attempt.id, operation_id=ANY)
 
     @patch("sandbox.tasks.restart_environment_task.delay")
     def test_start_environment_restart_in_background_uses_celery(
         self,
         delay_mock,
     ):
-        start_environment_restart_in_background(self.attempt.id)
+        with self.captureOnCommitCallbacks(execute=True):
+            start_environment_restart_in_background(self.attempt.id)
 
-        delay_mock.assert_called_once_with(self.attempt.id)
+        delay_mock.assert_called_once_with(self.attempt.id, operation_id=ANY)

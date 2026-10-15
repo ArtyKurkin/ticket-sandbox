@@ -1,0 +1,19 @@
+{
+  "achievement": {
+    "public_id": "6bb71982-b558-4069-8671-92d4ef432649",
+    "secret": true,
+    "revealed": false,
+    "status": "locked",
+    "applicable": true,
+    "highest_tier": null,
+    "progress": null,
+    "earned_at": null,
+    "last_upgraded_at": null,
+    "revision": 0,
+    "title": "Секретное достижение",
+    "description": null,
+    "art_key": "generic"
+  },
+  "history": [],
+  "next_cursor": null
+}

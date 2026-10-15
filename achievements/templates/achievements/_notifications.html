@@ -1,0 +1,6 @@
+{% load vite %}
+{% if notification_config %}
+  {{ notification_config|json_script:"achievement-notification-config" }}
+  <div id="achievement-notification-host" aria-label="Уведомления о достижениях"></div>
+  {% vite_assets "src/notifications/main.tsx" %}
+{% endif %}

@@ -88,7 +88,7 @@
 .rm-completed .rm-station-label small { color: #34d399; }
 .rm-current .rm-station-label { border-color: #38bdf84d; }
 .rm-current .rm-station-label i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; background: #38bdf8; }
-.rm-station[data-stage=supervised] .rm-station-label,.rm-station[data-stage=optionalReview] .rm-station-label,.rm-station[data-stage=autonomous] .rm-station-label { max-width: 175px; }
+.rm-station[data-stage=with_review] .rm-station-label,.rm-station[data-stage=optional_review] .rm-station-label,.rm-station[data-stage=no_review] .rm-station-label { max-width: 175px; }
 .rm-final .rm-station-box { background: linear-gradient(#281742,#1a0e2d,#10071d); border: 2px solid #8b5cf680; box-shadow: 0 12px 30px #3b076480; }
 .rm-final .rm-stage-number { left: auto; right: -10px; color: #ddd6fe; background: #7c3aed66; border-color: #a78bfa80; }
 .rm-final .rm-station-orbit::before { border-color: #8b5cf64d; }
@@ -149,3 +149,31 @@
 
 .rm-background { transition: transform .25s cubic-bezier(.1,.4,.2,1); }
 @media (prefers-reduced-motion: reduce) { .rm-background { transform: scale(1.05) !important; } }
+
+/* Real API states retain the approved map and card geometry. */
+.rm-station.rm-coming_soon .rm-station-box { background: linear-gradient(#1b2939,#14202f,#0e1724); border-color: #64748b66; }
+.rm-coming_soon .rm-art { opacity: .5; filter: saturate(.25) drop-shadow(0 4px 8px #0009); }
+.rm-coming_soon .rm-station-orbit::before { border-color: #64748b40; }
+.rm-coming_soon .rm-station-label small,.rm-coming_soon .rm-status-pill { color: #9aafc8; font-family: 'TP Mono',monospace; }
+.rm-coming_soon .rm-status-pill { border-color: #64748b66; background: #33415540; }
+.rm-station.rm-not_required .rm-station-box { background: linear-gradient(#242630,#191c25,#10131b); border-color: #71717a40; }
+.rm-not_required .rm-art { opacity: .35; filter: grayscale(1); }
+.rm-not_required .rm-station-label small,.rm-not_required .rm-status-pill { color: #a1a1aa; }
+.rm-not_required .rm-status-pill { border-color: #71717a40; background: #3f3f4626; }
+.rm-available .rm-station-box,.rm-in_progress .rm-station-box { border-color: #38bdf866; }
+.rm-station.rm-neutral-final .rm-station-box { background: linear-gradient(#242b36,#171f2c,#101722); border-color: #64748b66; box-shadow: 0 12px 28px #0006; }
+.rm-neutral-final .rm-station-orbit::before,.rm-neutral-final .rm-station-label { border-color: #64748b4d; }
+.rm-neutral-final .rm-station-label small { color: #94a3b8; }
+.rm-api-message { position: relative; margin: 24px 32px; color: #cbd5e1; max-width: 460px; }
+.rm-api-message .rm-stage-action { margin-top: 12px; }
+.rm-journey-message { position: relative; z-index: 1; padding: 8px 32px; font-size: 13px; color: #a4b4ca; background: #070b1480; }
+.rm-journey-message span { display: block; margin-top: 4px; }
+.rm-notifications { margin: 0 0 12px; padding-left: 20px; font-size: 13px; line-height: 1.5; color: #cbd5e1; }
+.rm-real-metrics { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; font-size: 12px; margin: 0 0 12px; }
+.rm-real-metrics dt { color: #94a3b8; }
+.rm-real-metrics dd { margin: 0; font-family: 'TP Mono',monospace; }
+.rm-readiness { font-size: 13px; margin-bottom: 12px; color: #cbd5e1; }
+.rm-readiness p { font-size: 12px; margin: 6px 0; }
+.rm-details .rm-evidence-note { font-size: 12px; color: #94a3b8; }
+.rm-details .rm-stage-action + .rm-stage-action { margin-top: 8px; }
+@media (max-width: 760px) { .rm-journey-message { padding: 8px 16px; } }

@@ -1,3 +1,4 @@
+from unittest.mock import ANY
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -936,9 +937,10 @@ class TaskFlowTests(SandboxTestCase):
         self,
         start_environment_in_background_mock,
     ):
-        response = self.client.post(
-            reverse("sandbox:start_task", args=[self.attempt.id])
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("sandbox:start_task", args=[self.attempt.id])
+            )
 
         self.assertEqual(response.status_code, 302)
 
@@ -957,7 +959,7 @@ class TaskFlowTests(SandboxTestCase):
         )
 
         start_environment_in_background_mock.assert_called_once_with(
-            self.attempt.id
+            self.attempt.id, operation_id=ANY
         )
 
         self.assertEqual(self.attempt.container_name, "")
@@ -1033,14 +1035,15 @@ class TaskFlowTests(SandboxTestCase):
             ]
         )
 
-        response = self.client.post(
-            reverse("sandbox:start_task", args=[self.attempt.id])
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("sandbox:start_task", args=[self.attempt.id])
+            )
 
         self.assertEqual(response.status_code, 302)
 
         start_environment_in_background_mock.assert_called_once_with(
-            self.attempt.id
+            self.attempt.id, operation_id=ANY
         )
 
         self.attempt.refresh_from_db()
@@ -1591,14 +1594,15 @@ class TaskFlowTests(SandboxTestCase):
         self.attempt.last_check_output = "ERROR: nginx не запущен"
         self.attempt.save()
 
-        response = self.client.post(
-            reverse("sandbox:restart_task", args=[self.attempt.id])
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("sandbox:restart_task", args=[self.attempt.id])
+            )
 
         self.assertEqual(response.status_code, 302)
 
         start_environment_restart_in_background_mock.assert_called_once_with(
-            self.attempt.id
+            self.attempt.id, operation_id=ANY
         )
 
         self.attempt.refresh_from_db()
@@ -1653,14 +1657,15 @@ class TaskFlowTests(SandboxTestCase):
             ]
         )
 
-        response = self.client.post(
-            reverse("sandbox:restart_task", args=[self.attempt.id])
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("sandbox:restart_task", args=[self.attempt.id])
+            )
 
         self.assertEqual(response.status_code, 302)
 
         start_environment_restart_in_background_mock.assert_called_once_with(
-            self.attempt.id
+            self.attempt.id, operation_id=ANY
         )
 
         self.attempt.refresh_from_db()
@@ -1698,14 +1703,15 @@ class TaskFlowTests(SandboxTestCase):
             ]
         )
 
-        response = self.client.post(
-            reverse("sandbox:restart_task", args=[self.attempt.id])
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("sandbox:restart_task", args=[self.attempt.id])
+            )
 
         self.assertEqual(response.status_code, 302)
 
         start_environment_restart_in_background_mock.assert_called_once_with(
-            self.attempt.id
+            self.attempt.id, operation_id=ANY
         )
 
         self.attempt.refresh_from_db()
@@ -1936,14 +1942,15 @@ class TaskFlowTests(SandboxTestCase):
             task=second_task,
         )
 
-        response = self.client.post(
-            reverse("sandbox:start_task", args=[second_attempt.id])
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("sandbox:start_task", args=[second_attempt.id])
+            )
 
         self.assertEqual(response.status_code, 302)
 
         start_environment_in_background_mock.assert_called_once_with(
-            second_attempt.id
+            second_attempt.id, operation_id=ANY
         )
 
         second_attempt.refresh_from_db()

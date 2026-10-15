@@ -13,6 +13,9 @@ from config.views import (
 urlpatterns = [
     path("", home, name="home"),
 
+    path("api/roadmap/", include("roadmap.urls")),
+    path("api/achievements/", include("achievements.urls")),
+
     path("roadmap/", roadmap, name="roadmap"),
 
     path("achievements/", achievements, name="achievements"),

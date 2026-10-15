@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "requirements_version": 1,
+  "journey": {
+    "id": 2,
+    "state": "active",
+    "entry_type": "internal_transfer",
+    "scheme": "unified",
+    "current_stage": {
+      "id": 4,
+      "slug": "optional-review",
+      "title": "Проверки по желанию",
+      "started_at": "2026-10-14"
+    },
+    "probation_outcome": "active",
+    "completed_at": null,
+    "metrics": [],
+    "fixed_quality_percent": null
+  },
+  "overall": {
+    "completed_count": 1,
+    "applicable_count": 4,
+    "exempt_count": 0,
+    "percent": 25.0,
+    "adaptation_progress_percent": 58
+  },
+  "stages": [
+    {
+      "id": "training",
+      "order": 1,
+      "title": "Программа обучения",
+      "availability": "enabled",
+      "applicable": false,
+      "state": null,
+      "display_status": "not_required",
+      "source": "manual",
+      "description": "",
+      "actions": [],
+      "evidence": {
+        "event_id": null,
+        "action": null,
+        "recorded_at": null,
+        "actor_id": null
+      }
+    },
+    {
+      "id": "sandbox",
+      "order": 2,
+      "title": "Ticket Sandbox",
+      "availability": "enabled",
+      "applicable": false,
+      "state": null,
+      "display_status": "not_required",
+      "source": "sandbox",
+      "description": "",
+      "actions": [],
+      "progress": {
+        "completed": 0,
+        "total": 3,
+        "unit": "tasks",
+        "basis": "technical",
+        "scope": "current_catalog"
+      },
+      "completion": {
+        "id": null,
+        "completed_at": null,
+        "task_ids": [],
+        "total": 0
+      },
+      "notifications": [
+        {
+          "code": "text_revision_required",
+          "count": 0,
+          "blocking": false
+        },
+        {
+          "code": "text_waiting_for_review",
+          "count": 0,
+          "blocking": false
+        },
+        {
+          "code": "text_answer_not_submitted",
+          "count": 0,
+          "blocking": false
+        },
+        {
+          "code": "unread_mentor_feedback",
+          "count": 0,
+          "blocking": false
+        }
+      ],
+      "data_quality": []
+    },
+    {
+      "id": "escalation",
+      "order": 3,
+      "title": "Карта эскалаций",
+      "availability": "coming_soon",
+      "applicable": false,
+      "state": null,
+      "display_status": "coming_soon",
+      "source": "escalation",
+      "description": "Интерактивная карта маршрутизации обращений, небольшая теория и тренажёр.",
+      "actions": [],
+      "badge": "COMING SOON"
+    },
+    {
+      "id": "ticket_analysis",
+      "order": 4,
+      "title": "Анализ тикетов",
+      "availability": "coming_soon",
+      "applicable": false,
+      "state": null,
+      "display_status": "coming_soon",
+      "source": "ticket_analysis",
+      "description": "Учебная тикет-система и тренажёр анализа обращений.",
+      "actions": [],
+      "badge": "COMING SOON"
+    },
+    {
+      "id": "with_review",
+      "order": 5,
+      "title": "Тикеты с проверками",
+      "availability": "enabled",
+      "applicable": true,
+      "state": "completed",
+      "display_status": "completed",
+      "source": "traineediary",
+      "description": "",
+      "actions": [],
+      "evidence": {
+        "completed": true,
+        "code": "staff_sequential_transition",
+        "transition_id": 3
+      },
+      "periods": [
+        {
+          "history_id": 2,
+          "started_at": "2026-10-11",
+          "ended_at": "2026-10-14",
+          "duration_days": 3
+        }
+      ],
+      "action_notice": "Персональная страница дневника для стажёра пока недоступна. Прогресс показан в этой карточке."
+    },
+    {
+      "id": "optional_review",
+      "order": 6,
+      "title": "Проверки по желанию",
+      "availability": "enabled",
+      "applicable": true,
+      "state": "in_progress",
+      "display_status": "in_progress",
+      "source": "traineediary",
+      "description": "",
+      "actions": [],
+      "evidence": {
+        "completed": false,
+        "code": "no_completion_evidence",
+        "transition_id": null
+      },
+      "readiness": {
+        "state": "not_ready",
+        "label": "Пока не готов",
+        "reasons": [
+          {
+            "code": "minimum_stage_days",
+            "label": "Не пройден минимальный срок",
+            "description": "До минимального срока этапа осталось 5 дн."
+          }
+        ],
+        "next_stage_id": 5
+      },
+      "periods": [
+        {
+          "history_id": 3,
+          "started_at": "2026-10-14",
+          "ended_at": null,
+          "duration_days": 0
+        }
+      ],
+      "action_notice": "Персональная страница дневника для стажёра пока недоступна. Прогресс показан в этой карточке."
+    },
+    {
+      "id": "no_review",
+      "order": 7,
+      "title": "Тикеты без проверок",
+      "availability": "enabled",
+      "applicable": true,
+      "state": "locked",
+      "display_status": "locked",
+      "source": "traineediary",
+      "description": "",
+      "actions": [],
+      "evidence": {
+        "completed": false,
+        "code": "no_completion_evidence",
+        "transition_id": null
+      },
+      "periods": [],
+      "action_notice": "Персональная страница дневника для стажёра пока недоступна. Прогресс показан в этой карточке."
+    },
+    {
+      "id": "probation",
+      "order": 8,
+      "title": "Выход с ИС",
+      "availability": "enabled",
+      "applicable": true,
+      "state": "in_progress",
+      "display_status": "in_progress",
+      "source": "traineediary",
+      "description": "",
+      "actions": [],
+      "evidence": {
+        "outcome": "active"
+      },
+      "action_notice": "Отдельная страница результата ИС для стажёра пока недоступна. Фактический результат показан в этой карточке."
+    }
+  ],
+  "data_quality": [
+    {
+      "code": "unproven_stage_completion",
+      "stage": "no_review",
+      "description": "Нет доказательства последовательного успешного завершения этапа."
+    }
+  ]
+}

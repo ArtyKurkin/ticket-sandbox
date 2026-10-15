@@ -13,6 +13,7 @@ from django.shortcuts import (
     render,
 )
 from django.utils import timezone
+from django.urls import reverse
 
 from ..constants import (
     WEEKLY_QUALITY_TARGET,
@@ -572,6 +573,17 @@ def trainee_detail(
     )
 
     context = {
+        "achievements_selected": request.GET.get("tab") == "achievements",
+        "achievement_management": {
+            "canManage": True,
+            "userId": journey.user_id,
+            "userName": journey.user.get_full_name() or journey.user.get_username(),
+            "collectionUrl": reverse("achievement_api:user", args=[journey.user_id]),
+            "detailUrl": reverse("achievement_api:user_detail", args=[journey.user_id, "00000000-0000-0000-0000-000000000000"]).replace("00000000-0000-0000-0000-000000000000", "{public_id}"),
+            "grantUrl": reverse("achievement_api:grant", args=[journey.user_id, "00000000-0000-0000-0000-000000000000"]).replace("00000000-0000-0000-0000-000000000000", "{public_id}"),
+            "revokeUrl": reverse("achievement_api:revoke", args=[journey.user_id, "00000000-0000-0000-0000-000000000000"]).replace("00000000-0000-0000-0000-000000000000", "{public_id}"),
+            "loginUrl": reverse("login"),
+        },
         "journey": journey,
         "assessment": assessment,
         "history_rows": (

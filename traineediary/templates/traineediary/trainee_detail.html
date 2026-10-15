@@ -1,4 +1,10 @@
 {% extends "traineediary/_base.html" %}
+{% load static %}
+
+{% block extra_head %}
+  {{ block.super }}
+  {% if request.user.is_staff %}<link rel="stylesheet" href="{% static 'css/diary-achievements.css' %}">{% endif %}
+{% endblock %}
 
 {% block title %}
   {{ journey.user.get_full_name|default:journey.user.username }}
@@ -87,6 +93,13 @@
   </div>
 </div>
 
+{% if request.user.is_staff %}
+  <nav class="diary-achievement-tabs" aria-label="Разделы карточки адаптации">
+    <a href="?tab=adaptation" data-diary-tab="adaptation" aria-controls="diary-adaptation-panel" {% if not achievements_selected %}aria-current="page"{% endif %}>Адаптация</a>
+    <a href="?tab=achievements" data-diary-tab="achievements" aria-controls="diary-achievement-panel" {% if achievements_selected %}aria-current="page"{% endif %}>Достижения</a>
+  </nav>
+{% endif %}
+<section id="diary-adaptation-panel" {% if achievements_selected %}hidden{% endif %}>
 {% if journey.completion_status %}
   <div
     class="
@@ -1223,4 +1236,16 @@
     </div>
   </details>
 </div>
+</section>
+{% if request.user.is_staff %}
+  {% include "traineediary/_achievements.html" %}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  {% if request.user.is_staff %}
+    {{ achievement_management|json_script:"diary-achievement-config" }}
+    <script type="module" src="{% static 'js/diary-achievements.js' %}"></script>
+  {% endif %}
 {% endblock %}

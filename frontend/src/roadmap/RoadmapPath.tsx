@@ -1,4 +1,6 @@
 import { useId } from 'react';
+import type { Stage } from './types';
+import { segmentLit } from './presentation';
 import { RouteDefs } from './art/RouteDefs';
 // Exact cubic control points from the approved Roadmap export.
 export const routeSegments = [
@@ -11,7 +13,7 @@ export const routeSegments = [
   'M 528 532 C 420 530, 310 540, 216 546',
 ] as const;
 const completeRoute = routeSegments.map((segment, index) => index ? segment.slice(segment.indexOf('C')) : segment).join(' ');
-export function RoadmapPath({ completed }: { completed: number }) {
+export function RoadmapPath({ stages }: { stages: readonly Stage[] }) {
   const prefix = useId(); const url = (name: string) => `url(#${prefix}-${name})`;
   return <svg className="rm-path" aria-hidden="true" viewBox="0 0 1200 700" preserveAspectRatio="none">
     <RouteDefs prefix={prefix} />
@@ -19,9 +21,9 @@ export function RoadmapPath({ completed }: { completed: number }) {
     <path d={completeRoute} stroke="rgba(15,23,42,.85)" strokeWidth="8" fill="none" />
     <path d={completeRoute} stroke="#18233c" strokeWidth="3.5" fill="none" />
     <path d={completeRoute} stroke={url('futureTrackGrad')} strokeWidth="2" strokeDasharray="6 8" fill="none" />
-    {routeSegments.map((path, index) => <g key={path} className="rm-route-segment" data-lit={index < completed} style={{ opacity: index < completed ? 1 : 0 }}>
+    {routeSegments.map((path, index) => <g key={path} className="rm-route-segment" data-lit={segmentLit(stages[index].data, stages[index + 1].data)} style={{ opacity: segmentLit(stages[index].data, stages[index + 1].data) ? 1 : 0 }}>
       <path d={path} stroke={url('ambientActiveGrad')} filter={url('ambientLineGlow')} strokeWidth="10" fill="none" />
-      <path className="rm-route-fill" pathLength="1" d={path} stroke={url('activeStreamGrad')} filter={url('laserGlow')} strokeWidth="4.5" fill="none" style={{ strokeDashoffset: index < completed ? 0 : 1 }} />
+      <path className="rm-route-fill" pathLength="1" d={path} stroke={url('activeStreamGrad')} filter={url('laserGlow')} strokeWidth="4.5" fill="none" style={{ strokeDashoffset: segmentLit(stages[index].data, stages[index + 1].data) ? 0 : 1 }} />
       <path className="rm-active-beam" d={path} stroke="#ffffff" strokeWidth="2" fill="none" />
     </g>)}
     {[[475,210],[750,180],[955,270],[930,425],[670,516],[370,537]].map(([x,y],index) => <circle key={x} cx={x} cy={y} r="3" fill={index === 5 ? '#a855f7' : index < 2 ? '#38bdf8' : '#64748b'} opacity=".9" />)}

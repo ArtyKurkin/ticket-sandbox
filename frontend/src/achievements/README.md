@@ -1,63 +1,72 @@
 # Trophy Room
 
-Маршрут: `/achievements/`. Требуется существующая Django-сессия.
-Исходник дизайна: `design-references/trophy-room/code.html`, `screen.png`, `DESIGN.md`.
-Экспорт подписан Art System / Trophy Room 3.0, несмотря на название задачи 3.1;
-визуальные подписи сохранены. Старый HTML title про Roadmap исправлен.
+Маршрут `/achievements/`, Django session. Обычный режим загружает только
+`GET /api/achievements/me/`; модалка — `GET /api/achievements/me/<public_id>/`.
+GET не выдаёт наград, не запускает reconciliation и не восстанавливает Sandbox.
 
 ## Запуск
 
-Из корня с настроенным Python-окружением и локальной БД:
-
 ```sh
-npm ci --prefix frontend
 npm run build --prefix frontend
 python manage.py runserver
 ```
 
-Открыть http://127.0.0.1:8000/login/, затем http://127.0.0.1:8000/achievements/.
-Для пересборки при изменениях: `npm run dev --prefix frontend`, затем обновить страницу.
-Проверки: `npm run typecheck --prefix frontend`, `python manage.py check`,
-`python manage.py test react_frontend` (после сборки).
+Сначала войти через `/login/`. Backend achievements migrations должны быть
+применены к выбранной локальной БД. Для отдельных API проверок и синтетических
+данных см. `ACHIEVEMENT_BACKEND_FOUNDATION.md` в корне проекта.
 
-## Компоненты и данные
+## Данные и отображение
 
-- `TrophyRoom` — локальные данные, фильтры, выбор трофея, демонстрация получения.
-- `TrophyShell` — исходная верхняя панель и компактная навигация.
-- `TrophyCard`, `TrophyMedallion`, `art/*` — карточка и оригинальные SVG рельефа.
-- `TrophyFilters` — фильтры статусов и металлов; работают совместно.
-- `TrophyDetails` — native dialog, Escape, фон, focus trap и возврат фокуса.
-- `TrophyUnlockToast` — уведомление на 5 секунд с сохранением остатка таймера
-  при hover/focus; открывает правильный трофей. Glow проигрывается один раз.
-- `types.ts`, `data.ts` — модель достижения и временные fixtures из Stitch.
-- `styles.css`, `fonts.css`, `assets/*` — локальные стили, шрифты и фон.
+- `api.ts` проверяет JSON, UUID, nullable tier, stats и cursor; запросы только
+  GET, same-origin cookies, no-store, AbortSignal. HTTP/network/contract ошибки
+  различаются; повтор загрузки доступен без fixture fallback.
+- `useTrophies.ts` управляет loading/error/ready и отменяет устаревшие запросы.
+- `types.ts` отделяет текущий DTO от demo fixture; дата форматируется только из
+  серверного timestamp. Неполученная tiered линейка имеет нейтральный металл;
+  раскрытая fixed награда может показывать известную редкость до получения.
+- `TrophyRoom` строит одну карточку на public UUID, показывает server stats и
+  pending state. Общая статистика не меняется при фильтрации. При progress=null
+  нет полосы, процента или вычисленного прогресса комнаты.
+- `TrophyDetails` загружает настоящую историю по 50 событий, продолжает по
+  next_cursor, объединяет по event ID. Native dialog, Escape, focus trap,
+  возврат фокуса и прокрутка сохранены. История показывает recorded_at выдачи,
+  from/to tier, ручное решение и причину отзыва. Пропущенных уровней нет.
+- Секретность берётся только из secret/revealed API. Закрытый секрет имеет
+  нейтральный вопросительный медальон, не участвует в metal/category фильтрах
+  и не раскрывает condition/progress. UUID/code не используются для угадывания.
+- `TrophyMedallion` выбирает локальную геометрию по whitelist art_key с generic
+  fallback. `palette.ts` задаёт rim/bevel/core/facet/accent цвета; SVG art/*
+  используют CSS variables вместо зашитых металлов. Пути, transforms,
+  размеры viewBox, фильтры, градиентные offsets и объём сохранены.
 
-Отдельный entrypoint `src/achievements/main.tsx` подключён через существующий
-Django tag vite_assets. Readiness сохраняет собственный entrypoint.
-Геометрия медальонов сохранена; общие определения градиентов скопированы в каждый
-SVG и получают уникальные React useId, чтобы они работали при фильтрации и в модалке.
-React state не сохраняется на сервер или в localStorage. Обновление страницы
-восстанавливает демонстрационные данные. Поля manualGrant и mentorComment
-пока отражают только демоданные; реальные роли и выдача наград потребуют API.
+## Демонстрация и уведомления
 
-## Отличия от экспорта
+Django передаёт canDemo из request.user.is_staff и reverse URL; query-параметры
+не влияют на права. Только явный staff demo вызывает lazy import
+`demonstration.ts`/`data.ts`. Demo state отделён от API state и обозначен на
+экране. Unlock меняет только React state; POST не выполняется, даты не создаются.
+Выход из demo очищает его toast и возвращает реальную коллекцию.
 
-- Секретные награды показывают нейтральное название и скрывают условие/прогресс.
-- Вместо вымышленного профиля Stitch показаны имя и роль текущего Django-пользователя.
-- Ticket Sandbox ведёт в существующий раздел; ссылки на нереализованные разделы
-  оформлены как недоступные пункты, без создания новых страниц.
-- Уведомление открывает «Чистый код», а не «Старт миссии»; демополучение обновляет
-  локальную статистику и состояние карточки. Миниатюра использует его медальон.
-- Модалка показывает само условие, которое исходный JS не выводил, и признак
-  ручной выдачи. Добавлены семантика, focus trap, reduced motion и мобильные layouts.
-- CSS перенесён из Tailwind utility markup в изолированные локальные правила;
-  возможны небольшие различия типографики, теней и вспомогательных иконок.
-- Шрифты Google Fonts и фон локальны. Material Symbols CDN не подключается.
+Текущий collection API не отдаёт ID/action последнего grant/upgrade.
+Revision включает также revoke и evidence_disputed. Обычные toast пока
+не запускаются: загрузка, фильтр, details, retry и выход из demo не являются
+доказательствами нового события. Компонент анимации сохранён в staff demo.
+Для настоящих уведомлений нужен отдельный read-only event cursor/feed;
+предложение описано в `TROPHY_ROOM_REACT_INTEGRATION.md` в корне проекта.
 
-Браузерные проверки выполнялись в Chromium на 1600×1280 (для сравнения со screen.png),
-1440×900, 1920×1080, 390×844 и 320×700. Pixel-perfect соответствие не утверждается.
+## Проверки
 
-В дальнейшем заменить fixtures на Django API по отдельной задаче. Для реальных
-секретных достижений скрытые данные должны исключаться из ответа API.
-Не включать WHITENOISE_KEEP_ONLY_HASHED_FILES: общий React chunk используется
-через относительный Vite import. Подробности staticfiles: `frontend/README.md`.
+```sh
+npm test --prefix frontend
+npm run typecheck --prefix frontend
+npm run build --prefix frontend
+python manage.py check
+python manage.py test achievements react_frontend roadmap
+```
+
+Tests/fixtures/trophies содержат ответы настоящего Django API на изолированной
+синтетической БД и не входят в Vite bundle. Скриншоты и результаты Chromium
+для 1440×900, 1280×800, 768×1024, 390×844 — в отчёте интеграции.
+Ручная выдача/отзыв в обычной комнате не представлены; API/правила backend
+не менялись. Не включать WHITENOISE_KEEP_ONLY_HASHED_FILES: общие Vite imports
+обслуживаются через собранные относительные chunks.

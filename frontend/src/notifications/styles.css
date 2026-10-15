@@ -1,0 +1,19 @@
+/* Reuse Trophy Room toast/art; only the shared host placement and metal highlights differ. */
+.an-host { position: fixed; top: 24px; right: 24px; z-index: 1000; width: min(480px,calc(100vw - 32px)); font-family: 'TP Inter',Inter,system-ui,sans-serif; color: #e2e8f0; }
+.an-host:empty { display: none; }
+.an-host *, .an-host *::before, .an-host *::after { box-sizing: border-box; }
+.an-host button { font: inherit; cursor: pointer; color: inherit; width: auto; }
+.an-host button:disabled { opacity: .6; cursor: wait; }
+.an-host button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 3px; }
+.an-host .tp-unlock-toast { position: relative; inset: auto; width: 100%; border-color: var(--an-metal); box-shadow: 0 15px 40px #0008; }
+.an-bronze { --an-metal: #d99d69; --an-glow: #d99d6944; }.an-silver { --an-metal: #c5d4e7; --an-glow: #c5d4e744; }.an-gold { --an-metal: #f6ce66; --an-glow: #f6ce6644; }.an-platinum { --an-metal: #cbb6ff; --an-glow: #cbb6ff44; }
+.an-host .tp-toast-copy { min-width: 0; overflow-wrap: anywhere; }
+.an-host .tp-toast-copy>span { color: var(--an-metal); letter-spacing: .25px; text-transform: uppercase; }
+.an-host .tp-toast-open { font: inherit; color: inherit; }
+.an-host .tp-toast-art { background: transparent; box-shadow: 0 0 18px var(--an-glow); animation: an-metal-highlight 1.4s ease-out; }
+.an-host .tp-medallion-stage { width: 60px; height: 60px; }.an-host .tp-medallion-stage .tp-medallion { width: 60px; height: 60px; }
+.an-status,.an-more { background: #111827f5; color: #e2e8f0; padding: 14px 18px; border: 1px solid #64748b; border-radius: 12px; margin-top: 10px; font-size: 14px; line-height: 1.5; }
+.an-status p { margin: 0 0 10px; }.an-status button { border: 1px solid #64748b; border-radius: 8px; padding: 7px 12px; background: #26334a; }
+@keyframes an-metal-highlight { 40% { box-shadow: 0 0 34px var(--an-glow); transform: scale(1.06); } }
+@media(max-width:760px) { .an-host { right: 16px; top: 16px; }.an-host .tp-toast-open { gap: 12px; padding: 14px 8px 14px 14px; }.an-host .tp-toast-copy strong { font-size: 15px; } }
+@media(prefers-reduced-motion:reduce) { .an-host *, .an-host *::before, .an-host *::after { animation: none !important; transition: none !important; } }

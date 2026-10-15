@@ -1,4 +1,5 @@
 {% load static %}
+{% load achievement_notifications %}
 
 <!doctype html>
 <html lang="ru"{% if request.resolver_match.app_name == "sandbox" or request.resolver_match.app_name == "traineediary" %} data-theme="dark"{% endif %}>
@@ -120,5 +121,6 @@
   </main>
 
   {% block extra_js %}{% endblock %}
+  {% achievement_notification_host %}
 </body>
 </html>

@@ -1,3 +1,5 @@
+from django.core.exceptions import ValidationError
+from sandbox.services import ledger
 import logging
 
 from django.contrib.auth.decorators import login_required
@@ -119,6 +121,19 @@ def block_historical_attempt_action(request, attempt):
     )
 
 
+def ledger_form(function):
+    from functools import wraps
+    @wraps(function)
+    def wrapped(request,*args,**kwargs):
+        try:
+            if request.POST.get("operation_id"):ledger.operation_id(request.POST["operation_id"])
+            return function(request,*args,**kwargs)
+        except ValidationError:
+            messages.error(request,"Операция устарела или содержит неверный идентификатор. Обнови страницу и повтори действие.")
+            return redirect("sandbox:task_detail",attempt_id=kwargs.get("attempt_id",args[0] if args else None))
+    return wrapped
+
+
 @login_required
 def dashboard(request):
     if request.user.is_staff:
@@ -233,11 +248,16 @@ def task_detail(request, attempt_id):
         latest_ai_review
     )
 
+    from uuid import uuid4
+    ledger_operation_id = str(uuid4())
+    ledger_submission = ledger.SandboxAnswerSubmission.objects.filter(attempt_id=attempt.pk).order_by('-ordinal').first()
     return render(
         request,
         "sandbox/task_detail.html",
         {
             "attempt": attempt,
+            "ledger_operation_id": ledger_operation_id,
+            "ledger_submission_id": ledger_submission.pk if ledger_submission else "",
             "check_runs": attempt.check_runs.all(),
             "is_mentor_view": is_mentor_view,
             "mentor_decision_options": TaskAttempt.MentorDecision.choices,
@@ -259,6 +279,9 @@ def task_detail(request, attempt_id):
 
 @login_required
 @require_POST
+@transaction.atomic
+@ledger.trusted
+@ledger_form
 def start_task(request, attempt_id):
     attempt = get_object_or_404(
         TaskAttempt.objects.select_related("task", "task__queue"),
@@ -316,7 +339,7 @@ def start_task(request, attempt_id):
     if not attempt.is_available:
         return redirect("sandbox:dashboard")
 
-    if not try_mark_environment_starting(attempt):
+    if not try_mark_environment_starting(attempt, actor=request.user, origin="trainee", operation_id=request.POST.get("operation_id")):
         messages.info(
             request,
             "Окружение задания уже запускается или перезапускается."
@@ -327,7 +350,7 @@ def start_task(request, attempt_id):
             attempt_id=attempt.id
         )
 
-    start_environment_in_background(attempt.id)
+    transaction.on_commit(lambda: start_environment_in_background(attempt.id, operation_id=attempt._ledger_environment_id))
 
     messages.info(
         request,
@@ -339,6 +362,9 @@ def start_task(request, attempt_id):
 
 @login_required
 @require_POST
+@transaction.atomic
+@ledger.trusted
+@ledger_form
 def restart_task(request, attempt_id):
     attempt = get_object_or_404(
         TaskAttempt.objects.select_related("task", "task__queue"),
@@ -397,7 +423,7 @@ def restart_task(request, attempt_id):
         messages.error(request, "Этот тикет пока недоступен.")
         return redirect("sandbox:dashboard")
 
-    if not try_mark_environment_restarting(attempt):
+    if not try_mark_environment_restarting(attempt, actor=request.user, origin="trainee", operation_id=request.POST.get("operation_id")):
         messages.info(
             request,
             "Окружение задания уже запускается или перезапускается."
@@ -408,7 +434,7 @@ def restart_task(request, attempt_id):
             attempt_id=attempt.id
         )
 
-    start_environment_restart_in_background(attempt.id)
+    transaction.on_commit(lambda: start_environment_restart_in_background(attempt.id, operation_id=attempt._ledger_environment_id))
 
     messages.info(
         request,
@@ -506,6 +532,8 @@ def rerun_task(request, attempt_id):
 
 @login_required
 @require_POST
+@ledger.trusted
+@ledger_form
 def check_task(request, attempt_id):
     attempt = get_object_or_404(
         TaskAttempt.objects.select_related("task", "task__queue"),
@@ -548,11 +576,22 @@ def check_task(request, attempt_id):
             )
             return redirect("sandbox:task_detail", attempt_id=attempt.id)
 
+        prior = ledger.SandboxAnswerSubmission.objects.filter(operation_id=request.POST.get("operation_id")).first() if request.POST.get("operation_id") else None
+        if prior:
+            if prior.attempt_id != attempt.pk or prior.digest != ledger.digest([request.POST.get("client_answer", ""), request.POST.get("trainee_report", "")]):
+                messages.error(request,"Эта операция отправки относится к другой версии ответа.")
+            else:messages.info(request,"Этот ответ уже отправлен.")
+            return redirect("sandbox:task_detail",attempt_id=attempt.pk)
         # Keep the exact draft before validation, including whitespace. The
         # redirect then renders both submitted values even without JavaScript.
-        attempt.client_answer = request.POST.get("client_answer", "")
-        attempt.trainee_report = request.POST.get("trainee_report", "")
-        attempt.save(update_fields=["client_answer", "trainee_report"])
+        with transaction.atomic():
+            fresh = TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+            if fresh.status in (TaskAttempt.Status.ON_REVIEW, TaskAttempt.Status.PASSED):
+                messages.info(request,"Ответ уже зафиксирован.")
+                return redirect("sandbox:task_detail",attempt_id=attempt.pk)
+            attempt.client_answer = request.POST.get("client_answer", "")
+            attempt.trainee_report = request.POST.get("trainee_report", "")
+            attempt.save(update_fields=["client_answer", "trainee_report"])
         client_answer = attempt.client_answer.strip()
         trainee_report = attempt.trainee_report.strip()
 
@@ -574,6 +613,10 @@ def check_task(request, attempt_id):
         attempt.trainee_report = trainee_report
         try:
             with transaction.atomic():
+                fresh=TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+                if fresh.status in (TaskAttempt.Status.ON_REVIEW, TaskAttempt.Status.PASSED):
+                    return redirect("sandbox:task_detail",attempt_id=attempt.pk)
+                ledger.submit_answer(attempt, request.POST.get("client_answer", ""), request.POST.get("trainee_report", ""), request.POST.get("operation_id"))
                 ai_review = (
                     create_ai_review(attempt)
                     if attempt.task.ai_review_context else None
@@ -653,6 +696,7 @@ def check_task(request, attempt_id):
     check_job = start_attempt_check_in_background(
         attempt=attempt,
         user_id=request.user.id,
+        operation_id=request.POST.get("operation_id"),
     )
 
     if check_job is None:
@@ -777,13 +821,16 @@ def environment_status(request, attempt_id):
 
 @login_required
 @require_POST
+@transaction.atomic
+@ledger.trusted
+@ledger_form
 def save_mentor_feedback(request, attempt_id):
     if not request.user.is_staff:
         messages.error(request, "У тебя нет доступа к этому действию.")
         return redirect("sandbox:dashboard")
 
     attempt = get_object_or_404(
-        TaskAttempt.objects.select_related("task", "user"),
+        TaskAttempt.objects.select_for_update(of=("self",)).select_related("task", "user"),
         id=attempt_id,
     )
 
@@ -810,6 +857,15 @@ def save_mentor_feedback(request, attempt_id):
     if mentor_decision not in allowed_decisions:
         mentor_decision = TaskAttempt.MentorDecision.NOT_REVIEWED
 
+    duplicate_review = bool(request.POST.get("operation_id") and ledger.SandboxAnswerReviewEvent.objects.filter(operation_id=request.POST.get("operation_id")).exists())
+    try:
+        ledger.review_answer(attempt, request.user, mentor_decision, request.POST.get("mentor_feedback", "").strip(), request.POST.get("submission_id") or None, request.POST.get("operation_id"))
+    except (ValidationError, ValueError):
+        messages.error(request,"Версия ответа изменилась или операция уже использована. Обнови страницу и проверь ответ.")
+        return redirect("sandbox:task_detail",attempt_id=attempt.pk)
+    if duplicate_review:
+        messages.info(request,"Это решение уже сохранено.")
+        return redirect("sandbox:task_detail",attempt_id=attempt.pk)
     mentor_reviewed_at = timezone.now()
 
     attempt.mentor_feedback = request.POST.get("mentor_feedback", "").strip()

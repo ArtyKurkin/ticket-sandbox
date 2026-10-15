@@ -15,21 +15,9 @@ function loadModule(name) {
   return context.exports;
 }
 const { positionCard } = loadModule('positioning');
-const { stageStatus } = loadModule('types');
-const { stages } = loadModule('data');
 function intersects(a,b) {
   return a.left < b.left+b.width && a.left+a.width > b.left && a.top < b.top+b.height && a.top+a.height > b.top;
 }
-
-test('initial and demo progress maintain the ordered stage sequence', () => {
-  assert.equal(stages.length,8);
-  for (const completed of [1,3,6,8]) {
-    const statuses = stages.map(stage => stageStatus(stage,completed));
-    assert.equal(statuses.filter(status => status === 'completed').length,completed);
-    assert.equal(statuses.filter(status => status === 'current').length,completed === 8 ? 0 : 1);
-    for (let index=0;index<8;index++) assert.equal(stages[index].order,index+1);
-  }
-});
 
 test('inspector avoids other stations and labels in its preferred location', () => {
   const bounds={width:1000,height:800},card={width:330,height:240};

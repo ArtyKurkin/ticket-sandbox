@@ -109,9 +109,24 @@ class RoadmapTests(TestCase):
             self.assertContains(response, 'roadmap-')
             props = json.loads(re.search(r'<script id="roadmap-props" type="application/json">(.*?)</script>', response.content.decode(), re.S)[1])
             self.assertIs(props['canDemo'], staff)
-            self.assertEqual(props['initialProgress'], {'completed': 1, 'trophyCount': 2})
+            self.assertEqual(props['roadmapApiUrl'], reverse('roadmap_api:me'))
+            self.assertEqual(props['loginUrl'], reverse('login'))
+            self.assertNotIn('initialProgress', props)
+            self.assertNotIn('trophyCount', props)
+            self.assertIn('actionExternalHosts', props)
             self.assertIn('no-store', response['Cache-Control'])
             self.assertIn('csrftoken', response.cookies)
+
+    @override_settings(DEBUG=True, ROADMAP_TEACHBASE_URL='https://courses.example.org/program/42',
+                       ROADMAP_TEACHBASE_ALLOWED_HOSTS=['courses.example.org'])
+    def test_external_action_hosts_are_server_supplied_and_validated(self):
+        import re
+        self.client.force_login(get_user_model().objects.create_user(username='roadmap-host-policy'))
+        for valid in (True, False):
+            with override_settings(ROADMAP_TEACHBASE_URL=('https://courses.example.org/program/42' if valid else 'https://evil.example/')):
+                response = self.client.get(reverse('roadmap') + '?actionExternalHosts=evil.example&url=https://evil.example/')
+                props = json.loads(re.search(r'<script id="roadmap-props" type="application/json">(.*?)</script>', response.content.decode(), re.S)[1])
+                self.assertEqual(props['actionExternalHosts'], ['courses.example.org'] if valid else [])
 
     @override_settings(DEBUG=True)
     def test_existing_islands_and_routes(self):

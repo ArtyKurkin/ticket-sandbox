@@ -358,6 +358,7 @@
 
         <form method="post" action="{% url 'sandbox:check_task' attempt.id %}">
           {% csrf_token %}
+            <input type="hidden" name="operation_id" value="{{ ledger_operation_id }}">
 
           <div class="answer-field-toolbar">
             <label for="client-answer">Ответ клиенту</label>
@@ -707,7 +708,9 @@
           </div>
 
           <form method="post" action="{% url 'sandbox:save_mentor_feedback' attempt.id %}">
+            <input type="hidden" name="submission_id" value="{{ ledger_submission_id }}">
             {% csrf_token %}
+            <input type="hidden" name="operation_id" value="{{ ledger_operation_id }}">
             <p class="field-label">Решение наставника</p>
             <div class="select-wrap">
               <select
@@ -782,6 +785,7 @@
               onsubmit="return confirm('Создать дополнительную тренировочную попытку? Она не повлияет на зачет по заданию.');"
             >
               {% csrf_token %}
+            <input type="hidden" name="operation_id" value="{{ ledger_operation_id }}">
               <button
                 type="submit"
                 class="button secondary"
@@ -855,6 +859,7 @@
             {% if attempt.terminal_url or attempt.container_name %}
               <form method="post" action="{% url 'sandbox:restart_task' attempt.id %}">
                 {% csrf_token %}
+            <input type="hidden" name="operation_id" value="{{ ledger_operation_id }}">
                 <button
                   type="submit"
                   class="button danger"
@@ -867,6 +872,7 @@
             {% else %}
               <form method="post" action="{% url 'sandbox:start_task' attempt.id %}">
                 {% csrf_token %}
+            <input type="hidden" name="operation_id" value="{{ ledger_operation_id }}">
                 <button
                   type="submit"
                   class="button"
@@ -882,6 +888,7 @@
             <form method="post" action="{% url 'sandbox:check_task' attempt.id %}">
             
               {% csrf_token %}
+            <input type="hidden" name="operation_id" value="{{ ledger_operation_id }}">
               <button
                 type="submit"
                 class="button success"
@@ -900,6 +907,7 @@
 
             <form method="post" action="{% url 'sandbox:restart_task' attempt.id %}">
               {% csrf_token %}
+            <input type="hidden" name="operation_id" value="{{ ledger_operation_id }}">
               <button
                 type="submit"
                 class="button danger"
@@ -912,6 +920,7 @@
           {% else %}
             <form method="post" action="{% url 'sandbox:start_task' attempt.id %}">
               {% csrf_token %}
+            <input type="hidden" name="operation_id" value="{{ ledger_operation_id }}">
               <button
                 type="submit"
                 class="button"

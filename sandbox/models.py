@@ -238,7 +238,38 @@ class Task(models.Model):
         return self.title
 
 
+class AttemptQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        from .services.ledger import database_write, unsupported_updates
+        with database_write():
+            unsupported_updates(self, kwargs)
+            return super().update(**kwargs)
+
+
 class TaskAttempt(models.Model):
+    objects = AttemptQuerySet.as_manager()
+
+    def save(self, *args, **kwargs):
+        from .services import ledger
+        from django.db import transaction, connection
+        if kwargs.get('update_fields') is not None and not kwargs['update_fields']:
+            return super().save(*args, **kwargs)
+        with transaction.atomic():
+            existing = type(self).objects.filter(pk=self.pk).first() if self.pk else None
+            manifest = None
+            enabled = ledger.SandboxLedgerBoundary.objects.filter(pk=1).exists()
+            if enabled and existing is None:
+                manifest = ledger.ensure_manifest(self.user_id, self.task)
+            if enabled and existing is not None and connection.vendor != 'postgresql' and not ledger._writing.get():
+                selected = kwargs.get('update_fields') or ledger.PROTECTED
+                fields = {f.attname for f in self._meta.fields if f.name in selected or f.attname in selected}
+                if any(getattr(existing, field) != getattr(self, field) for field in ledger.PROTECTED.intersection(fields)):
+                    ledger.gap(self.pk, 'unsupported_update', 'orm')
+            with ledger.database_write():
+                result = super().save(*args, **kwargs)
+            if enabled and existing is None:
+                ledger.created_attempt(self, manifest)
+            return result
 
     class MentorDecision(models.TextChoices):
         NOT_REVIEWED = "not_reviewed", "Не проверено"
@@ -820,3 +851,7 @@ class CheckRun(models.Model):
 
     def __str__(self):
         return f"{self.attempt} — {self.get_result_display()}"
+
+# Registered in the same Django app; isolated module keeps operational models readable.
+from .ledger_models import (SandboxLedgerBoundary, SandboxProgramManifest, SandboxAttemptCoverage, SandboxEvidenceGap,
+    TechnicalCheckExecution, TechnicalCheckExecutionEvent, SandboxEnvironmentEvent, SandboxAnswerSubmission, SandboxAnswerReviewEvent)

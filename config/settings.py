@@ -59,6 +59,8 @@ INSTALLED_APPS = [
     "react_frontend",
     "sandbox.apps.SandboxConfig",
     "traineediary",
+    "roadmap.apps.RoadmapConfig",
+    "achievements.apps.AchievementsConfig",
     "assessment.apps.AssessmentConfig",
 ]
 
@@ -173,6 +175,14 @@ STORAGES = {
         "BACKEND": STATICFILES_STORAGE_BACKEND,
     },
 }
+
+# Optional learning destination; no link is emitted until both settings are valid.
+ROADMAP_TEACHBASE_URL = os.getenv("ROADMAP_TEACHBASE_URL", "")
+ROADMAP_TEACHBASE_ALLOWED_HOSTS = [
+    host.strip().lower()
+    for host in os.getenv("ROADMAP_TEACHBASE_ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+]
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"

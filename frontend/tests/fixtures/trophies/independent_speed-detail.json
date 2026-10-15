@@ -1,0 +1,86 @@
+{
+  "achievement": {
+    "public_id": "6cb6bd5d-6093-4685-b37b-811e9c2f9851",
+    "secret": false,
+    "revealed": true,
+    "status": "earned",
+    "applicable": true,
+    "highest_tier": {
+      "code": "platinum",
+      "rank": 4,
+      "rarity": "platinum"
+    },
+    "progress": null,
+    "earned_at": "2026-10-14T10:16:35.254893+00:00",
+    "last_upgraded_at": "2026-10-14T10:16:35.276554+00:00",
+    "revision": 2,
+    "code": "independent_speed",
+    "title": "Скорость обработки тикетов",
+    "description": "Скорость обработки тикетов",
+    "category": "speed",
+    "kind": "tiered",
+    "rule_version": 1,
+    "art_key": "speed",
+    "supported_tiers": [
+      {
+        "code": "bronze",
+        "rank": 1,
+        "rarity": "bronze",
+        "criterion": "≥5 т/ч на NO_REVIEW",
+        "automatic": true
+      },
+      {
+        "code": "silver",
+        "rank": 2,
+        "rarity": "silver",
+        "criterion": "≥7 т/ч на NO_REVIEW",
+        "automatic": true
+      },
+      {
+        "code": "gold",
+        "rank": 3,
+        "rarity": "gold",
+        "criterion": "≥9 т/ч на NO_REVIEW",
+        "automatic": true
+      },
+      {
+        "code": "platinum",
+        "rank": 4,
+        "rarity": "platinum",
+        "criterion": ">10 т/ч на NO_REVIEW",
+        "automatic": true
+      }
+    ],
+    "data_quality": "verified",
+    "manual": false
+  },
+  "history": [
+    {
+      "id": 5,
+      "action": "grant",
+      "from_tier": null,
+      "to_tier": "bronze",
+      "occurred_at": "2026-08-02T21:00:00+00:00",
+      "recorded_at": "2026-10-14T10:16:35.255052+00:00",
+      "source": "weekly_metric",
+      "manual": false,
+      "actor_id": null,
+      "reason": "",
+      "rule_version": 1
+    },
+    {
+      "id": 6,
+      "action": "upgrade",
+      "from_tier": "bronze",
+      "to_tier": "platinum",
+      "occurred_at": "2026-08-09T21:00:00+00:00",
+      "recorded_at": "2026-10-14T10:16:35.276756+00:00",
+      "source": "weekly_metric",
+      "manual": false,
+      "actor_id": null,
+      "reason": "",
+      "rule_version": 1
+    }
+  ],
+  "next_cursor": null
+}
