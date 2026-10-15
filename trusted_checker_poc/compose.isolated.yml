@@ -1,0 +1,23 @@
+# Standalone file, never merge with the project's Compose files.
+# Only after separate verification that the selected daemon is dedicated.
+name: trusted-checker-poc
+services:
+  target:
+    image: ${POC_TARGET_IMAGE:?supply approved immutable local image ID}
+    labels:
+      tc-poc.role: target
+      tc-poc.scope: ${POC_SCOPE:?unique poc- scope required}
+      tc-poc.generation: ${POC_GENERATION:?new generation UUID required}
+      tc-poc.owner: synthetic-operator
+      tc-poc.task: synthetic-localhost
+    networks: [fixture]
+    mem_limit: 64m
+    pids_limit: 32
+    cpus: 0.25
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+networks:
+  fixture:
+    internal: true
+    labels:
+      tc-poc.scope: ${POC_SCOPE:?unique poc- scope required}
