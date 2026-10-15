@@ -21,8 +21,8 @@ CATALOG = [
     ], applicability="new_hire"),
     family("sandbox_program", "Ticket Sandbox", "sandbox", [
         ("bronze", "Обязательная программа технически завершена", {"automatic": True}),
-        ("silver", "Техническое завершение, ≤2 успешных перезапусков", {"automatic": False, "max_resets": 2}),
-        ("gold", "Все ответы приняты, ≤2 перезапусков и ≤2 возвратов", {"automatic": False, "max_resets": 2, "max_revisions": 2, "answers_approved": True}),
+        ("silver", "Техническое завершение, ≤2 успешных перезапусков", {"automatic": True, "max_resets": 2}),
+        ("gold", "Все ответы приняты, ≤2 перезапусков и ≤2 возвратов", {"automatic": True, "max_resets": 2, "max_revisions": 2, "answers_approved": True}),
         ("platinum", "Первая проверка и первая отправка успешны, без перезапусков", {"automatic": False, "max_resets": 0, "first_check": True, "first_submission": True}),
     ], applicability="new_hire"),
     family("review_quality", "Качество тикетов", "quality", [
@@ -44,7 +44,7 @@ CATALOG = [
     ], applicability="new_hire"),
     family("sandbox_first_success", "Первый запуск", "sandbox", [("bronze", "Первое технически успешное зачётное задание", {"automatic": True, "task_count": 1})], kind="fixed", applicability="new_hire"),
     family("sandbox_five_successes", "Пять из пяти", "sandbox", [("silver", "Пять различных технически успешных зачётных заданий", {"automatic": True, "task_count": 5})], kind="fixed", applicability="new_hire"),
-    family("sandbox_first_five_clean_answers", "Без замечаний", "sandbox", [("gold", "Первые пять разных ответов приняты с первой отправки", {"automatic": False})], kind="fixed", applicability="new_hire"),
+    family("sandbox_first_five_clean_answers", "Без замечаний", "sandbox", [("gold", "Первые пять разных ответов приняты с первой отправки", {"automatic": True})], kind="fixed", applicability="new_hire"),
     family("review_quality_streak", "Стабильность — признак мастерства", "quality", [("gold", "Три полные последовательные недели WITH_REVIEW с ≥90%", {"automatic": False})], kind="fixed"),
     family("independent_engineer", "Самостоятельный инженер", "independent", [("silver", "Подтверждённый переход OPTIONAL_REVIEW → NO_REVIEW", {"automatic": True})], kind="fixed"),
     family("clean_week", "Чистая неделя", "quality", [("platinum", "100% за полную рабочую неделю WITH_REVIEW с подтверждённым покрытием", {"automatic": False})], kind="fixed", secret=True),

@@ -1,4 +1,4 @@
-"""SELECT-only future provider: no grants, no restored attempts, no raw texts in DTO."""
+"""SELECT-only Ledger provider: no grants, no restored attempts, no raw texts in DTO."""
 
 from sandbox.models import TaskAttempt, CheckRun, SandboxProgramCompletion
 from sandbox.ledger_models import (
@@ -10,16 +10,37 @@ from sandbox.ledger_models import (
     SandboxEnvironmentEvent,
     SandboxAnswerSubmission,
 )
-from sandbox.services.technical_evidence import get_technical_evidence
+from sandbox.services.technical_evidence import get_technical_evidence, with_technical_evidence
+from collections import defaultdict
+
+
+def _load(attempts, attempt_ids):
+    """Request-scoped batch; the same checks/DTO serve single and program reads."""
+    ids = list(attempt_ids)
+    data = {"attempts": {a.pk: a for a in attempts},
+            "coverage": {c.attempt_id: c for c in SandboxAttemptCoverage.objects.filter(attempt_id__in=ids)}}
+    queries = {
+        "gaps": SandboxEvidenceGap.objects.filter(attempt_id__in=ids),
+        "checks": TechnicalCheckExecution.objects.filter(attempt_id__in=ids).prefetch_related("events").order_by("ordinal"),
+        "environment": SandboxEnvironmentEvent.objects.filter(attempt_id__in=ids).order_by("pk"),
+        "submissions": SandboxAnswerSubmission.objects.filter(attempt_id__in=ids).prefetch_related("reviews").order_by("ordinal"),
+        "runs": CheckRun.objects.filter(attempt_id__in=ids).only("id", "attempt_id", "exit_code", "result"),
+    }
+    for name, rows in queries.items():
+        data[name] = defaultdict(list)
+        for row in rows:
+            data[name][row.attempt_id].append(row)
+    return data
 
 
 def attempt_evidence(attempt_id):
-    attempt = (
-        TaskAttempt.objects.select_related("task", "task__queue")
-        .filter(pk=attempt_id)
-        .first()
-    )
-    coverage = SandboxAttemptCoverage.objects.filter(attempt_id=attempt_id).first()
+    attempts = list(with_technical_evidence(TaskAttempt.objects.select_related("task", "task__queue").filter(pk=attempt_id)))
+    return _attempt_evidence(attempt_id, _load(attempts, [attempt_id]))
+
+
+def _attempt_evidence(attempt_id, data):
+    attempt = data["attempts"].get(attempt_id)
+    coverage = data["coverage"].get(attempt_id)
     reasons = []
     if attempt is None:
         reasons.append("attempt_details_missing")
@@ -34,18 +55,10 @@ def attempt_evidence(attempt_id):
         )
     ):
         reasons.append("identity_mismatch")
-    gaps = list(
-        SandboxEvidenceGap.objects.filter(attempt_id=attempt_id).values_list(
-            "reason", flat=True
-        )
-    )
+    gaps = [g.reason for g in data["gaps"][attempt_id]]
     if gaps:
         reasons.append("ledger_gap")
-    checks = list(
-        TechnicalCheckExecution.objects.filter(attempt_id=attempt_id)
-        .prefetch_related("events")
-        .order_by("ordinal")
-    )
+    checks = data["checks"][attempt_id]
     technical = []
     runs = {}
     for execution in checks:
@@ -69,6 +82,7 @@ def attempt_evidence(attempt_id):
                 "run_id": str(execution.run_id),
                 "ordinal": execution.ordinal,
                 "requested_at": execution.requested_at.isoformat(),
+                "finished_at": finish.occurred_at.isoformat() if finish else None,
                 "result": finish.result if finish else "unknown",
                 "failure_class": finish.failure_class if finish else "unknown",
                 "checker_started": finish.checker_started if finish else None,
@@ -91,9 +105,7 @@ def attempt_evidence(attempt_id):
             reasons.append("unregistered_execution")
     if [e.ordinal for e in checks] != list(range(1, len(checks) + 1)):
         reasons.append("check_ordinals_missing")
-    environment = list(
-        SandboxEnvironmentEvent.objects.filter(attempt_id=attempt_id).order_by("pk")
-    )
+    environment = data["environment"][attempt_id]
     requests = [e for e in environment if e.phase == "requested"]
     ends = {e.operation_id: e for e in environment if e.phase == "finished"}
     resets = 0
@@ -107,6 +119,8 @@ def attempt_evidence(attempt_id):
             reasons.append("identity_mismatch")
         if request.origin == "unknown":
             reasons.append("environment_origin_unknown")
+        if request.origin == "trainee" and request.actor_id != request.user_id:
+            reasons.append("reset_actor_mismatch")
         end = ends.get(request.operation_id)
         if not end:
             reasons.append("environment_pending")
@@ -119,11 +133,7 @@ def attempt_evidence(attempt_id):
                 all_resets += 1
                 if request.origin == "trainee" and request.attempt_number == 1:
                     resets += 1
-    submissions = list(
-        SandboxAnswerSubmission.objects.filter(attempt_id=attempt_id)
-        .prefetch_related("reviews")
-        .order_by("ordinal")
-    )
+    submissions = data["submissions"][attempt_id]
     answers = []
     returns = 0
     for submission in submissions:
@@ -151,6 +161,7 @@ def attempt_evidence(attempt_id):
                 "digest": submission.digest,
                 "decision": last.decision if last else "not_reviewed",
                 "review_ids": [e.pk for e in reviews],
+                "reviewed_at": last.reviewed_at.isoformat() if last else None,
                 "valid_return": count,
             }
         )
@@ -168,9 +179,7 @@ def attempt_evidence(attempt_id):
             reasons.append("reset_count_mismatch")
         actual_runs = {
             r.pk: r
-            for r in CheckRun.objects.filter(attempt_id=attempt_id).only(
-                "id", "attempt_id", "exit_code", "result"
-            )
+            for r in data["runs"][attempt_id]
         }
         if set(actual_runs) != set(runs):
             reasons.append("check_run_details_mismatch")
@@ -261,11 +270,13 @@ def program_evidence(user_id, program_key="l1"):
     ids = [e["task_id"] for e in entries]
     if completion and set(ids) != {e["task_id"] for e in completion.snapshot["tasks"]}:
         reasons.append("completion_manifest_composition_mismatch")
+    credit = list(with_technical_evidence(TaskAttempt.objects.select_related("task", "task__queue").filter(
+        user_id=user_id, task_id__in=ids, attempt_number=1)))
+    by_task = {a.task_id: a for a in credit}
+    data = _load(credit, [a.pk for a in credit])
     attempts = []
     for entry in entries:
-        attempt = TaskAttempt.objects.filter(
-            user_id=user_id, task_id=entry["task_id"], attempt_number=1
-        ).first()
+        attempt = by_task.get(entry["task_id"])
         if not attempt:
             reasons.append("credit_attempt_missing")
             continue
@@ -276,7 +287,7 @@ def program_evidence(user_id, program_key="l1"):
             )
         ):
             reasons.append("completion_attempt_identity_mismatch")
-        evidence = attempt_evidence(attempt.pk)
+        evidence = _attempt_evidence(attempt.pk, data)
         attempts.append(
             {
                 "task_id": entry["task_id"],
@@ -289,8 +300,7 @@ def program_evidence(user_id, program_key="l1"):
             reasons.append("answer_requirement_unknown")
         if entry["criteria_digest"] is None:
             reasons.append("criteria_version_unknown")
-        checks = TechnicalCheckExecution.objects.filter(attempt_id=attempt.pk)
-        if checks.exclude(criteria_digest=entry["criteria_digest"]).exists():
+        if any(c.criteria_digest != entry["criteria_digest"] for c in data["checks"][attempt.pk]):
             reasons.append("criteria_version_changed")
     first_answers = sorted(
         [
@@ -313,6 +323,8 @@ def program_evidence(user_id, program_key="l1"):
         if name == "answers":
             bad += [r for r in reasons if r.startswith("answer_requirement_")]
         for evidence in attempts:
+            if name == "answers" and evidence["requires_review"] is False:
+                continue
             if evidence["coverage"]["sources"][name]["status"] == "unknown":
                 bad.extend(evidence["coverage"]["sources"][name]["reasons"])
         axes[name] = {
@@ -348,7 +360,7 @@ def program_evidence(user_id, program_key="l1"):
             else None
         ),
         "valid_returns": (
-            sum((a["valid_returns"] or 0 for a in attempts))
+            sum((a["valid_returns"] or 0 for a in attempts if a["requires_review"]))
             if axes["answers"]["status"] == "complete"
             else None
         ),

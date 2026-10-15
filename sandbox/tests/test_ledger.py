@@ -103,7 +103,7 @@ class LedgerTests(SandboxTestCase):
             user_id=self.user.pk,
             definition=AchievementDefinition.objects.get(code="sandbox_program"),
         )
-        self.assertEqual(result.tier_code, "bronze")
+        self.assertEqual(result.tier_code, "silver")
 
     def test_failed_first_then_success_is_two_real_ordinals(self):
         self.check(1)

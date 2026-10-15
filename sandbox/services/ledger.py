@@ -566,6 +566,8 @@ def review_answer(attempt, actor, decision, comment, submission_id=None, op_id=N
 
     if not actor.is_staff:
         raise PermissionDenied
+    from achievements.services.grants import lock_user
+    lock_user(attempt.user_id)
     TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
     observe(attempt)
     submission = (
@@ -610,7 +612,7 @@ def review_answer(attempt, actor, decision, comment, submission_id=None, op_id=N
         comment,
     ):
         return last
-    return SandboxAnswerReviewEvent.objects.create(
+    event = SandboxAnswerReviewEvent.objects.create(
         submission=submission,
         actor_id=actor.pk,
         reviewed_at=timezone.now(),
@@ -620,3 +622,10 @@ def review_answer(attempt, actor, decision, comment, submission_id=None, op_id=N
         kind="correction" if last else "decision",
         supersedes=last,
     )
+    from achievements.services.events import publish
+    if attempt.attempt_number == 1 and attempt.task.queue.slug == "l1" and (last is None or last.decision != decision):
+        publish(provider="sandbox_review", external_id=event.pk, user_id=attempt.user_id,
+                context={"program_key": "l1"},
+                payload={"review_id": event.pk, "submission_id": submission.pk,
+                         "attempt_id": attempt.pk, "kind": event.kind})
+    return event

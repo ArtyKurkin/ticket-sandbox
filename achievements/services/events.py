@@ -17,8 +17,9 @@ from .grants import current_metric_problem, digest, flag_disputed, grant, lock_u
 logger = logging.getLogger(__name__)
 PROVIDERS = {
     "roadmap_confirmation": ("training_program",),
-    "sandbox_completion": ("sandbox_program", "sandbox_first_success", "sandbox_five_successes"),
-    "sandbox_technical": ("sandbox_first_success", "sandbox_five_successes"),
+    "sandbox_completion": ("sandbox_program", "sandbox_first_success", "sandbox_five_successes", "sandbox_first_five_clean_answers"),
+    "sandbox_technical": ("sandbox_program", "sandbox_first_success", "sandbox_five_successes", "sandbox_first_five_clean_answers"),
+    "sandbox_review": ("sandbox_program", "sandbox_first_five_clean_answers"),
     "weekly_metric": ("review_quality", "independent_speed"),
     "stage_transition": ("independent_engineer", "review_quality", "independent_speed"),
     "probation_completion": ("probation_new_hire",),
@@ -118,8 +119,14 @@ def _process(event_id):
         definitions = list(AchievementDefinition.objects.filter(evaluator_key__in=PROVIDERS[event.provider]))
         if not definitions:
             raise ValidationError("Каталог evaluator отсутствует; источник ожидает повторной обработки.")
+        evidence_cache = {}
         for definition in definitions:
-            result = evaluate(user_id=event.user_id, definition=definition)
+            result = evaluate(user_id=event.user_id, definition=definition, evidence_cache=evidence_cache)
+            if event.provider == "sandbox_review":
+                from .reconciliation import sandbox_problem
+                if sandbox_problem(event.user_id, definition, result):
+                    flag_disputed(user_id=event.user_id, definition_id=definition.pk,
+                                  source_id=event.pk, sandbox_invalid=True)
             report = {"definition": definition.code, **result.report()}
             if result.status == "eligible":
                 _, outcome, earned_event = grant(user_id=event.user_id, definition_id=definition.pk,

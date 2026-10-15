@@ -33,4 +33,5 @@ class NotificationMigrationTests(TransactionTestCase):
             self.assertEqual(AchievementNotification.objects.count(),1)
             self.assertNotEqual(AchievementNotification.objects.get().event_id,old.pk)
         finally:
-            MigrationExecutor(connection).migrate([current])
+            executor = MigrationExecutor(connection)
+            executor.migrate(executor.loader.graph.leaf_nodes())

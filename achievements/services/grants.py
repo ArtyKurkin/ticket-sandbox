@@ -156,7 +156,7 @@ def revoke(*, user_id, definition_id, actor, reason, operation_id, expected_revi
 
 
 @transaction.atomic
-def flag_disputed(*, user_id, metric_id=None, confirmation_revoked=False, source_id, definition_id=None):
+def flag_disputed(*, user_id, metric_id=None, confirmation_revoked=False, source_id, definition_id=None, sandbox_invalid=False):
     """Correction invalidates the proof, never silently lowers the entitlement."""
     lock_user(user_id)
     for entitlement in UserAchievement.objects.filter(user_id=user_id, active_tier__isnull=False):
@@ -166,7 +166,8 @@ def flag_disputed(*, user_id, metric_id=None, confirmation_revoked=False, source
         if event is None or event.source_type == "manual":
             continue
         affected = (metric_id is not None and event.evidence.get("metric_id") == metric_id) or (
-            confirmation_revoked and entitlement.definition.evaluator_key == "training_program")
+            confirmation_revoked and entitlement.definition.evaluator_key == "training_program") or (
+            sandbox_invalid and entitlement.definition.evaluator_key in ("sandbox_program", "sandbox_first_five_clean_answers"))
         if not affected:
             continue
         key = digest(["dispute", source_id, entitlement.pk])

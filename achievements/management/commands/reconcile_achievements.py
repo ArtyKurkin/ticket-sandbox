@@ -36,7 +36,8 @@ class Command(BaseCommand):
         if not definitions or any(d.rule_version != options["rule_version"] for d in definitions):
             raise CommandError("Каталог отсутствует или версия правила изменилась.")
         try:
-            reports = [reconcile(user_id=user_id, definition=d, apply=options["apply"], expected_rule_version=options["rule_version"])
+            evidence_cache = {}
+            reports = [reconcile(user_id=user_id, definition=d, apply=options["apply"], expected_rule_version=options["rule_version"], evidence_cache=evidence_cache)
                        for user_id in user_ids for d in definitions]
         except ValidationError as error:
             raise CommandError(str(error)) from error

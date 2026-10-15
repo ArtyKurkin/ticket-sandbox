@@ -48,4 +48,5 @@ class LedgerMigrationTests(TransactionTestCase):
                 attempt_evidence(attempt.pk)["coverage"]["status"], "unknown"
             )
         finally:
-            MigrationExecutor(connection).migrate([current])
+            executor = MigrationExecutor(connection)
+            executor.migrate(executor.loader.graph.leaf_nodes())

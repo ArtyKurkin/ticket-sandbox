@@ -12,6 +12,7 @@ from .independent import independent
 REGISTRY = {
     "training_program": training,
     "sandbox_program": sandbox,
+    "sandbox_first_five_clean_answers": sandbox,
     "sandbox_first_success": sandbox,
     "sandbox_five_successes": sandbox,
     "review_quality": weekly,
@@ -26,7 +27,7 @@ PENDING_EVIDENCE = {
 }
 
 
-def evaluate(*, user_id, definition):
+def evaluate(*, user_id, definition, evidence_cache=None):
     try:
         validate_definition(definition)
         tiers = list(definition.tiers.all())
@@ -49,7 +50,7 @@ def evaluate(*, user_id, definition):
         return unknown("source_not_ready", *PENDING_EVIDENCE.get(definition.evaluator_key, ("complete source history",)))
     function = REGISTRY[definition.evaluator_key]
     if function == sandbox:
-        return sandbox(user_id, tiers, definition)
+        return sandbox(user_id, tiers, definition, evidence_cache)
     if journey is None:
         return unknown("adaptation_context_missing", "adaptation and stage history")
     if function == weekly:

@@ -200,7 +200,7 @@ class SourceEventTests(AchievementTestCase):
         self.assertEqual(json.loads(output.getvalue())[0]["status"], "unknown")
         output = StringIO()
         call_command("reconcile_achievements", user_ids=[self.user.pk], source="sandbox_completion", stdout=output)
-        self.assertEqual({r["definition"] for r in json.loads(output.getvalue())}, {"sandbox_program", "sandbox_first_success", "sandbox_five_successes"})
+        self.assertEqual({r["definition"] for r in json.loads(output.getvalue())}, {"sandbox_program", "sandbox_first_success", "sandbox_five_successes", "sandbox_first_five_clean_answers"})
 
     def test_existing_metric_post_writer_records_source_and_awards_correct_group(self):
         from django.urls import reverse

@@ -115,7 +115,7 @@ class GrantTests(AchievementTestCase):
         self.assertFalse(AchievementOperation.objects.exists())
 
     def test_pending_auto_tiers_cannot_be_issued_by_grant_service(self):
-        for code, tier in [("training_program", "platinum"), ("sandbox_program", "silver"), ("clean_week", "platinum")]:
+        for code, tier in [("training_program", "platinum"), ("sandbox_program", "platinum"), ("clean_week", "platinum")]:
             with self.subTest(code=code), self.assertRaises(ValidationError):
                 self.award(tier, code=code)
 
