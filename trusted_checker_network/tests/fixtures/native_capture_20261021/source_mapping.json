@@ -1,0 +1,706 @@
+{
+  "actual_argv_recorded": false,
+  "mapping_basis": "filename_and_requested_source_taxonomy_only",
+  "captured_scope_labels": [
+    "host",
+    "tc-br-runner",
+    "tc-br-target",
+    "tc-runner",
+    "tc-target"
+  ],
+  "json_sources": [
+    {
+      "artifact": "host/address.json",
+      "scope_label": "host",
+      "source_id": "address",
+      "stdout_sha256": "b87ad3f62cd1801fb39e6dff28b65f145004599825e7a86c9c885d46e78bf1b9",
+      "stdout_bytes": 2486,
+      "exit_artifact": "host/address.exit",
+      "stderr_artifact": "host/address.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "address",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "host/bridge_fdb.json",
+      "scope_label": "host",
+      "source_id": "bridge_fdb",
+      "stdout_sha256": "94be09eb4aa2031bc3c2637e16e3197c4e2ec315aa3e04ff930edc1bd8c0184e",
+      "stdout_bytes": 2058,
+      "exit_artifact": "host/bridge_fdb.exit",
+      "stderr_artifact": "host/bridge_fdb.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "bridge",
+        "-j",
+        "fdb",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "host/bridge_link.json",
+      "scope_label": "host",
+      "source_id": "bridge_link",
+      "stdout_sha256": "23278f6d809ecd8c1c0f8490520c8cbbcfecfdefed332789fcafdfb7f246428e",
+      "stdout_bytes": 852,
+      "exit_artifact": "host/bridge_link.exit",
+      "stderr_artifact": "host/bridge_link.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "bridge",
+        "-j",
+        "-d",
+        "link",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "host/bridge_vlan.json",
+      "scope_label": "host",
+      "source_id": "bridge_vlan",
+      "stdout_sha256": "fe83580cc2b57383f893e83675d0040de9d3a134e6e038863dfc01675a538187",
+      "stdout_bytes": 242,
+      "exit_artifact": "host/bridge_vlan.exit",
+      "stderr_artifact": "host/bridge_vlan.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "bridge",
+        "-j",
+        "vlan",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "host/link.json",
+      "scope_label": "host",
+      "source_id": "link",
+      "stdout_sha256": "e38783cd567d3abc4166699cb57cb73ecfb310b017808907bfabec1feea0d3ea",
+      "stdout_bytes": 5181,
+      "exit_artifact": "host/link.exit",
+      "stderr_artifact": "host/link.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-d",
+        "link",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "host/nft.json",
+      "scope_label": "host",
+      "source_id": "nft",
+      "stdout_sha256": "bc10ca7749c362b418beb38ccde6fcb0f58c5cb10a3a5eff0a14b95db1cd2efa",
+      "stdout_bytes": 6345,
+      "exit_artifact": "host/nft.exit",
+      "stderr_artifact": "host/nft.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "nft",
+        "-j",
+        "-a",
+        "list",
+        "ruleset"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "host/route4.json",
+      "scope_label": "host",
+      "source_id": "route4",
+      "stdout_sha256": "d8e1291f9871c3f5bbf3ed25d23825ff920f7876d3ef94fa038960bca5732054",
+      "stdout_bytes": 1418,
+      "exit_artifact": "host/route4.exit",
+      "stderr_artifact": "host/route4.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-4",
+        "route",
+        "show",
+        "table",
+        "all"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "host/route6.json",
+      "scope_label": "host",
+      "source_id": "route6",
+      "stdout_sha256": "c2ce390348ff3b368bf52d47931a258a6c55947eec8aa2ea6ec40879bf31fc8b",
+      "stdout_bytes": 1770,
+      "exit_artifact": "host/route6.exit",
+      "stderr_artifact": "host/route6.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-6",
+        "route",
+        "show",
+        "table",
+        "all"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "host/rule4.json",
+      "scope_label": "host",
+      "source_id": "rule4",
+      "stdout_sha256": "e79a76eff86a78de4ce5d38c6277dbafbab227656214e1e116d9ac63597dbb9d",
+      "stdout_bytes": 140,
+      "exit_artifact": "host/rule4.exit",
+      "stderr_artifact": "host/rule4.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-4",
+        "rule",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "host/rule6.json",
+      "scope_label": "host",
+      "source_id": "rule6",
+      "stdout_sha256": "78fc521d26d8f02af636ce8e1c74bb782cbfd272b8a81529bea0adb9a68ed0ea",
+      "stdout_bytes": 91,
+      "exit_artifact": "host/rule6.exit",
+      "stderr_artifact": "host/rule6.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-6",
+        "rule",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-runner/address.json",
+      "scope_label": "tc-br-runner",
+      "source_id": "address",
+      "stdout_sha256": "7b69cf9b6204c9d3bcac7939a2b2b1485e0c6e2b91a4b9dcda80b32349c81fa7",
+      "stdout_bytes": 1105,
+      "exit_artifact": "tc-br-runner/address.exit",
+      "stderr_artifact": "tc-br-runner/address.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "address",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-runner/link.json",
+      "scope_label": "tc-br-runner",
+      "source_id": "link",
+      "stdout_sha256": "89924d396d87ce733db995a2bce33d04c21df6e2971f478d0b7ddbcb6a8e2d5d",
+      "stdout_bytes": 1040,
+      "exit_artifact": "tc-br-runner/link.exit",
+      "stderr_artifact": "tc-br-runner/link.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-d",
+        "link",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-runner/route4.json",
+      "scope_label": "tc-br-runner",
+      "source_id": "route4",
+      "stdout_sha256": "051d47387d1ac19abe577b153ab7197b308275f172cfa8b5b04ae7a613e1e856",
+      "stdout_bytes": 793,
+      "exit_artifact": "tc-br-runner/route4.exit",
+      "stderr_artifact": "tc-br-runner/route4.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-4",
+        "route",
+        "show",
+        "table",
+        "all"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-runner/route6.json",
+      "scope_label": "tc-br-runner",
+      "source_id": "route6",
+      "stdout_sha256": "dbd2d0d7a4ce5cb083cf9d85caf91a1efd2f38a50c3cc35ad7fd345a76552bf3",
+      "stdout_bytes": 483,
+      "exit_artifact": "tc-br-runner/route6.exit",
+      "stderr_artifact": "tc-br-runner/route6.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-6",
+        "route",
+        "show",
+        "table",
+        "all"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-runner/rule4.json",
+      "scope_label": "tc-br-runner",
+      "source_id": "rule4",
+      "stdout_sha256": "e79a76eff86a78de4ce5d38c6277dbafbab227656214e1e116d9ac63597dbb9d",
+      "stdout_bytes": 140,
+      "exit_artifact": "tc-br-runner/rule4.exit",
+      "stderr_artifact": "tc-br-runner/rule4.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-4",
+        "rule",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-runner/rule6.json",
+      "scope_label": "tc-br-runner",
+      "source_id": "rule6",
+      "stdout_sha256": "78fc521d26d8f02af636ce8e1c74bb782cbfd272b8a81529bea0adb9a68ed0ea",
+      "stdout_bytes": 91,
+      "exit_artifact": "tc-br-runner/rule6.exit",
+      "stderr_artifact": "tc-br-runner/rule6.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-6",
+        "rule",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-target/address.json",
+      "scope_label": "tc-br-target",
+      "source_id": "address",
+      "stdout_sha256": "471871ffedbcb252b3bb9fe8dd55656829e744592f92dd9c20cf7ba415bdc9cc",
+      "stdout_bytes": 1105,
+      "exit_artifact": "tc-br-target/address.exit",
+      "stderr_artifact": "tc-br-target/address.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "address",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-target/link.json",
+      "scope_label": "tc-br-target",
+      "source_id": "link",
+      "stdout_sha256": "d8f44fae6cd4ac2131c08d935df3d3d388bf04e853d28929c6c4aace9bd1b37c",
+      "stdout_bytes": 1040,
+      "exit_artifact": "tc-br-target/link.exit",
+      "stderr_artifact": "tc-br-target/link.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-d",
+        "link",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-target/route4.json",
+      "scope_label": "tc-br-target",
+      "source_id": "route4",
+      "stdout_sha256": "a6f7539e6a0548ec77df313a71af19cc94719aefb7e047cb2ba9f79c17dc178c",
+      "stdout_bytes": 793,
+      "exit_artifact": "tc-br-target/route4.exit",
+      "stderr_artifact": "tc-br-target/route4.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-4",
+        "route",
+        "show",
+        "table",
+        "all"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-target/route6.json",
+      "scope_label": "tc-br-target",
+      "source_id": "route6",
+      "stdout_sha256": "884902415ed501718e00ad9b9e310f9d5da6bc7369185108b08c9b532e10f41c",
+      "stdout_bytes": 483,
+      "exit_artifact": "tc-br-target/route6.exit",
+      "stderr_artifact": "tc-br-target/route6.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-6",
+        "route",
+        "show",
+        "table",
+        "all"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-target/rule4.json",
+      "scope_label": "tc-br-target",
+      "source_id": "rule4",
+      "stdout_sha256": "e79a76eff86a78de4ce5d38c6277dbafbab227656214e1e116d9ac63597dbb9d",
+      "stdout_bytes": 140,
+      "exit_artifact": "tc-br-target/rule4.exit",
+      "stderr_artifact": "tc-br-target/rule4.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-4",
+        "rule",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-br-target/rule6.json",
+      "scope_label": "tc-br-target",
+      "source_id": "rule6",
+      "stdout_sha256": "78fc521d26d8f02af636ce8e1c74bb782cbfd272b8a81529bea0adb9a68ed0ea",
+      "stdout_bytes": 91,
+      "exit_artifact": "tc-br-target/rule6.exit",
+      "stderr_artifact": "tc-br-target/rule6.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-6",
+        "rule",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-runner/address.json",
+      "scope_label": "tc-runner",
+      "source_id": "address",
+      "stdout_sha256": "a9d82e00b603d60e6408d553f7cfcb05b1dd24294f1bbb38728df0c7a4762096",
+      "stdout_bytes": 1112,
+      "exit_artifact": "tc-runner/address.exit",
+      "stderr_artifact": "tc-runner/address.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "address",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-runner/link.json",
+      "scope_label": "tc-runner",
+      "source_id": "link",
+      "stdout_sha256": "dac584693a878476b7e72a9df3f264aac1f821bc5cba3393ea0644ad70c705c3",
+      "stdout_bytes": 1044,
+      "exit_artifact": "tc-runner/link.exit",
+      "stderr_artifact": "tc-runner/link.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-d",
+        "link",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-runner/route4.json",
+      "scope_label": "tc-runner",
+      "source_id": "route4",
+      "stdout_sha256": "69c5023d98c140539162fcad765873c495e330a7b4dfc12c73640b7293e1a4cb",
+      "stdout_bytes": 805,
+      "exit_artifact": "tc-runner/route4.exit",
+      "stderr_artifact": "tc-runner/route4.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-4",
+        "route",
+        "show",
+        "table",
+        "all"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-runner/route6.json",
+      "scope_label": "tc-runner",
+      "source_id": "route6",
+      "stdout_sha256": "d5c0f1a4afcf57634b1e8077bec02450f30db5c627a0f8e738a68cba90924b69",
+      "stdout_bytes": 494,
+      "exit_artifact": "tc-runner/route6.exit",
+      "stderr_artifact": "tc-runner/route6.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-6",
+        "route",
+        "show",
+        "table",
+        "all"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-runner/rule4.json",
+      "scope_label": "tc-runner",
+      "source_id": "rule4",
+      "stdout_sha256": "e79a76eff86a78de4ce5d38c6277dbafbab227656214e1e116d9ac63597dbb9d",
+      "stdout_bytes": 140,
+      "exit_artifact": "tc-runner/rule4.exit",
+      "stderr_artifact": "tc-runner/rule4.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-4",
+        "rule",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-runner/rule6.json",
+      "scope_label": "tc-runner",
+      "source_id": "rule6",
+      "stdout_sha256": "78fc521d26d8f02af636ce8e1c74bb782cbfd272b8a81529bea0adb9a68ed0ea",
+      "stdout_bytes": 91,
+      "exit_artifact": "tc-runner/rule6.exit",
+      "stderr_artifact": "tc-runner/rule6.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-6",
+        "rule",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-target/address.json",
+      "scope_label": "tc-target",
+      "source_id": "address",
+      "stdout_sha256": "3f66556cf827ce1953e4763982fab6f9b260e79ed5478a66621177363477cb59",
+      "stdout_bytes": 1113,
+      "exit_artifact": "tc-target/address.exit",
+      "stderr_artifact": "tc-target/address.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "address",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-target/link.json",
+      "scope_label": "tc-target",
+      "source_id": "link",
+      "stdout_sha256": "9caa166104257b72af174ce276b172c3a70576256cb3aa0971374dd265f19f5d",
+      "stdout_bytes": 1044,
+      "exit_artifact": "tc-target/link.exit",
+      "stderr_artifact": "tc-target/link.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-d",
+        "link",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-target/route4.json",
+      "scope_label": "tc-target",
+      "source_id": "route4",
+      "stdout_sha256": "c35e866d411370dcdefb9f1d478b00370f74f64407a72e89552694d9b351d342",
+      "stdout_bytes": 805,
+      "exit_artifact": "tc-target/route4.exit",
+      "stderr_artifact": "tc-target/route4.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-4",
+        "route",
+        "show",
+        "table",
+        "all"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-target/route6.json",
+      "scope_label": "tc-target",
+      "source_id": "route6",
+      "stdout_sha256": "f69fcca0a9961accdfc762a77b36736a267e2560758e520b0d38c7a46d035a58",
+      "stdout_bytes": 495,
+      "exit_artifact": "tc-target/route6.exit",
+      "stderr_artifact": "tc-target/route6.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-6",
+        "route",
+        "show",
+        "table",
+        "all"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-target/rule4.json",
+      "scope_label": "tc-target",
+      "source_id": "rule4",
+      "stdout_sha256": "e79a76eff86a78de4ce5d38c6277dbafbab227656214e1e116d9ac63597dbb9d",
+      "stdout_bytes": 140,
+      "exit_artifact": "tc-target/rule4.exit",
+      "stderr_artifact": "tc-target/rule4.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-4",
+        "rule",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    },
+    {
+      "artifact": "tc-target/rule6.json",
+      "scope_label": "tc-target",
+      "source_id": "rule6",
+      "stdout_sha256": "78fc521d26d8f02af636ce8e1c74bb782cbfd272b8a81529bea0adb9a68ed0ea",
+      "stdout_bytes": 91,
+      "exit_artifact": "tc-target/rule6.exit",
+      "stderr_artifact": "tc-target/rule6.err",
+      "exact_argv": null,
+      "namespace_execution_wrapper": null,
+      "per_command_start_end": null,
+      "nominal_future_source_argv": [
+        "ip",
+        "-j",
+        "-6",
+        "rule",
+        "show"
+      ],
+      "argv_status": "nominal_source_plan_not_recorded_execution_argv"
+    }
+  ]
+}

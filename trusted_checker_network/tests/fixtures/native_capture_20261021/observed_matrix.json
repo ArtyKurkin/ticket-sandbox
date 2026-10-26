@@ -1,0 +1,5084 @@
+{
+  "link": {
+    "documents": {
+      "tc-br-target/link.json": {
+        "rows": 2,
+        "sha256": "d8f44fae6cd4ac2131c08d935df3d3d388bf04e853d28929c6c4aace9bd1b37c",
+        "provisional_decode": "accepted_format_only"
+      },
+      "tc-br-runner/link.json": {
+        "rows": 2,
+        "sha256": "89924d396d87ce733db995a2bce33d04c21df6e2971f478d0b7ddbcb6a8e2d5d",
+        "provisional_decode": "accepted_format_only"
+      },
+      "tc-target/link.json": {
+        "rows": 2,
+        "sha256": "9caa166104257b72af174ce276b172c3a70576256cb3aa0971374dd265f19f5d",
+        "provisional_decode": "accepted_format_only"
+      },
+      "host/link.json": {
+        "rows": 5,
+        "sha256": "e38783cd567d3abc4166699cb57cb73ecfb310b017808907bfabec1feea0d3ea",
+        "provisional_decode": "v2_topology_unknown_field"
+      },
+      "tc-runner/link.json": {
+        "rows": 2,
+        "sha256": "dac584693a878476b7e72a9df3f264aac1f821bc5cba3393ea0644ad70c705c3",
+        "provisional_decode": "accepted_format_only"
+      }
+    },
+    "paths": {
+      "$": {
+        "types": {
+          "list": 5
+        },
+        "cardinality": {
+          "min": 2,
+          "max": 5
+        },
+        "literals": []
+      },
+      "*": {
+        "types": {
+          "dict": 13
+        },
+        "cardinality": {
+          "min": 24,
+          "max": 28
+        },
+        "literals": []
+      },
+      "*.ifindex": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          1,
+          8,
+          6,
+          3,
+          2,
+          5,
+          7,
+          9,
+          4
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "positive",
+          "required": true,
+          "constraint": "exact_int_1..2147483647"
+        },
+        "diagnostic_registry": {
+          "kind": "index",
+          "required": true,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.ifname": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "lo",
+          "tc-br-t",
+          "tc-br-r",
+          "veth-target",
+          "eth0",
+          "tc-br0",
+          "tc-br-r-host",
+          "tc-br-t-host",
+          "veth-runner"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "ifname",
+          "required": true,
+          "constraint": "ascii_interface_literal_1..15_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": true,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.flags": {
+        "types": {
+          "list": 13
+        },
+        "cardinality": {
+          "min": 3,
+          "max": 4
+        },
+        "literals": [],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "flags:LOOPBACK|BROADCAST|MULTICAST|UP|LOWER_UP|NOARP|POINTOPOINT|DORMANT|PROMISC|ALLMULTI|MASTER|SLAVE",
+          "required": true,
+          "constraint": "exact_registered_literals; flags_unique_0..64"
+        },
+        "diagnostic_registry": {
+          "kind": "linkflags",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.flags.*": {
+        "types": {
+          "str": 47
+        },
+        "cardinality": [],
+        "literals": [
+          "LOOPBACK",
+          "UP",
+          "LOWER_UP",
+          "BROADCAST",
+          "MULTICAST"
+        ]
+      },
+      "*.mtu": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          65536,
+          1500
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "positive",
+          "required": true,
+          "constraint": "exact_int_1..2147483647"
+        },
+        "diagnostic_registry": {
+          "kind": "index",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.qdisc": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "noqueue",
+          "fq_codel"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "token",
+          "required": false,
+          "constraint": "ascii_native_token_1..64_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "qdisc",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.operstate": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "UNKNOWN",
+          "UP"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "token",
+          "required": false,
+          "constraint": "ascii_native_token_1..64_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "operstate",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkmode": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "DEFAULT"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "token",
+          "required": false,
+          "constraint": "ascii_native_token_1..64_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "linkmode",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.group": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "default"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "token",
+          "required": false,
+          "constraint": "ascii_native_token_1..64_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "group",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.txqlen": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          1000
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.link_type": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "loopback",
+          "ether"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "token",
+          "required": true,
+          "constraint": "ascii_native_token_1..64_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "link_type",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.address": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "00:00:00:00:00:00",
+          "2e:1c:48:d9:e5:93",
+          "16:e6:e8:22:54:2d",
+          "1e:99:6c:9b:54:94",
+          "c6:21:9f:ab:87:c6",
+          "da:86:66:ca:86:59",
+          "d2:55:25:ee:fb:18",
+          "be:d8:95:c4:26:dd",
+          "0a:c6:9b:d5:5e:a2"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "mac",
+          "required": true,
+          "constraint": "lowercase_six_octets"
+        },
+        "diagnostic_registry": {
+          "kind": "mac",
+          "required": true,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.broadcast": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "00:00:00:00:00:00",
+          "ff:ff:ff:ff:ff:ff"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "mac",
+          "required": false,
+          "constraint": "lowercase_six_octets"
+        },
+        "diagnostic_registry": {
+          "kind": "mac",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.promiscuity": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          0,
+          1
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.allmulti": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          0,
+          1
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.min_mtu": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          0,
+          68
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.max_mtu": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          0,
+          65535
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.inet6_addr_gen_mode": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "eui64"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "token",
+          "required": false,
+          "constraint": "ascii_native_token_1..64_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "addrgen",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.num_tx_queues": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          1,
+          8
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "positive",
+          "required": false,
+          "constraint": "exact_int_1..2147483647"
+        },
+        "diagnostic_registry": {
+          "kind": "index",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.num_rx_queues": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          1,
+          8
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "positive",
+          "required": false,
+          "constraint": "exact_int_1..2147483647"
+        },
+        "diagnostic_registry": {
+          "kind": "index",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.gso_max_size": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          65536
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.gso_max_segs": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          65535
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.tso_max_size": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          524280,
+          65536
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.tso_max_segs": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          65535
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.gro_max_size": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          65536
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.link_index": {
+        "types": {
+          "int": 6
+        },
+        "cardinality": [],
+        "literals": [
+          9,
+          7,
+          4,
+          6,
+          8,
+          3
+        ],
+        "parent_object_count": 13,
+        "present_count": 6,
+        "absent_count": 7,
+        "provisional_registry": {
+          "value_type": "positive",
+          "required": false,
+          "constraint": "exact_int_1..2147483647"
+        },
+        "diagnostic_registry": {
+          "kind": "index",
+          "required": false,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.link_netnsid": {
+        "types": {
+          "int": 6
+        },
+        "cardinality": [],
+        "literals": [
+          0,
+          2,
+          3,
+          1
+        ],
+        "parent_object_count": 13,
+        "present_count": 6,
+        "absent_count": 7,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": false,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo": {
+        "types": {
+          "dict": 7
+        },
+        "cardinality": {
+          "min": 1,
+          "max": 3
+        },
+        "literals": [],
+        "parent_object_count": 13,
+        "present_count": 7,
+        "absent_count": 6,
+        "provisional_registry": {
+          "value_type": "object",
+          "required": false,
+          "constraint": "closed_registered_object_128_fields_max"
+        },
+        "diagnostic_registry": {
+          "kind": "object",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_kind": {
+        "types": {
+          "str": 7
+        },
+        "cardinality": [],
+        "literals": [
+          "veth",
+          "bridge"
+        ],
+        "parent_object_count": 7,
+        "present_count": 7,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "kind",
+          "required": true,
+          "constraint": "bridge_or_veth"
+        },
+        "diagnostic_registry": {
+          "kind": "kind",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.parentbus": {
+        "types": {
+          "str": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "virtio"
+        ],
+        "parent_object_count": 13,
+        "present_count": 1,
+        "absent_count": 12,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "parentbus",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.parentdev": {
+        "types": {
+          "str": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "virtio0"
+        ],
+        "parent_object_count": 13,
+        "present_count": 1,
+        "absent_count": 12,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "parentdev",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.altnames": {
+        "types": {
+          "list": 1
+        },
+        "cardinality": {
+          "min": 2,
+          "max": 2
+        },
+        "literals": [],
+        "parent_object_count": 13,
+        "present_count": 1,
+        "absent_count": 12,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "ifnames",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.altnames.*": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "enp0s3",
+          "ens3"
+        ]
+      },
+      "*.linkinfo.info_data": {
+        "types": {
+          "dict": 1
+        },
+        "cardinality": {
+          "min": 45,
+          "max": 45
+        },
+        "literals": [],
+        "parent_object_count": 7,
+        "present_count": 1,
+        "absent_count": 6,
+        "provisional_registry": {
+          "value_type": "object",
+          "required": false,
+          "constraint": "closed_registered_object_128_fields_max"
+        },
+        "diagnostic_registry": {
+          "kind": "object",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.forward_delay": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          1500
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.hello_time": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          200
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.max_age": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          2000
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.ageing_time": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          30000
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.stp_state": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.priority": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          32768
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.vlan_filtering": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.vlan_protocol": {
+        "types": {
+          "str": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "802.1Q"
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "token",
+          "required": false,
+          "constraint": "ascii_native_token_1..64_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "vlanprotocol",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.bridge_id": {
+        "types": {
+          "str": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "8000.da:86:66:ca:86:59"
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "token",
+          "required": false,
+          "constraint": "ascii_native_token_1..64_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "bridgeid",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.root_id": {
+        "types": {
+          "str": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "8000.da:86:66:ca:86:59"
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "token",
+          "required": false,
+          "constraint": "ascii_native_token_1..64_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "bridgeid",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.root_port": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.root_path_cost": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.topology_change": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.topology_change_detected": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.hello_timer": {
+        "types": {
+          "decimal": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "0.00"
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "timer",
+          "required": false,
+          "constraint": "0..86400_seconds_exact_decimal_scale_1..6_or_integer"
+        },
+        "diagnostic_registry": {
+          "kind": "decimal",
+          "required": true,
+          "disposition": "observed_volatile",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.tcn_timer": {
+        "types": {
+          "decimal": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "0.00"
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "timer",
+          "required": false,
+          "constraint": "0..86400_seconds_exact_decimal_scale_1..6_or_integer"
+        },
+        "diagnostic_registry": {
+          "kind": "decimal",
+          "required": true,
+          "disposition": "observed_volatile",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.topology_change_timer": {
+        "types": {
+          "decimal": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "0.00"
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "timer",
+          "required": false,
+          "constraint": "0..86400_seconds_exact_decimal_scale_1..6_or_integer"
+        },
+        "diagnostic_registry": {
+          "kind": "decimal",
+          "required": true,
+          "disposition": "observed_volatile",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.gc_timer": {
+        "types": {
+          "decimal": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "293.28"
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "timer",
+          "required": false,
+          "constraint": "0..86400_seconds_exact_decimal_scale_1..6_or_integer"
+        },
+        "diagnostic_registry": {
+          "kind": "decimal",
+          "required": true,
+          "disposition": "observed_volatile",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.vlan_default_pvid": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          1
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.vlan_stats_enabled": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.vlan_stats_per_port": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.group_fwd_mask": {
+        "types": {
+          "str": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "0"
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "token",
+          "required": false,
+          "constraint": "ascii_native_token_1..64_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "masktoken",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.group_addr": {
+        "types": {
+          "str": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "01:80:c2:00:00:00"
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "mac",
+          "required": false,
+          "constraint": "lowercase_six_octets"
+        },
+        "diagnostic_registry": {
+          "kind": "mac",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_snooping": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          1
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.no_linklocal_learn": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_vlan_snooping": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_router": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          1
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_query_use_ifaddr": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_querier": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_hash_elasticity": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          16
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_hash_max": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          4096
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_last_member_cnt": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          2
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_startup_query_cnt": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          2
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_last_member_intvl": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          100
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_membership_intvl": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          26000
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_querier_intvl": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          25500
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_query_intvl": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          12500
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_query_response_intvl": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          1000
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_startup_query_intvl": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          3125
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_stats_enabled": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_igmp_version": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          2
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.mcast_mld_version": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          1
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.nf_call_iptables": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.nf_call_ip6tables": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_data.nf_call_arptables": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.master": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "tc-br0"
+        ],
+        "parent_object_count": 13,
+        "present_count": 2,
+        "absent_count": 11,
+        "provisional_registry": {
+          "value_type": "positive",
+          "required": false,
+          "constraint": "exact_int_1..2147483647"
+        },
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": false,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_kind": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "bridge"
+        ],
+        "parent_object_count": 7,
+        "present_count": 2,
+        "absent_count": 5,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "slavekind",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data": {
+        "types": {
+          "dict": 2
+        },
+        "cardinality": {
+          "min": 32,
+          "max": 32
+        },
+        "literals": [],
+        "parent_object_count": 7,
+        "present_count": 2,
+        "absent_count": 5,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "object",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.state": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "forwarding"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "portstate",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.priority": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          32
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.cost": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          2
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.hairpin": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.guard": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.root_block": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.fastleave": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.learning": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          true
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.flood": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          true
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.id": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "0x8001",
+          "0x8002"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "hextoken",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.no": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "0x1",
+          "0x2"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "hextoken",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.designated_port": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          32769,
+          32770
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.designated_cost": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.bridge_id": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "8000.da:86:66:ca:86:59"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bridgeid",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.root_id": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "8000.da:86:66:ca:86:59"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bridgeid",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.hold_timer": {
+        "types": {
+          "decimal": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "0.00"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "decimal",
+          "required": true,
+          "disposition": "observed_volatile",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.message_age_timer": {
+        "types": {
+          "decimal": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "0.00"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "decimal",
+          "required": true,
+          "disposition": "observed_volatile",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.forward_delay_timer": {
+        "types": {
+          "decimal": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "0.00"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "decimal",
+          "required": true,
+          "disposition": "observed_volatile",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.topology_change_ack": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.config_pending": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          0
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.proxy_arp": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.proxy_arp_wifi": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.multicast_router": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          1
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.mcast_flood": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          true
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.bcast_flood": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          true
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.mcast_to_unicast": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.neigh_suppress": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.group_fwd_mask": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "0"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "masktoken",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.group_fwd_mask_str": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "0x0"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "hextoken",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.vlan_tunnel": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.isolated": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.linkinfo.info_slave_data.locked": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      }
+    }
+  },
+  "rule4": {
+    "documents": {
+      "tc-br-target/rule4.json": {
+        "rows": 3,
+        "sha256": "e79a76eff86a78de4ce5d38c6277dbafbab227656214e1e116d9ac63597dbb9d",
+        "provisional_decode": "accepted_format_only"
+      },
+      "tc-br-runner/rule4.json": {
+        "rows": 3,
+        "sha256": "e79a76eff86a78de4ce5d38c6277dbafbab227656214e1e116d9ac63597dbb9d",
+        "provisional_decode": "accepted_format_only"
+      },
+      "tc-target/rule4.json": {
+        "rows": 3,
+        "sha256": "e79a76eff86a78de4ce5d38c6277dbafbab227656214e1e116d9ac63597dbb9d",
+        "provisional_decode": "accepted_format_only"
+      },
+      "host/rule4.json": {
+        "rows": 3,
+        "sha256": "e79a76eff86a78de4ce5d38c6277dbafbab227656214e1e116d9ac63597dbb9d",
+        "provisional_decode": "accepted_format_only"
+      },
+      "tc-runner/rule4.json": {
+        "rows": 3,
+        "sha256": "e79a76eff86a78de4ce5d38c6277dbafbab227656214e1e116d9ac63597dbb9d",
+        "provisional_decode": "accepted_format_only"
+      }
+    },
+    "paths": {
+      "$": {
+        "types": {
+          "list": 5
+        },
+        "cardinality": {
+          "min": 3,
+          "max": 3
+        },
+        "literals": []
+      },
+      "*": {
+        "types": {
+          "dict": 15
+        },
+        "cardinality": {
+          "min": 3,
+          "max": 3
+        },
+        "literals": []
+      },
+      "*.priority": {
+        "types": {
+          "int": 15
+        },
+        "cardinality": [],
+        "literals": [
+          0,
+          32766,
+          32767
+        ],
+        "parent_object_count": 15,
+        "present_count": 15,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": true,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.src": {
+        "types": {
+          "str": 15
+        },
+        "cardinality": [],
+        "literals": [
+          "all"
+        ],
+        "parent_object_count": 15,
+        "present_count": 15,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "network",
+          "required": true,
+          "constraint": "canonical_ip_prefix_or_exact_all_default"
+        },
+        "diagnostic_registry": {
+          "kind": "all",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.table": {
+        "types": {
+          "str": 15
+        },
+        "cardinality": [],
+        "literals": [
+          "local",
+          "main",
+          "default"
+        ],
+        "parent_object_count": 15,
+        "present_count": 15,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "table",
+          "required": true,
+          "constraint": "positive_uint32_or_ascii_alias_1..32"
+        },
+        "diagnostic_registry": {
+          "kind": "ruletable4",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      }
+    }
+  },
+  "route4": {
+    "documents": {
+      "tc-br-target/route4.json": {
+        "rows": 6,
+        "sha256": "a6f7539e6a0548ec77df313a71af19cc94719aefb7e047cb2ba9f79c17dc178c",
+        "provisional_decode": "v2_topology_field_missing"
+      },
+      "tc-br-runner/route4.json": {
+        "rows": 6,
+        "sha256": "051d47387d1ac19abe577b153ab7197b308275f172cfa8b5b04ae7a613e1e856",
+        "provisional_decode": "v2_topology_field_missing"
+      },
+      "tc-target/route4.json": {
+        "rows": 6,
+        "sha256": "c35e866d411370dcdefb9f1d478b00370f74f64407a72e89552694d9b351d342",
+        "provisional_decode": "v2_topology_field_missing"
+      },
+      "host/route4.json": {
+        "rows": 11,
+        "sha256": "d8e1291f9871c3f5bbf3ed25d23825ff920f7876d3ef94fa038960bca5732054",
+        "provisional_decode": "v2_topology_field_missing"
+      },
+      "tc-runner/route4.json": {
+        "rows": 6,
+        "sha256": "69c5023d98c140539162fcad765873c495e330a7b4dfc12c73640b7293e1a4cb",
+        "provisional_decode": "v2_topology_field_missing"
+      }
+    },
+    "paths": {
+      "$": {
+        "types": {
+          "list": 5
+        },
+        "cardinality": {
+          "min": 6,
+          "max": 11
+        },
+        "literals": []
+      },
+      "*": {
+        "types": {
+          "dict": 35
+        },
+        "cardinality": {
+          "min": 6,
+          "max": 8
+        },
+        "literals": []
+      },
+      "*.dst": {
+        "types": {
+          "str": 35
+        },
+        "cardinality": [],
+        "literals": [
+          "10.201.1.0/24",
+          "10.201.1.3",
+          "10.201.1.255",
+          "127.0.0.0/8",
+          "127.0.0.1",
+          "127.255.255.255",
+          "10.201.1.2",
+          "10.200.1.0/24",
+          "10.200.1.3",
+          "10.200.1.255",
+          "default",
+          "85.193.93.193",
+          "85.193.93.194",
+          "89.169.0.0/24",
+          "89.169.0.1",
+          "169.254.169.0/24",
+          "89.169.0.131",
+          "89.169.0.255",
+          "10.200.1.2"
+        ],
+        "parent_object_count": 35,
+        "present_count": 35,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "network",
+          "required": true,
+          "constraint": "canonical_ip_prefix_or_exact_all_default"
+        },
+        "diagnostic_registry": {
+          "kind": "routeprefix",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.dev": {
+        "types": {
+          "str": 35
+        },
+        "cardinality": [],
+        "literals": [
+          "tc-br-t",
+          "lo",
+          "tc-br-r",
+          "veth-target",
+          "eth0",
+          "veth-runner"
+        ],
+        "parent_object_count": 35,
+        "present_count": 35,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "ifname",
+          "required": true,
+          "constraint": "ascii_interface_literal_1..15_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.protocol": {
+        "types": {
+          "str": 35
+        },
+        "cardinality": [],
+        "literals": [
+          "kernel",
+          "dhcp"
+        ],
+        "parent_object_count": 35,
+        "present_count": 35,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "enum:kernel|boot|static|ra|dhcp",
+          "required": true,
+          "constraint": "exact_registered_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "protocol4",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.scope": {
+        "types": {
+          "str": 32
+        },
+        "cardinality": [],
+        "literals": [
+          "link",
+          "host"
+        ],
+        "parent_object_count": 35,
+        "present_count": 32,
+        "absent_count": 3,
+        "provisional_registry": {
+          "value_type": "enum:global|link|host",
+          "required": true,
+          "constraint": "exact_registered_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "route_scope",
+          "required": false,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.prefsrc": {
+        "types": {
+          "str": 35
+        },
+        "cardinality": [],
+        "literals": [
+          "10.201.1.3",
+          "127.0.0.1",
+          "10.201.1.2",
+          "10.200.1.3",
+          "89.169.0.131",
+          "10.200.1.2"
+        ],
+        "parent_object_count": 35,
+        "present_count": 35,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "ip",
+          "required": false,
+          "constraint": "canonical_ipv4_or_ipv6_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "ip",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.flags": {
+        "types": {
+          "list": 35
+        },
+        "cardinality": {
+          "min": 0,
+          "max": 0
+        },
+        "literals": [],
+        "parent_object_count": 35,
+        "present_count": 35,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "flags:onlink|linkdown|offload|trap",
+          "required": false,
+          "constraint": "exact_registered_literals; flags_unique_0..64"
+        },
+        "diagnostic_registry": {
+          "kind": "emptyflags",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.type": {
+        "types": {
+          "str": 25
+        },
+        "cardinality": [],
+        "literals": [
+          "local",
+          "broadcast"
+        ],
+        "parent_object_count": 35,
+        "present_count": 25,
+        "absent_count": 10,
+        "provisional_registry": {
+          "value_type": "enum:unicast|local|broadcast",
+          "required": true,
+          "constraint": "exact_registered_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "routetype4",
+          "required": false,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.table": {
+        "types": {
+          "str": 25
+        },
+        "cardinality": [],
+        "literals": [
+          "local"
+        ],
+        "parent_object_count": 35,
+        "present_count": 25,
+        "absent_count": 10,
+        "provisional_registry": {
+          "value_type": "table",
+          "required": true,
+          "constraint": "positive_uint32_or_ascii_alias_1..32"
+        },
+        "diagnostic_registry": {
+          "kind": "routetable",
+          "required": false,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.gateway": {
+        "types": {
+          "str": 3
+        },
+        "cardinality": [],
+        "literals": [
+          "89.169.0.1"
+        ],
+        "parent_object_count": 35,
+        "present_count": 3,
+        "absent_count": 32,
+        "provisional_registry": {
+          "value_type": "ip",
+          "required": false,
+          "constraint": "canonical_ipv4_or_ipv6_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "ip",
+          "required": false,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.metric": {
+        "types": {
+          "int": 6
+        },
+        "cardinality": [],
+        "literals": [
+          100
+        ],
+        "parent_object_count": 35,
+        "present_count": 6,
+        "absent_count": 29,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": false,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      }
+    }
+  },
+  "rule6": {
+    "documents": {
+      "tc-br-target/rule6.json": {
+        "rows": 2,
+        "sha256": "78fc521d26d8f02af636ce8e1c74bb782cbfd272b8a81529bea0adb9a68ed0ea",
+        "provisional_decode": "accepted_format_only"
+      },
+      "tc-br-runner/rule6.json": {
+        "rows": 2,
+        "sha256": "78fc521d26d8f02af636ce8e1c74bb782cbfd272b8a81529bea0adb9a68ed0ea",
+        "provisional_decode": "accepted_format_only"
+      },
+      "tc-target/rule6.json": {
+        "rows": 2,
+        "sha256": "78fc521d26d8f02af636ce8e1c74bb782cbfd272b8a81529bea0adb9a68ed0ea",
+        "provisional_decode": "accepted_format_only"
+      },
+      "host/rule6.json": {
+        "rows": 2,
+        "sha256": "78fc521d26d8f02af636ce8e1c74bb782cbfd272b8a81529bea0adb9a68ed0ea",
+        "provisional_decode": "accepted_format_only"
+      },
+      "tc-runner/rule6.json": {
+        "rows": 2,
+        "sha256": "78fc521d26d8f02af636ce8e1c74bb782cbfd272b8a81529bea0adb9a68ed0ea",
+        "provisional_decode": "accepted_format_only"
+      }
+    },
+    "paths": {
+      "$": {
+        "types": {
+          "list": 5
+        },
+        "cardinality": {
+          "min": 2,
+          "max": 2
+        },
+        "literals": []
+      },
+      "*": {
+        "types": {
+          "dict": 10
+        },
+        "cardinality": {
+          "min": 3,
+          "max": 3
+        },
+        "literals": []
+      },
+      "*.priority": {
+        "types": {
+          "int": 10
+        },
+        "cardinality": [],
+        "literals": [
+          0,
+          32766
+        ],
+        "parent_object_count": 10,
+        "present_count": 10,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": true,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.src": {
+        "types": {
+          "str": 10
+        },
+        "cardinality": [],
+        "literals": [
+          "all"
+        ],
+        "parent_object_count": 10,
+        "present_count": 10,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "network",
+          "required": true,
+          "constraint": "canonical_ip_prefix_or_exact_all_default"
+        },
+        "diagnostic_registry": {
+          "kind": "all",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.table": {
+        "types": {
+          "str": 10
+        },
+        "cardinality": [],
+        "literals": [
+          "local",
+          "main"
+        ],
+        "parent_object_count": 10,
+        "present_count": 10,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "table",
+          "required": true,
+          "constraint": "positive_uint32_or_ascii_alias_1..32"
+        },
+        "diagnostic_registry": {
+          "kind": "ruletable6",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      }
+    }
+  },
+  "route6": {
+    "documents": {
+      "tc-br-target/route6.json": {
+        "rows": 4,
+        "sha256": "884902415ed501718e00ad9b9e310f9d5da6bc7369185108b08c9b532e10f41c",
+        "provisional_decode": "v2_topology_field_missing"
+      },
+      "tc-br-runner/route6.json": {
+        "rows": 4,
+        "sha256": "dbd2d0d7a4ce5cb083cf9d85caf91a1efd2f38a50c3cc35ad7fd345a76552bf3",
+        "provisional_decode": "v2_topology_field_missing"
+      },
+      "tc-target/route6.json": {
+        "rows": 4,
+        "sha256": "f69fcca0a9961accdfc762a77b36736a267e2560758e520b0d38c7a46d035a58",
+        "provisional_decode": "v2_topology_field_missing"
+      },
+      "host/route6.json": {
+        "rows": 14,
+        "sha256": "c2ce390348ff3b368bf52d47931a258a6c55947eec8aa2ea6ec40879bf31fc8b",
+        "provisional_decode": "v2_topology_field_missing"
+      },
+      "tc-runner/route6.json": {
+        "rows": 4,
+        "sha256": "d5c0f1a4afcf57634b1e8077bec02450f30db5c627a0f8e738a68cba90924b69",
+        "provisional_decode": "v2_topology_field_missing"
+      }
+    },
+    "paths": {
+      "$": {
+        "types": {
+          "list": 5
+        },
+        "cardinality": {
+          "min": 4,
+          "max": 14
+        },
+        "literals": []
+      },
+      "*": {
+        "types": {
+          "dict": 30
+        },
+        "cardinality": {
+          "min": 6,
+          "max": 9
+        },
+        "literals": []
+      },
+      "*.dst": {
+        "types": {
+          "str": 30
+        },
+        "cardinality": [],
+        "literals": [
+          "fe80::/64",
+          "::1",
+          "fe80::2c1c:48ff:fed9:e593",
+          "ff00::/8",
+          "fe80::14e6:e8ff:fe22:542d",
+          "fe80::1c99:6cff:fe9b:5494",
+          "default",
+          "fe80::bcd8:95ff:fec4:26dd",
+          "fe80::c421:9fff:feab:87c6",
+          "fe80::d055:25ff:feee:fb18",
+          "fe80::d886:66ff:feca:8659",
+          "fe80::8c6:9bff:fed5:5ea2"
+        ],
+        "parent_object_count": 30,
+        "present_count": 30,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "network",
+          "required": true,
+          "constraint": "canonical_ip_prefix_or_exact_all_default"
+        },
+        "diagnostic_registry": {
+          "kind": "routeprefix",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.dev": {
+        "types": {
+          "str": 30
+        },
+        "cardinality": [],
+        "literals": [
+          "tc-br-t",
+          "lo",
+          "tc-br-r",
+          "veth-target",
+          "eth0",
+          "tc-br-r-host",
+          "tc-br0",
+          "tc-br-t-host",
+          "veth-runner"
+        ],
+        "parent_object_count": 30,
+        "present_count": 30,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "ifname",
+          "required": true,
+          "constraint": "ascii_interface_literal_1..15_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.protocol": {
+        "types": {
+          "str": 30
+        },
+        "cardinality": [],
+        "literals": [
+          "kernel",
+          "ra"
+        ],
+        "parent_object_count": 30,
+        "present_count": 30,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "enum:kernel|boot|static|ra|dhcp",
+          "required": true,
+          "constraint": "exact_registered_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "protocol6",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.metric": {
+        "types": {
+          "int": 30
+        },
+        "cardinality": [],
+        "literals": [
+          256,
+          0,
+          100
+        ],
+        "parent_object_count": 30,
+        "present_count": 30,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": false,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.flags": {
+        "types": {
+          "list": 30
+        },
+        "cardinality": {
+          "min": 0,
+          "max": 0
+        },
+        "literals": [],
+        "parent_object_count": 30,
+        "present_count": 30,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "flags:onlink|linkdown|offload|trap",
+          "required": false,
+          "constraint": "exact_registered_literals; flags_unique_0..64"
+        },
+        "diagnostic_registry": {
+          "kind": "emptyflags",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.pref": {
+        "types": {
+          "str": 30
+        },
+        "cardinality": [],
+        "literals": [
+          "medium"
+        ],
+        "parent_object_count": 30,
+        "present_count": 30,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "enum:low|medium|high",
+          "required": false,
+          "constraint": "exact_registered_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "pref",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.type": {
+        "types": {
+          "str": 21
+        },
+        "cardinality": [],
+        "literals": [
+          "local",
+          "multicast"
+        ],
+        "parent_object_count": 30,
+        "present_count": 21,
+        "absent_count": 9,
+        "provisional_registry": {
+          "value_type": "enum:unicast|local|broadcast",
+          "required": true,
+          "constraint": "exact_registered_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "routetype6",
+          "required": false,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.table": {
+        "types": {
+          "str": 21
+        },
+        "cardinality": [],
+        "literals": [
+          "local"
+        ],
+        "parent_object_count": 30,
+        "present_count": 21,
+        "absent_count": 9,
+        "provisional_registry": {
+          "value_type": "table",
+          "required": true,
+          "constraint": "positive_uint32_or_ascii_alias_1..32"
+        },
+        "diagnostic_registry": {
+          "kind": "routetable",
+          "required": false,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.gateway": {
+        "types": {
+          "str": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "fe80::9cce:edff:fee6:7340"
+        ],
+        "parent_object_count": 30,
+        "present_count": 1,
+        "absent_count": 29,
+        "provisional_registry": {
+          "value_type": "ip",
+          "required": false,
+          "constraint": "canonical_ipv4_or_ipv6_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "ip",
+          "required": false,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.expires": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          1726
+        ],
+        "parent_object_count": 30,
+        "present_count": 1,
+        "absent_count": 29,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": false,
+          "disposition": "observed_volatile",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.metrics": {
+        "types": {
+          "list": 1
+        },
+        "cardinality": {
+          "min": 1,
+          "max": 1
+        },
+        "literals": [],
+        "parent_object_count": 30,
+        "present_count": 1,
+        "absent_count": 29,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "metrics",
+          "required": false,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.metrics.*": {
+        "types": {
+          "dict": 1
+        },
+        "cardinality": {
+          "min": 1,
+          "max": 1
+        },
+        "literals": []
+      },
+      "*.metrics.*.hoplimit": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          64
+        ],
+        "parent_object_count": 1,
+        "present_count": 1,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint8",
+          "required": true,
+          "disposition": "ordered_policy",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      }
+    }
+  },
+  "address": {
+    "documents": {
+      "tc-br-target/address.json": {
+        "rows": 2,
+        "sha256": "471871ffedbcb252b3bb9fe8dd55656829e744592f92dd9c20cf7ba415bdc9cc",
+        "provisional_decode": "v2_topology_unknown_field"
+      },
+      "tc-br-runner/address.json": {
+        "rows": 2,
+        "sha256": "7b69cf9b6204c9d3bcac7939a2b2b1485e0c6e2b91a4b9dcda80b32349c81fa7",
+        "provisional_decode": "v2_topology_unknown_field"
+      },
+      "tc-target/address.json": {
+        "rows": 2,
+        "sha256": "3f66556cf827ce1953e4763982fab6f9b260e79ed5478a66621177363477cb59",
+        "provisional_decode": "v2_topology_unknown_field"
+      },
+      "host/address.json": {
+        "rows": 5,
+        "sha256": "b87ad3f62cd1801fb39e6dff28b65f145004599825e7a86c9c885d46e78bf1b9",
+        "provisional_decode": "v2_topology_unknown_field"
+      },
+      "tc-runner/address.json": {
+        "rows": 2,
+        "sha256": "a9d82e00b603d60e6408d553f7cfcb05b1dd24294f1bbb38728df0c7a4762096",
+        "provisional_decode": "v2_topology_unknown_field"
+      }
+    },
+    "paths": {
+      "$": {
+        "types": {
+          "list": 5
+        },
+        "cardinality": {
+          "min": 2,
+          "max": 5
+        },
+        "literals": []
+      },
+      "*": {
+        "types": {
+          "dict": 13
+        },
+        "cardinality": {
+          "min": 12,
+          "max": 15
+        },
+        "literals": []
+      },
+      "*.ifindex": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          1,
+          8,
+          6,
+          3,
+          2,
+          5,
+          7,
+          9,
+          4
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "positive",
+          "required": true,
+          "constraint": "exact_int_1..2147483647"
+        },
+        "diagnostic_registry": {
+          "kind": "index",
+          "required": true,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.ifname": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "lo",
+          "tc-br-t",
+          "tc-br-r",
+          "veth-target",
+          "eth0",
+          "tc-br0",
+          "tc-br-r-host",
+          "tc-br-t-host",
+          "veth-runner"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "ifname",
+          "required": true,
+          "constraint": "ascii_interface_literal_1..15_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": true,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.flags": {
+        "types": {
+          "list": 13
+        },
+        "cardinality": {
+          "min": 3,
+          "max": 4
+        },
+        "literals": [],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "linkflags",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.flags.*": {
+        "types": {
+          "str": 47
+        },
+        "cardinality": [],
+        "literals": [
+          "LOOPBACK",
+          "UP",
+          "LOWER_UP",
+          "BROADCAST",
+          "MULTICAST"
+        ]
+      },
+      "*.mtu": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          65536,
+          1500
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "index",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.qdisc": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "noqueue",
+          "fq_codel"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "qdisc",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.operstate": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "UNKNOWN",
+          "UP"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "operstate",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.group": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "default"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "group",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.txqlen": {
+        "types": {
+          "int": 13
+        },
+        "cardinality": [],
+        "literals": [
+          1000
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.link_type": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "loopback",
+          "ether"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "link_type",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.address": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "00:00:00:00:00:00",
+          "2e:1c:48:d9:e5:93",
+          "16:e6:e8:22:54:2d",
+          "1e:99:6c:9b:54:94",
+          "c6:21:9f:ab:87:c6",
+          "da:86:66:ca:86:59",
+          "d2:55:25:ee:fb:18",
+          "be:d8:95:c4:26:dd",
+          "0a:c6:9b:d5:5e:a2"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "mac",
+          "required": true,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.broadcast": {
+        "types": {
+          "str": 13
+        },
+        "cardinality": [],
+        "literals": [
+          "00:00:00:00:00:00",
+          "ff:ff:ff:ff:ff:ff"
+        ],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "mac",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.addr_info": {
+        "types": {
+          "list": 13
+        },
+        "cardinality": {
+          "min": 1,
+          "max": 2
+        },
+        "literals": [],
+        "parent_object_count": 13,
+        "present_count": 13,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "array",
+          "required": true,
+          "constraint": "registered_rows_0..1024"
+        },
+        "diagnostic_registry": {
+          "kind": "rows",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.addr_info.*": {
+        "types": {
+          "dict": 23
+        },
+        "cardinality": {
+          "min": 6,
+          "max": 10
+        },
+        "literals": []
+      },
+      "*.addr_info.*.family": {
+        "types": {
+          "str": 23
+        },
+        "cardinality": [],
+        "literals": [
+          "inet",
+          "inet6"
+        ],
+        "parent_object_count": 23,
+        "present_count": 23,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "family",
+          "required": true,
+          "constraint": "inet_or_inet6"
+        },
+        "diagnostic_registry": {
+          "kind": "family",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.addr_info.*.local": {
+        "types": {
+          "str": 23
+        },
+        "cardinality": [],
+        "literals": [
+          "127.0.0.1",
+          "::1",
+          "10.201.1.3",
+          "fe80::2c1c:48ff:fed9:e593",
+          "10.201.1.2",
+          "fe80::14e6:e8ff:fe22:542d",
+          "10.200.1.3",
+          "fe80::1c99:6cff:fe9b:5494",
+          "89.169.0.131",
+          "fe80::c421:9fff:feab:87c6",
+          "fe80::d886:66ff:feca:8659",
+          "fe80::d055:25ff:feee:fb18",
+          "fe80::bcd8:95ff:fec4:26dd",
+          "10.200.1.2",
+          "fe80::8c6:9bff:fed5:5ea2"
+        ],
+        "parent_object_count": 23,
+        "present_count": 23,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "ip",
+          "required": true,
+          "constraint": "canonical_ipv4_or_ipv6_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "ip",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.addr_info.*.prefixlen": {
+        "types": {
+          "int": 23
+        },
+        "cardinality": [],
+        "literals": [
+          8,
+          128,
+          24,
+          64
+        ],
+        "parent_object_count": 23,
+        "present_count": 23,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "prefix",
+          "required": true,
+          "constraint": "exact_int_0..128_family_specific"
+        },
+        "diagnostic_registry": {
+          "kind": "prefix",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.addr_info.*.scope": {
+        "types": {
+          "str": 23
+        },
+        "cardinality": [],
+        "literals": [
+          "host",
+          "global",
+          "link"
+        ],
+        "parent_object_count": 23,
+        "present_count": 23,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "token",
+          "required": true,
+          "constraint": "ascii_native_token_1..64_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "address_scope",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.addr_info.*.label": {
+        "types": {
+          "str": 10
+        },
+        "cardinality": [],
+        "literals": [
+          "lo",
+          "tc-br-t",
+          "tc-br-r",
+          "veth-target",
+          "eth0",
+          "veth-runner"
+        ],
+        "parent_object_count": 23,
+        "present_count": 10,
+        "absent_count": 13,
+        "provisional_registry": {
+          "value_type": "ifname",
+          "required": false,
+          "constraint": "ascii_interface_literal_1..15_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.addr_info.*.valid_life_time": {
+        "types": {
+          "int": 23
+        },
+        "cardinality": [],
+        "literals": [
+          4294967295,
+          52658
+        ],
+        "parent_object_count": 23,
+        "present_count": 23,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "lifetime",
+          "required": true,
+          "constraint": "exact_uint32_or_forever"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "observed_volatile",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.addr_info.*.preferred_life_time": {
+        "types": {
+          "int": 23
+        },
+        "cardinality": [],
+        "literals": [
+          4294967295,
+          52658
+        ],
+        "parent_object_count": 23,
+        "present_count": 23,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "lifetime",
+          "required": true,
+          "constraint": "exact_uint32_or_forever"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "observed_volatile",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.link_index": {
+        "types": {
+          "int": 6
+        },
+        "cardinality": [],
+        "literals": [
+          9,
+          7,
+          4,
+          6,
+          8,
+          3
+        ],
+        "parent_object_count": 13,
+        "present_count": 6,
+        "absent_count": 7,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "index",
+          "required": false,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.link_netnsid": {
+        "types": {
+          "int": 6
+        },
+        "cardinality": [],
+        "literals": [
+          0,
+          2,
+          3,
+          1
+        ],
+        "parent_object_count": 13,
+        "present_count": 6,
+        "absent_count": 7,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": false,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.addr_info.*.noprefixroute": {
+        "types": {
+          "bool": 1
+        },
+        "cardinality": [],
+        "literals": [
+          true
+        ],
+        "parent_object_count": 23,
+        "present_count": 1,
+        "absent_count": 22,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.altnames": {
+        "types": {
+          "list": 1
+        },
+        "cardinality": {
+          "min": 2,
+          "max": 2
+        },
+        "literals": [],
+        "parent_object_count": 13,
+        "present_count": 1,
+        "absent_count": 12,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "ifnames",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.altnames.*": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "enp0s3",
+          "ens3"
+        ]
+      },
+      "*.addr_info.*.metric": {
+        "types": {
+          "int": 1
+        },
+        "cardinality": [],
+        "literals": [
+          100
+        ],
+        "parent_object_count": 23,
+        "present_count": 1,
+        "absent_count": 22,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.addr_info.*.broadcast": {
+        "types": {
+          "str": 1
+        },
+        "cardinality": [],
+        "literals": [
+          "89.169.0.255"
+        ],
+        "parent_object_count": 23,
+        "present_count": 1,
+        "absent_count": 22,
+        "provisional_registry": {
+          "value_type": "ip",
+          "required": false,
+          "constraint": "canonical_ipv4_or_ipv6_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "ip",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.addr_info.*.dynamic": {
+        "types": {
+          "bool": 1
+        },
+        "cardinality": [],
+        "literals": [
+          true
+        ],
+        "parent_object_count": 23,
+        "present_count": 1,
+        "absent_count": 22,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.master": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "tc-br0"
+        ],
+        "parent_object_count": 13,
+        "present_count": 2,
+        "absent_count": 11,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": false,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      }
+    }
+  },
+  "bridge_vlan": {
+    "documents": {
+      "host/bridge_vlan.json": {
+        "rows": 3,
+        "sha256": "fe83580cc2b57383f893e83675d0040de9d3a134e6e038863dfc01675a538187",
+        "provisional_decode": "v2_topology_field_invalid"
+      }
+    },
+    "paths": {
+      "$": {
+        "types": {
+          "list": 1
+        },
+        "cardinality": {
+          "min": 3,
+          "max": 3
+        },
+        "literals": []
+      },
+      "*": {
+        "types": {
+          "dict": 3
+        },
+        "cardinality": {
+          "min": 2,
+          "max": 2
+        },
+        "literals": []
+      },
+      "*.ifname": {
+        "types": {
+          "str": 3
+        },
+        "cardinality": [],
+        "literals": [
+          "tc-br0",
+          "tc-br-r-host",
+          "tc-br-t-host"
+        ],
+        "parent_object_count": 3,
+        "present_count": 3,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "ifname",
+          "required": true,
+          "constraint": "ascii_interface_literal_1..15_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": true,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.vlans": {
+        "types": {
+          "list": 3
+        },
+        "cardinality": {
+          "min": 1,
+          "max": 1
+        },
+        "literals": [],
+        "parent_object_count": 3,
+        "present_count": 3,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "array",
+          "required": true,
+          "constraint": "registered_rows_0..1024"
+        },
+        "diagnostic_registry": {
+          "kind": "rows",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.vlans.*": {
+        "types": {
+          "dict": 3
+        },
+        "cardinality": {
+          "min": 2,
+          "max": 2
+        },
+        "literals": []
+      },
+      "*.vlans.*.vlan": {
+        "types": {
+          "int": 3
+        },
+        "cardinality": [],
+        "literals": [
+          1
+        ],
+        "parent_object_count": 3,
+        "present_count": 3,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "vlan",
+          "required": true,
+          "constraint": "exact_int_1..4094"
+        },
+        "diagnostic_registry": {
+          "kind": "vlan",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.vlans.*.flags": {
+        "types": {
+          "list": 3
+        },
+        "cardinality": {
+          "min": 2,
+          "max": 2
+        },
+        "literals": [],
+        "parent_object_count": 3,
+        "present_count": 3,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "flags:PVID|Egress_Untagged",
+          "required": true,
+          "constraint": "exact_registered_literals; flags_unique_0..64"
+        },
+        "diagnostic_registry": {
+          "kind": "vlanflags",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.vlans.*.flags.*": {
+        "types": {
+          "str": 6
+        },
+        "cardinality": [],
+        "literals": [
+          "PVID",
+          "Egress Untagged"
+        ]
+      }
+    }
+  },
+  "bridge_fdb": {
+    "documents": {
+      "host/bridge_fdb.json": {
+        "rows": 23,
+        "sha256": "94be09eb4aa2031bc3c2637e16e3197c4e2ec315aa3e04ff930edc1bd8c0184e",
+        "provisional_decode": "v2_topology_unknown_field"
+      }
+    },
+    "paths": {
+      "$": {
+        "types": {
+          "list": 1
+        },
+        "cardinality": {
+          "min": 23,
+          "max": 23
+        },
+        "literals": []
+      },
+      "*": {
+        "types": {
+          "dict": 23
+        },
+        "cardinality": {
+          "min": 4,
+          "max": 6
+        },
+        "literals": []
+      },
+      "*.mac": {
+        "types": {
+          "str": 23
+        },
+        "cardinality": [],
+        "literals": [
+          "33:33:00:00:00:01",
+          "01:00:5e:00:00:01",
+          "33:33:ff:ab:87:c6",
+          "01:80:c2:00:00:00",
+          "01:80:c2:00:00:03",
+          "01:80:c2:00:00:0e",
+          "01:00:5e:00:00:6a",
+          "33:33:00:00:00:6a",
+          "33:33:ff:ca:86:59",
+          "da:86:66:ca:86:59",
+          "d2:55:25:ee:fb:18",
+          "33:33:ff:ee:fb:18",
+          "be:d8:95:c4:26:dd",
+          "33:33:ff:c4:26:dd"
+        ],
+        "parent_object_count": 23,
+        "present_count": 23,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "mac",
+          "required": true,
+          "constraint": "lowercase_six_octets"
+        },
+        "diagnostic_registry": {
+          "kind": "mac",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.ifname": {
+        "types": {
+          "str": 23
+        },
+        "cardinality": [],
+        "literals": [
+          "eth0",
+          "tc-br0",
+          "tc-br-r-host",
+          "tc-br-t-host"
+        ],
+        "parent_object_count": 23,
+        "present_count": 23,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": true,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.flags": {
+        "types": {
+          "list": 23
+        },
+        "cardinality": {
+          "min": 0,
+          "max": 1
+        },
+        "literals": [],
+        "parent_object_count": 23,
+        "present_count": 23,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "flags:self|master|router|extern_learn|offload|sticky",
+          "required": true,
+          "constraint": "exact_registered_literals; flags_unique_0..64"
+        },
+        "diagnostic_registry": {
+          "kind": "fdbflags",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.flags.*": {
+        "types": {
+          "str": 17
+        },
+        "cardinality": [],
+        "literals": [
+          "self"
+        ]
+      },
+      "*.state": {
+        "types": {
+          "str": 23
+        },
+        "cardinality": [],
+        "literals": [
+          "permanent"
+        ],
+        "parent_object_count": 23,
+        "present_count": 23,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "flags:permanent|static|dynamic|reachable|stale|noarp|failed|incomplete|delay|probe",
+          "required": true,
+          "constraint": "exact_registered_literals; flags_unique_0..64"
+        },
+        "diagnostic_registry": {
+          "kind": "fdbstate",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.vlan": {
+        "types": {
+          "int": 3
+        },
+        "cardinality": [],
+        "literals": [
+          1
+        ],
+        "parent_object_count": 23,
+        "present_count": 3,
+        "absent_count": 20,
+        "provisional_registry": {
+          "value_type": "vlan",
+          "required": false,
+          "constraint": "exact_int_1..4094"
+        },
+        "diagnostic_registry": {
+          "kind": "vlan",
+          "required": false,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.master": {
+        "types": {
+          "str": 6
+        },
+        "cardinality": [],
+        "literals": [
+          "tc-br0"
+        ],
+        "parent_object_count": 23,
+        "present_count": 6,
+        "absent_count": 17,
+        "provisional_registry": {
+          "value_type": "ifname",
+          "required": true,
+          "constraint": "ascii_interface_literal_1..15_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": false,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      }
+    }
+  },
+  "bridge_link": {
+    "documents": {
+      "host/bridge_link.json": {
+        "rows": 2,
+        "sha256": "23278f6d809ecd8c1c0f8490520c8cbbcfecfdefed332789fcafdfb7f246428e",
+        "provisional_decode": "v2_topology_unknown_field"
+      }
+    },
+    "paths": {
+      "$": {
+        "types": {
+          "list": 1
+        },
+        "cardinality": {
+          "min": 2,
+          "max": 2
+        },
+        "literals": []
+      },
+      "*": {
+        "types": {
+          "dict": 2
+        },
+        "cardinality": {
+          "min": 23,
+          "max": 23
+        },
+        "literals": []
+      },
+      "*.ifindex": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          7,
+          9
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "positive",
+          "required": true,
+          "constraint": "exact_int_1..2147483647"
+        },
+        "diagnostic_registry": {
+          "kind": "index",
+          "required": true,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.link": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "if6",
+          "if8"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "ifname",
+          "required": true,
+          "constraint": "ascii_interface_literal_1..15_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.ifname": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "tc-br-r-host",
+          "tc-br-t-host"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "ifname",
+          "required": true,
+          "constraint": "ascii_interface_literal_1..15_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": true,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.flags": {
+        "types": {
+          "list": 2
+        },
+        "cardinality": {
+          "min": 4,
+          "max": 4
+        },
+        "literals": [],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "flags:LOOPBACK|BROADCAST|MULTICAST|UP|LOWER_UP|NOARP|POINTOPOINT|DORMANT|PROMISC|ALLMULTI|MASTER|SLAVE",
+          "required": true,
+          "constraint": "exact_registered_literals; flags_unique_0..64"
+        },
+        "diagnostic_registry": {
+          "kind": "linkflags",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.flags.*": {
+        "types": {
+          "str": 8
+        },
+        "cardinality": [],
+        "literals": [
+          "BROADCAST",
+          "MULTICAST",
+          "UP",
+          "LOWER_UP"
+        ]
+      },
+      "*.mtu": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          1500
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "positive",
+          "required": true,
+          "constraint": "exact_int_1..2147483647"
+        },
+        "diagnostic_registry": {
+          "kind": "index",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.master": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "tc-br0"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "ifname",
+          "required": true,
+          "constraint": "ascii_interface_literal_1..15_bytes"
+        },
+        "diagnostic_registry": {
+          "kind": "ifname",
+          "required": true,
+          "disposition": "identity",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.state": {
+        "types": {
+          "str": 2
+        },
+        "cardinality": [],
+        "literals": [
+          "forwarding"
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "enum:disabled|listening|learning|forwarding|blocking",
+          "required": true,
+          "constraint": "exact_registered_literal"
+        },
+        "diagnostic_registry": {
+          "kind": "portstate",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.priority": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          32
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": true,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.cost": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          2
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "uint",
+          "required": true,
+          "constraint": "exact_int_0..9223372036854775807"
+        },
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.hairpin": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.guard": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.root_block": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.fastleave": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.learning": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          true
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.flood": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          true
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.mcast_flood": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          true
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.bcast_flood": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          true
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.mcast_router": {
+        "types": {
+          "int": 2
+        },
+        "cardinality": [],
+        "literals": [
+          1
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": null,
+        "diagnostic_registry": {
+          "kind": "uint32",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.mcast_to_unicast": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.neigh_suppress": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.vlan_tunnel": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.isolated": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      },
+      "*.locked": {
+        "types": {
+          "bool": 2
+        },
+        "cardinality": [],
+        "literals": [
+          false
+        ],
+        "parent_object_count": 2,
+        "present_count": 2,
+        "absent_count": 0,
+        "provisional_registry": {
+          "value_type": "onoff",
+          "required": false,
+          "constraint": "on_or_off"
+        },
+        "diagnostic_registry": {
+          "kind": "bool",
+          "required": true,
+          "disposition": "structural",
+          "transition": "exact_unchanged_meaning_unreviewed"
+        }
+      }
+    }
+  }
+}

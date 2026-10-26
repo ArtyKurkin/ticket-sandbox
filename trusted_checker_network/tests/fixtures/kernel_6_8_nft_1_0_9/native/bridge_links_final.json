@@ -1,0 +1,1 @@
+[{"ifindex":7,"link":"if6","ifname":"tc-br-r-host","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"master":"tc-br0","state":"forwarding","priority":32,"cost":2},{"ifindex":9,"link":"if8","ifname":"tc-br-t-host","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"master":"tc-br0","state":"forwarding","priority":32,"cost":2}]

@@ -1,0 +1,29 @@
+{
+  "archive_name": "trusted_checker_kernel_evidence_20261020.zip",
+  "archive_sha256": "2437f0c35a0864885a975b77ce34e3bc072cf37cb41b4ef9d22271ba6aa45a7b",
+  "before_after_json_available": false,
+  "files": {
+    "README.txt": {
+      "bytes": 1406,
+      "sha256": "4404fd56f8d2a7d72c804a5ade1057433d0124a2174ea0d9eaa0e01630d6e7bc"
+    },
+    "bridge_links_final.json": {
+      "bytes": 350,
+      "sha256": "9c1fb9e29afa75ba274d6b1193658b52109d4293382673c8d40c33a0a201bb96"
+    },
+    "bridge_tc_br0_final.json": {
+      "bytes": 1598,
+      "sha256": "d6482cd82fa76f3d898dbe009b3fbab2b4059617c3e3be5c29af6957e5ea2410"
+    },
+    "nft_ruleset_final.json": {
+      "bytes": 6341,
+      "sha256": "c6367c5266c37760c9369db112d89cb0591afe06bc538e6d2558ce2f72ffa3d0"
+    },
+    "raw_terminal_capture.md": {
+      "bytes": 11641,
+      "sha256": "8bf53735584bde7112fa98446ddc8377b6ca06a73414288491ad26cb092b32e7"
+    }
+  },
+  "purpose": "format_compatibility_only",
+  "source": "user_supplied_manual_lab_terminal_capture"
+}
