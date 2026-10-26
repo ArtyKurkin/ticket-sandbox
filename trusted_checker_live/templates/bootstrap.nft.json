@@ -1,0 +1,211 @@
+{
+  "nftables": [
+    {
+      "add": {
+        "table": {
+          "family": "bridge",
+          "name": "tc_shadow"
+        }
+      }
+    },
+    {
+      "add": {
+        "chain": {
+          "family": "bridge",
+          "table": "tc_shadow",
+          "name": "prerouting",
+          "type": "filter",
+          "hook": "prerouting",
+          "prio": -310,
+          "policy": "drop"
+        }
+      }
+    },
+    {
+      "add": {
+        "chain": {
+          "family": "bridge",
+          "table": "tc_shadow",
+          "name": "input",
+          "type": "filter",
+          "hook": "input",
+          "prio": -310,
+          "policy": "drop"
+        }
+      }
+    },
+    {
+      "add": {
+        "chain": {
+          "family": "bridge",
+          "table": "tc_shadow",
+          "name": "forward",
+          "type": "filter",
+          "hook": "forward",
+          "prio": -310,
+          "policy": "drop"
+        }
+      }
+    },
+    {
+      "add": {
+        "chain": {
+          "family": "bridge",
+          "table": "tc_shadow",
+          "name": "output",
+          "type": "filter",
+          "hook": "output",
+          "prio": -310,
+          "policy": "drop"
+        }
+      }
+    },
+    {
+      "add": {
+        "table": {
+          "family": "inet",
+          "name": "tc_shadow"
+        }
+      }
+    },
+    {
+      "add": {
+        "chain": {
+          "family": "inet",
+          "table": "tc_shadow",
+          "name": "input",
+          "type": "filter",
+          "hook": "input",
+          "prio": -310,
+          "policy": "accept"
+        }
+      }
+    },
+    {
+      "add": {
+        "chain": {
+          "family": "inet",
+          "table": "tc_shadow",
+          "name": "forward",
+          "type": "filter",
+          "hook": "forward",
+          "prio": -310,
+          "policy": "accept"
+        }
+      }
+    },
+    {
+      "add": {
+        "chain": {
+          "family": "inet",
+          "table": "tc_shadow",
+          "name": "output",
+          "type": "filter",
+          "hook": "output",
+          "prio": -310,
+          "policy": "accept"
+        }
+      }
+    },
+    {
+      "add": {
+        "rule": {
+          "family": "inet",
+          "table": "tc_shadow",
+          "chain": "input",
+          "expr": [
+            {
+              "match": {
+                "op": "==",
+                "left": {
+                  "meta": {
+                    "key": "iifname"
+                  }
+                },
+                "right": "tcsh0"
+              }
+            },
+            {
+              "drop": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "add": {
+        "rule": {
+          "family": "inet",
+          "table": "tc_shadow",
+          "chain": "forward",
+          "expr": [
+            {
+              "match": {
+                "op": "==",
+                "left": {
+                  "meta": {
+                    "key": "iifname"
+                  }
+                },
+                "right": "tcsh0"
+              }
+            },
+            {
+              "drop": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "add": {
+        "rule": {
+          "family": "inet",
+          "table": "tc_shadow",
+          "chain": "output",
+          "expr": [
+            {
+              "match": {
+                "op": "==",
+                "left": {
+                  "meta": {
+                    "key": "oifname"
+                  }
+                },
+                "right": "tcsh0"
+              }
+            },
+            {
+              "drop": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "add": {
+        "rule": {
+          "family": "inet",
+          "table": "tc_shadow",
+          "chain": "forward",
+          "expr": [
+            {
+              "match": {
+                "op": "==",
+                "left": {
+                  "meta": {
+                    "key": "oifname"
+                  }
+                },
+                "right": "tcsh0"
+              }
+            },
+            {
+              "drop": null
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

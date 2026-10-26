@@ -1,0 +1,13 @@
+{
+  "hosts": ["unix:///run/tc-shadow/docker.sock"],
+  "data-root": "/var/lib/tc-shadow-docker",
+  "exec-root": "/run/tc-shadow/exec",
+  "bridge": "none",
+  "iptables": false,
+  "ip6tables": false,
+  "ip-forward": false,
+  "ipv6": false,
+  "live-restore": false,
+  "log-driver": "json-file",
+  "log-opts": {"max-size": "16k", "max-file": "1"}
+}

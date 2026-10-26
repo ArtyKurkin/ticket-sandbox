@@ -1,0 +1,12 @@
+{
+  "Name": "tc-shadow-pilot-REPLACE",
+  "Driver": "bridge",
+  "Internal": true,
+  "EnableIPv6": false,
+  "IPAM": {"Driver": "default", "Config": [{"Subnet": "172.30.0.0/24", "Gateway": "172.30.0.1"}]},
+  "Options": {
+    "com.docker.network.bridge.name": "tcsh0",
+    "com.docker.network.bridge.enable_ip_masquerade": "false",
+    "com.docker.network.bridge.enable_icc": "true"
+  }
+}
