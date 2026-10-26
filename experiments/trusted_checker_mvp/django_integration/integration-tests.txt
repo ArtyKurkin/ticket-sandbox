@@ -1,0 +1,18 @@
+Creating test database for alias 'default'...
+....2026-10-22 13:38:51,923 WARNING django.request: Not Found: /attempts/1/http-observation/
+...2026-10-22 13:38:52,002 INFO sandbox.terminal: task_environment_restarted user_id=1 attempt_id=1 task_slug=service-bind-localhost queue_slug=l1 restart_count=1 container_name=lab-target terminal_container_name=lab-terminal terminal_port=25001 terminal_gateway_enabled=False
+........2026-10-22 13:38:52,262 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:38:52,265 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:38:52,267 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:38:52,270 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:38:52,272 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:38:52,274 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:38:52,279 WARNING django.request: Not Found: /attempts/1/http-observation/
+......
+----------------------------------------------------------------------
+Ran 21 tests in 0.899s
+
+OK
+Destroying test database for alias 'default'...
+Found 21 test(s).
+System check identified no issues (0 silenced).

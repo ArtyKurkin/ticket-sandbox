@@ -1,0 +1,117 @@
+{
+  "execution_mode": "fake_sdk_only",
+  "docker_pilot_status": "DOCKER PILOT NOT EXECUTED",
+  "actual_http_probe": "not_executed",
+  "identifiers": "synthetic_fixture_only",
+  "observation": {
+    "http": "matched",
+    "reason": "http_match",
+    "binding": {
+      "attempt_id": 17,
+      "user_id": 9,
+      "environment_uuid": "22222222-2222-4222-8222-222222222222",
+      "run_id": "33333333-3333-4333-8333-333333333333",
+      "ordinal": 1,
+      "container_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "daemon_id": "fake-daemon",
+      "started_at": "2026-10-22T09:00:00.123456789Z",
+      "restart_count": 0,
+      "pid": 4567,
+      "network_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "endpoint_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "ip": "172.30.250.2"
+    },
+    "execution_uuid": "05dfb40a-1af7-4f44-97e9-22e74b8692e0",
+    "verifier_image": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "worker_id": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "policy": "tc-mvp-docker-http-v1",
+    "bind": "unverified",
+    "process": "unverified",
+    "network_isolation": "unverified",
+    "academic_pass": false,
+    "task_verdict": "unknown"
+  },
+  "fake_sdk_method_calls": [
+    [
+      "info",
+      null
+    ],
+    [
+      "inspect",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ],
+    [
+      "network",
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    ],
+    [
+      "image",
+      "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ],
+    [
+      "host_config",
+      null
+    ],
+    [
+      "create",
+      null
+    ],
+    [
+      "inspect",
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    ],
+    [
+      "attach",
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    ],
+    [
+      "start",
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    ],
+    [
+      "wait",
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    ],
+    [
+      "inspect",
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    ],
+    [
+      "inspect",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ],
+    [
+      "network",
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    ],
+    [
+      "info",
+      null
+    ],
+    [
+      "inspect",
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    ],
+    [
+      "remove",
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    ],
+    [
+      "inspect",
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    ],
+    [
+      "inspect",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ],
+    [
+      "network",
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    ],
+    [
+      "info",
+      null
+    ]
+  ],
+  "remaining_fake_workers": 0
+}

@@ -1,0 +1,12 @@
+{
+  "Driver": "bridge",
+  "Internal": true,
+  "EnableIPv6": false,
+  "Attachable": false,
+  "Options": {
+    "com.docker.network.bridge.gateway_mode_ipv4": "isolated"
+  },
+  "IPAM": {"Driver": "default", "Config": [{"Subnet": "172.30.250.0/28"}]},
+  "Labels": {"tc-mvp.role": "data", "tc-mvp.scope": "REPLACE_WITH_SCOPE_UUID"},
+  "Name": "tc-mvp-REPLACE_WITH_SCOPE_UUID"
+}

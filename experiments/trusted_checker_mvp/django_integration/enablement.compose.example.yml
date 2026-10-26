@@ -1,0 +1,18 @@
+# LAB ONLY. This file is not read by the default Compose deployment.
+# Supply an existing dedicated disposable attempt ID and operator-owned files.
+services:
+  web:
+    environment:
+      SANDBOX_HTTP_OBSERVATION_ENABLED: "true"
+      SANDBOX_HTTP_OBSERVATION_ATTEMPT_ID: "${TC_HTTP_LAB_ATTEMPT_ID:?dedicated disposable attempt ID required}"
+      SANDBOX_HTTP_OBSERVATION_CONFIG: /etc/tc-http-observation/policy.json
+    volumes:
+      - "${TC_HTTP_POLICY_FILE:?approved absolute policy file required}:/etc/tc-http-observation/policy.json:ro"
+  worker:
+    environment:
+      SANDBOX_HTTP_OBSERVATION_ENABLED: "true"
+      SANDBOX_HTTP_OBSERVATION_ATTEMPT_ID: "${TC_HTTP_LAB_ATTEMPT_ID:?dedicated disposable attempt ID required}"
+      SANDBOX_HTTP_OBSERVATION_CONFIG: /etc/tc-http-observation/policy.json
+    volumes:
+      - "${TC_HTTP_POLICY_FILE:?approved absolute policy file required}:/etc/tc-http-observation/policy.json:ro"
+      - "${TC_HTTP_ARTIFACT_DIR:?existing private artifact directory required}:/var/lib/tc-http-observations"

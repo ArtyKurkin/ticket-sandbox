@@ -1,0 +1,252 @@
+Creating test database for alias 'default'...
+.....2026-10-22 13:40:23,289 WARNING django.request: Forbidden: /admin/sandbox/task/sync-training-tasks/
+........................................2026-10-22 13:40:24,664 ERROR django.request: Internal Server Error: /attempts/1/check/
+Traceback (most recent call last):
+  File "/Users/artemkurkin/Dev/training-platform/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/artemkurkin/Dev/training-platform/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/artemkurkin/Dev/training-platform/.venv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/Users/artemkurkin/Dev/training-platform/.venv/lib/python3.13/site-packages/django/views/decorators/http.py", line 64, in inner
+    return func(request, *args, **kwargs)
+  File "/Users/artemkurkin/Dev/training-platform/sandbox/services/ledger.py", line 82, in wrapped
+    return function(*args, **kwargs)
+  File "/Users/artemkurkin/Dev/training-platform/sandbox/views.py", line 130, in wrapped
+    return function(request,*args,**kwargs)
+  File "/Users/artemkurkin/Dev/training-platform/sandbox/views.py", line 639, in check_task
+    attempt.save(
+    ~~~~~~~~~~~~^
+        update_fields=[
+        ^^^^^^^^^^^^^^^
+    ...<7 lines>...
+        ]
+        ^
+    )
+    ^
+  File "/Users/artemkurkin/Dev/training-platform/sandbox/tests/test_answer_drafts.py", line 120, in fail_state_write
+    raise DatabaseError("state write failed")
+django.db.utils.DatabaseError: state write failed
+........2026-10-22 13:40:24,907 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=check-run-task queue_slug=l1 exit_code=1
+2026-10-22 13:40:24,920 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=check-run-task queue_slug=l1 exit_code=1
+.2026-10-22 13:40:24,941 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=check-run-task queue_slug=l1 exit_code=1
+.2026-10-22 13:40:24,960 INFO sandbox.terminal: task_check_cleanup_done user_id=1 attempt_id=1 task_slug=check-run-task queue_slug=l1 terminal_removed= remove_output=Контейнер удален.
+2026-10-22 13:40:24,980 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=check-run-task queue_slug=l1 exit_code=0 requires_manual_review=False is_credit_attempt=True status=passed
+.2026-10-22 13:40:25,017 ERROR sandbox.terminal: task_check_docker_error user_id=1 attempt_id=1 task_slug=check-service-task queue_slug=l1 container_name=task-container
+Traceback (most recent call last):
+  File "/Users/artemkurkin/Dev/training-platform/sandbox/services/checks.py", line 123, in run_attempt_check
+    exit_code, output = check_task_container(
+                        ~~~~~~~~~~~~~~~~~~~~^
+        container_name=attempt.container_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1228, in _execute_mock_call
+    raise effect
+RuntimeError: Docker daemon unavailable
+.2026-10-22 13:40:25,040 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=check-service-task queue_slug=l1 exit_code=1
+.2026-10-22 13:40:25,058 INFO sandbox.terminal: task_check_cleanup_done user_id=1 attempt_id=1 task_slug=check-service-task queue_slug=l1 terminal_removed=Терминал удален. remove_output=Контейнер удален.
+2026-10-22 13:40:25,069 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=check-service-task queue_slug=l1 exit_code=0 requires_manual_review=False is_credit_attempt=True status=passed
+.2026-10-22 13:40:25,112 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=check-service-task queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:25,129 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=check-service-task queue_slug=l1 exit_code=1
+.2026-10-22 13:40:25,139 INFO sandbox.terminal: attempt_check_already_running user_id=1 attempt_id=1
+.......2026-10-22 13:40:25,229 WARNING django.request: Not Found: /attempts/1/check-status/
+...2026-10-22 13:40:25,270 ERROR sandbox.terminal: attempt_check_background_error user_id=1 attempt_id=1 updated=1
+Traceback (most recent call last):
+  File "/Users/artemkurkin/Dev/training-platform/sandbox/services/checks.py", line 409, in _run_attempt_check_background
+    run_attempt_check(
+    ~~~~~~~~~~~~~~~~~^
+        attempt=attempt,
+        ^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        run_id=run_id,
+        ^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1228, in _execute_mock_call
+    raise effect
+RuntimeError: Docker API unavailable
+..............2026-10-22 13:40:25,546 WARNING django.request: Not Found: /attempts/2/check/
+.2026-10-22 13:40:25,585 INFO sandbox.terminal: task_check_cleanup_done user_id=1 attempt_id=2 task_slug=snapshot-1 queue_slug=l1 terminal_removed= remove_output=Removed
+2026-10-22 13:40:25,590 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=2 task_slug=snapshot-1 queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=False status=passed
+.....2026-10-22 13:40:25,693 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=snapshot-1 queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+2026-10-22 13:40:25,712 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=2 task_slug=snapshot-2 queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:25,735 ERROR sandbox.terminal: task_environment_restart_failed user_id=1 attempt_id=1 task_slug=environment-task queue_slug=l1 container_name= terminal_container_name= error=Docker API unavailable
+.2026-10-22 13:40:25,749 ERROR sandbox.terminal: task_environment_start_failed user_id=1 attempt_id=1 task_slug=environment-task queue_slug=l1 error=Docker API unavailable
+.2026-10-22 13:40:25,762 ERROR sandbox.terminal: task_environment_restart_failed user_id=1 attempt_id=1 task_slug=environment-task queue_slug=l1 container_name= terminal_container_name= error=Docker API unavailable
+..2026-10-22 13:40:25,784 ERROR sandbox.terminal: task_environment_start_failed user_id=1 attempt_id=1 task_slug=environment-task queue_slug=l1 error=Docker API unavailable
+..2026-10-22 13:40:25,813 INFO sandbox.terminal: task_environment_restarted user_id=1 attempt_id=1 task_slug=environment-task queue_slug=l1 restart_count=2 container_name=new-task-container terminal_container_name=new-terminal-container terminal_port=25001 terminal_gateway_enabled=True
+.2026-10-22 13:40:25,830 INFO sandbox.terminal: task_environment_started user_id=1 attempt_id=1 task_slug=environment-task queue_slug=l1 container_name=task-container-name terminal_container_name=terminal-container-name terminal_port=25001 terminal_gateway_enabled=True
+........2026-10-22 13:40:25,921 WARNING django.request: Not Found: /attempts/1/environment-status/
+.............2026-10-22 13:40:26,151 WARNING django.request: Not Found: /attempts/1/http-observation/
+...2026-10-22 13:40:26,229 INFO sandbox.terminal: task_environment_restarted user_id=1 attempt_id=1 task_slug=service-bind-localhost queue_slug=l1 restart_count=1 container_name=lab-target terminal_container_name=lab-terminal terminal_port=25001 terminal_gateway_enabled=False
+........2026-10-22 13:40:26,488 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:40:26,490 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:40:26,493 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:40:26,495 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:40:26,497 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:40:26,499 WARNING django.request: Bad Request: /attempts/1/http-observation/
+2026-10-22 13:40:26,504 WARNING django.request: Not Found: /attempts/1/http-observation/
+.......2026-10-22 13:40:26,744 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:26,771 ERROR sandbox.terminal: attempt_check_background_error user_id=1 attempt_id=1 updated=1
+Traceback (most recent call last):
+  File "/Users/artemkurkin/Dev/training-platform/sandbox/services/checks.py", line 409, in _run_attempt_check_background
+    run_attempt_check(
+    ~~~~~~~~~~~~~~~~~^
+        attempt=attempt,
+        ^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        run_id=run_id,
+        ^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/artemkurkin/Dev/training-platform/sandbox/services/ledger_execution.py", line 64, in wrapped
+    return function(attempt=attempt, user_id=user_id, mark_as_running=False)
+  File "/Users/artemkurkin/Dev/training-platform/sandbox/services/checks.py", line 269, in run_attempt_check
+    record_completion_after_success(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        attempt_id=attempt.pk, check_run_id=check_run.pk,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1228, in _execute_mock_call
+    raise effect
+RuntimeError: commit path
+.2026-10-22 13:40:26,793 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=1
+.2026-10-22 13:40:26,812 ERROR sandbox.terminal: task_check_docker_error user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 container_name=
+Traceback (most recent call last):
+  File "/Users/artemkurkin/Dev/training-platform/sandbox/services/checks.py", line 123, in run_attempt_check
+    exit_code, output = check_task_container(
+                        ~~~~~~~~~~~~~~~~~~~~^
+        container_name=attempt.container_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1228, in _execute_mock_call
+    raise effect
+RuntimeError: secret password must not enter ledger
+2026-10-22 13:40:26,832 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:26,856 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=1
+.2026-10-22 13:40:26,887 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:26,910 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=1
+2026-10-22 13:40:26,931 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:26,957 ERROR sandbox.terminal: task_environment_restart_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 container_name= terminal_container_name= error=infra
+.2026-10-22 13:40:26,979 INFO sandbox.terminal: task_environment_started user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 container_name=test-container terminal_container_name=test-container terminal_port=32123 terminal_gateway_enabled=False
+2026-10-22 13:40:26,989 INFO sandbox.terminal: task_environment_restarted user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 restart_count=1 container_name=test-container terminal_container_name=test-container terminal_port=32123 terminal_gateway_enabled=False
+.2026-10-22 13:40:27,024 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:27,066 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:27,123 INFO sandbox.terminal: task_check_failed user_id=2 attempt_id=2 task_slug=https-ipv4-listener queue_slug=l1 exit_code=1
+.2026-10-22 13:40:27,150 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:27,188 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+...2026-10-22 13:40:27,315 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+..2026-10-22 13:40:27,366 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=2 task_slug=https-ipv4-listener queue_slug=l1 exit_code=1
+.2026-10-22 13:40:27,396 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:27,453 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:27,540 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:27,772 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.2026-10-22 13:40:27,891 INFO sandbox.terminal: task_environment_restarted user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 restart_count=1 container_name=test-container terminal_container_name=test-container terminal_port=32123 terminal_gateway_enabled=False
+.2026-10-22 13:40:27,925 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=2
+2026-10-22 13:40:27,940 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=42
+2026-10-22 13:40:27,956 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=124
+2026-10-22 13:40:27,972 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=125
+2026-10-22 13:40:27,986 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=126
+2026-10-22 13:40:28,001 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=127
+2026-10-22 13:40:28,017 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=137
+2026-10-22 13:40:28,032 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=255
+.2026-10-22 13:40:28,059 ERROR sandbox.terminal: task_check_docker_error user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 container_name=
+Traceback (most recent call last):
+  File "/Users/artemkurkin/Dev/training-platform/sandbox/services/checks.py", line 123, in run_attempt_check
+    exit_code, output = check_task_container(
+                        ~~~~~~~~~~~~~~~~~~~~^
+        container_name=attempt.container_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1169, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1173, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.3_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1228, in _execute_mock_call
+    raise effect
+RuntimeError: API
+.2026-10-22 13:40:28,083 INFO sandbox.terminal: task_check_failed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=124
+.2026-10-22 13:40:28,115 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+..2026-10-22 13:40:28,199 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=https-ipv4-listener queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+2026-10-22 13:40:28,249 WARNING django.request: Not Found: /attempts/1/check/
+...................................................................2026-10-22 13:40:29,198 WARNING django.security.csrf: Forbidden (CSRF cookie not set.): /attempts/1/check/
+....2026-10-22 13:40:29,304 INFO sandbox.terminal: attempt_check_already_running user_id=1 attempt_id=1
+2026-10-22 13:40:29,313 INFO sandbox.terminal: attempt_check_already_running user_id=1 attempt_id=2
+.............2026-10-22 13:40:29,478 WARNING django.request: Not Found: /attempts/1/
+2026-10-22 13:40:29,481 WARNING django.request: Not Found: /attempts/1/check/
+....2026-10-22 13:40:29,624 INFO sandbox.terminal: task_check_passed user_id=1 attempt_id=1 task_slug=progress-1 queue_slug=l1 exit_code=0 requires_manual_review=True is_credit_attempt=True status=in_progress
+.........................2026-10-22 13:40:30,277 WARNING django.request: Not Found: /attempts/1/check/
+.2026-10-22 13:40:30,301 WARNING django.request: Not Found: /attempts/1/restart/
+.2026-10-22 13:40:30,330 WARNING django.request: Not Found: /attempts/1/start/
+...........................2026-10-22 13:40:30,931 WARNING django.request: Not Found: /attempts/1/
+......................................................2026-10-22 13:40:31,959 WARNING sandbox.terminal: terminal_auth_denied reason=empty_terminal_url user_id=1 attempt_id=1 port=24000 original_uri=/terminal-auth/1/24000/
+2026-10-22 13:40:31,959 WARNING django.request: Forbidden: /terminal-auth/1/24000/
+.2026-10-22 13:40:31,980 WARNING sandbox.terminal: terminal_auth_denied reason=missing_terminal_container user_id=1 attempt_id=1 port=24000 original_uri=/terminal-auth/1/24000/
+2026-10-22 13:40:31,981 WARNING django.request: Forbidden: /terminal-auth/1/24000/
+.2026-10-22 13:40:31,998 WARNING sandbox.terminal: terminal_auth_denied reason=forbidden_user user_id=2 attempt_id=1 port=24000 original_uri=/terminal-auth/1/24000/ owner_id=1 is_staff=False
+2026-10-22 13:40:31,999 WARNING django.request: Forbidden: /terminal-auth/1/24000/
+.2026-10-22 13:40:32,018 WARNING sandbox.terminal: terminal_auth_denied reason=terminal_not_available user_id=1 attempt_id=1 port=24000 original_uri=/terminal-auth/1/24000/
+2026-10-22 13:40:32,019 WARNING django.request: Forbidden: /terminal-auth/1/24000/
+.2026-10-22 13:40:32,041 WARNING sandbox.terminal: terminal_auth_denied reason=terminal_not_available user_id=1 attempt_id=1 port=24000 original_uri=/terminal-auth/1/24000/
+2026-10-22 13:40:32,041 WARNING django.request: Forbidden: /terminal-auth/1/24000/
+.2026-10-22 13:40:32,062 WARNING sandbox.terminal: terminal_auth_denied reason=wrong_port user_id=1 attempt_id=1 port=25000 original_uri=/terminal-auth/1/25000/ actual_port=24000
+2026-10-22 13:40:32,063 WARNING django.request: Forbidden: /terminal-auth/1/25000/
+..2026-10-22 13:40:32,096 WARNING sandbox.terminal: terminal_auth_denied reason=invalid_original_uri user_id=1 attempt_id=None port=None original_uri=/not-terminal/123/24000/
+2026-10-22 13:40:32,096 WARNING django.request: Forbidden: /terminal-auth/
+.2026-10-22 13:40:32,108 WARNING sandbox.terminal: terminal_auth_denied reason=anonymous user_id=None attempt_id=1 port=24000 original_uri=/terminal-auth/1/24000/
+2026-10-22 13:40:32,108 WARNING django.request: Unauthorized: /terminal-auth/1/24000/
+................................Exception ignored in: <sqlite3.Connection object at 0x10a694220>
+Traceback (most recent call last):
+  File "/Users/artemkurkin/Dev/training-platform/.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py", line 179, in send
+    def send(self, sender, **named):
+ResourceWarning: unclosed database in <sqlite3.Connection object at 0x10a694220>
+Exception ignored in: <sqlite3.Connection object at 0x10a694400>
+Traceback (most recent call last):
+  File "/Users/artemkurkin/Dev/training-platform/.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py", line 179, in send
+    def send(self, sender, **named):
+ResourceWarning: unclosed database in <sqlite3.Connection object at 0x10a694400>
+......ssssss............
+----------------------------------------------------------------------
+Ran 427 tests in 16.839s
+
+OK (skipped=6)
+Destroying test database for alias 'default'...
+Found 427 test(s).
+System check identified no issues (0 silenced).
+MARK stuck check attempt #1: l1/https-ipv4-listener
+Cleanup completed. cleaned=0 preserved_technical=0
+Cleanup completed. cleaned=0 preserved_technical=0
+Cleanup completed. cleaned=0 preserved_technical=0
+Cleanup completed. cleaned=0 preserved_technical=0
+Exception ignored in: <sqlite3.Connection object at 0x10af484f0>
+ResourceWarning: unclosed database in <sqlite3.Connection object at 0x10af484f0>

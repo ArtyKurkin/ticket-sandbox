@@ -1,0 +1,10 @@
+{
+  "daemon_id": "REPLACE_WITH_APPROVED_DAEMON_ID",
+  "network_id": "REPLACE_WITH_FULL_64_HEX_NETWORK_ID",
+  "scope": "REPLACE_WITH_NETWORK_SCOPE_UUID",
+  "subnet": "REPLACE_WITH_APPROVED_RFC1918_SUBNET_MAX_64_ADDRESSES",
+  "target_image": "sha256:REPLACE_WITH_64_HEX_LOCAL_TARGET_IMAGE_ID",
+  "verifier_image": "sha256:REPLACE_WITH_64_HEX_LOCAL_VERIFIER_IMAGE_ID",
+  "api_socket": "/var/run/docker.sock",
+  "artifact_dir": "/var/lib/tc-http-observations"
+}

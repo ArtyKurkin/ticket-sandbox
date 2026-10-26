@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "task": "l1/service-bind-localhost",
+  "attempt_id": 17,
+  "run_id": "9b76e345-063c-4426-8280-4f47af405175",
+  "environment_id": "ba2c4631-65ac-4c8e-a0ff-788d8a1e08f1",
+  "runtime_id": "ae395c30-d7c9-48d8-8dec-7d2be440a666",
+  "http": "matched",
+  "reason": "http_match",
+  "attempt_binding": "matched_local_control_record",
+  "service_process_state": "unverified",
+  "bind_address_and_port": "unverified",
+  "container_identity": "unverified",
+  "network_isolation": "unverified",
+  "task_verdict": "unknown",
+  "academic_pass": false,
+  "continuous_verification": false
+}
