@@ -8,7 +8,7 @@ class LedgerMigrationTests(TransactionTestCase):
 
     def test_existing_attempts_unchanged_no_coverage_backfill(self):
         previous = ("sandbox", "0031_sandbox_program_completion")
-        current = ("sandbox", "0033_ledger_guards")
+        current = ("sandbox", "0034_http_observation")
         try:
             executor = MigrationExecutor(connection)
             executor.migrate([previous])
@@ -37,8 +37,9 @@ class LedgerMigrationTests(TransactionTestCase):
             )
 
             self.assertEqual(
-                TaskAttempt.objects.filter(pk=attempt.pk).values().get(), before
+                TaskAttempt.objects.filter(pk=attempt.pk).values(*before).get(), before
             )
+            self.assertEqual(TaskAttempt.objects.get(pk=attempt.pk).http_observation_runtime, {})
             self.assertFalse(
                 SandboxAttemptCoverage.objects.filter(attempt_id=attempt.pk).exists()
             )

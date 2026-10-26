@@ -425,6 +425,10 @@ class TaskAttempt(models.Model):
         verbose_name="ID контейнера"
     )
 
+    # Host-only diagnostic mapping, pinned on an explicitly opted-in start/reset.
+    # Never read by technical evidence or academic transitions.
+    http_observation_runtime = models.JSONField(default=dict, editable=False)
+
     container_name = models.CharField(
         max_length=255,
         blank=True,
@@ -855,3 +859,5 @@ class CheckRun(models.Model):
 # Registered in the same Django app; isolated module keeps operational models readable.
 from .ledger_models import (SandboxLedgerBoundary, SandboxProgramManifest, SandboxAttemptCoverage, SandboxEvidenceGap,
     TechnicalCheckExecution, TechnicalCheckExecutionEvent, SandboxEnvironmentEvent, SandboxAnswerSubmission, SandboxAnswerReviewEvent)
+
+from .observation_models import HTTPObservationRun

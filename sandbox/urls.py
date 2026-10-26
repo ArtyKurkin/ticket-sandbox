@@ -1,10 +1,13 @@
 from django.urls import path
 
 from . import views
+from . import observation_views
 
 app_name = "sandbox"
 
 urlpatterns = [
+    path("attempts/<int:attempt_id>/http-observation/", observation_views.start_http_observation, name="http_observation"),
+    path("attempts/<int:attempt_id>/http-observation-status/", observation_views.http_observation_status, name="http_observation_status"),
     path(
         "sandbox/ai-review-stats/",
         views.ai_review_stats,

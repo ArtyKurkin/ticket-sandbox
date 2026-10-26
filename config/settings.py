@@ -135,6 +135,11 @@ TIME_ZONE = os.getenv("TIME_ZONE", "Europe/Moscow")
 
 TASK_CONTAINER_TZ = os.getenv("TASK_CONTAINER_TZ", "MSK-3")
 
+# Explicitly selected lab attempt; disabled for every deployment by default.
+SANDBOX_HTTP_OBSERVATION_ENABLED = os.getenv("SANDBOX_HTTP_OBSERVATION_ENABLED", "false").lower() == "true"
+SANDBOX_HTTP_OBSERVATION_ATTEMPT_ID = os.getenv("SANDBOX_HTTP_OBSERVATION_ATTEMPT_ID", "0")
+SANDBOX_HTTP_OBSERVATION_CONFIG = os.getenv("SANDBOX_HTTP_OBSERVATION_CONFIG", "")
+
 TERMINAL_NETWORK_MODE = os.getenv(
     "TERMINAL_NETWORK_MODE",
     "host_port",

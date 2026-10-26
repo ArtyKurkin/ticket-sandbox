@@ -251,11 +251,15 @@ def task_detail(request, attempt_id):
     from uuid import uuid4
     ledger_operation_id = str(uuid4())
     ledger_submission = ledger.SandboxAnswerSubmission.objects.filter(attempt_id=attempt.pk).order_by('-ordinal').first()
+    from .services.observation_config import enabled_for
+    observation_enabled = enabled_for(attempt)
     return render(
         request,
         "sandbox/task_detail.html",
         {
             "attempt": attempt,
+            "http_observation_enabled": observation_enabled,
+            "http_observation": attempt.http_observations.first() if observation_enabled else None,
             "ledger_operation_id": ledger_operation_id,
             "ledger_submission_id": ledger_submission.pk if ledger_submission else "",
             "check_runs": attempt.check_runs.all(),
@@ -540,6 +544,11 @@ def check_task(request, attempt_id):
         id=attempt_id,
         user=request.user,
     )
+
+    from .services.observation_config import enabled_for
+    if enabled_for(attempt):
+        from .observation_views import start_http_observation
+        return start_http_observation(request, attempt_id)
 
     if not attempt.can_edit_client_answer:
         historical_attempt_response = block_historical_attempt_action(request, attempt)

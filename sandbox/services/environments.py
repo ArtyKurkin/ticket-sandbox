@@ -286,6 +286,10 @@ def run_environment_start(attempt):
         task_slug=attempt.task.slug,
         attempt_id=attempt.id,
     )
+    from .observation_config import capture_runtime
+    observation_runtime = capture_runtime(attempt, container)
+    if observation_runtime is not None:
+        attempt.http_observation_runtime = observation_runtime
 
     terminal_port = (
         None
@@ -349,6 +353,7 @@ def run_environment_start(attempt):
                 "last_check_output",
                 "environment_status",
                 "environment_finished_at",
+                *(["http_observation_runtime"] if observation_runtime is not None else []),
             ]
         )
         if request:ledger.environment_phase(request,"finished",outcome="success")
@@ -384,6 +389,10 @@ def run_environment_restart(attempt):
         task_slug=attempt.task.slug,
         attempt_id=attempt.id,
     )
+    from .observation_config import capture_runtime
+    observation_runtime = capture_runtime(attempt, container)
+    if observation_runtime is not None:
+        attempt.http_observation_runtime = observation_runtime
 
     terminal_port = (
         None
@@ -459,6 +468,7 @@ def run_environment_restart(attempt):
                 "check_finished_at",
                 "environment_status",
                 "environment_finished_at",
+                *(["http_observation_runtime"] if observation_runtime is not None else []),
             ]
         )
         if request:ledger.environment_phase(request,"finished",outcome="success")

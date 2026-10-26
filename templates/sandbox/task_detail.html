@@ -885,6 +885,23 @@
             {% endif %}
 
           {% elif attempt.terminal_url or attempt.container_name %}
+            {% if http_observation_enabled %}
+              <section aria-label="HTTP-наблюдение">
+                <h3>HTTP-наблюдение</h3>
+                <p>Проверяет HTTP-ответ. Технический зачёт не выставляется; bind и процесс не проверены.</p>
+                {% if http_observation %}
+                  <p>Состояние: {{ http_observation.status_label }}. HTTP: {{ http_observation.http_label }}.</p>
+                  <p>Наблюдение от {{ http_observation.requested_at }}; последующие изменения среды не проверены.</p>
+                  <p><a href="{% url 'sandbox:task_detail' attempt.id %}">Обновить результат</a></p>
+                {% endif %}
+                {% if attempt.is_current and not is_mentor_view %}
+                  <form method="post" action="{% url 'sandbox:http_observation' attempt.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="button">Проверить HTTP без зачёта</button>
+                  </form>
+                {% endif %}
+              </section>
+            {% else %}
             <form method="post" action="{% url 'sandbox:check_task' attempt.id %}">
             
               {% csrf_token %}
@@ -904,6 +921,8 @@
                 </span>
               </button>
             </form>
+
+            {% endif %}
 
             <form method="post" action="{% url 'sandbox:restart_task' attempt.id %}">
               {% csrf_token %}

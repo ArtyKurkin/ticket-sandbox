@@ -91,9 +91,17 @@ def create_task_container(queue_slug: str, task_slug: str, attempt_id: int):
         )
 
     try:
-        client.images.get(image_name)
+        from .observation_config import selected, pilot_launch
+        pilot = selected(queue_slug, task_slug, attempt_id)
+        pilot_options = {}
+        if pilot:
+            image_name, pilot_options = pilot_launch(client, attempt_id)
+        else:
+            client.images.get(image_name)
 
     except docker.errors.ImageNotFound:
+        if pilot:
+            raise
         client.images.build(
             path=str(task_path),
             tag=image_name,
@@ -110,20 +118,22 @@ def create_task_container(queue_slug: str, task_slug: str, attempt_id: int):
         security_opt=[
             "no-new-privileges:true",
         ],
-        cap_drop=[
+        cap_drop=["ALL"] if pilot else [
             "AUDIT_WRITE",
             "MKNOD",
         ],
-        tmpfs={
+        tmpfs={} if pilot else {
             "/tmp": "rw,nosuid,size=128m",
             "/run": "rw,nosuid,size=64m",
         },
         labels={
+            **pilot_options.pop("labels", {}),
             "ticket-sandbox.type": "task",
             "ticket-sandbox.queue": queue_slug,
             "ticket-sandbox.task": task_slug,
             "ticket-sandbox.attempt": str(attempt_id),
         },
+        **pilot_options,
     )
 
     return container

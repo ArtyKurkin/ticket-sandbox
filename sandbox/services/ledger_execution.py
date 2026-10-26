@@ -15,6 +15,10 @@ def checked(function):
         attempt.refresh_from_db()
         if attempt.user_id != user_id:
             raise PermissionDenied
+        from sandbox.services.observation_config import enabled_for
+        if enabled_for(attempt):
+            from sandbox.services.checks import AttemptCheckResult
+            return AttemptCheckResult(False, "Для этой попытки включено HTTP-наблюдение без технического зачёта.")
         if get_technical_evidence(attempt, use_cached=False).is_completed:
             if run_id:
                 with transaction.atomic():

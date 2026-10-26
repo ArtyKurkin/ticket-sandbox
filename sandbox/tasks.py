@@ -49,3 +49,9 @@ def run_ai_review_task(ai_review_id):
     )
 
     run_ai_review(ai_review)
+
+
+@shared_task(name="sandbox.observe_task_http", ignore_result=True, soft_time_limit=20, time_limit=25)
+def run_http_observation_task(run_id):
+    from sandbox.services.http_observations import run_observation
+    run_observation(run_id)

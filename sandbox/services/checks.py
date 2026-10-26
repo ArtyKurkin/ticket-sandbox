@@ -362,6 +362,9 @@ def start_attempt_check_in_background(
     Атомарно помечает попытку как running
     и ставит автопроверку в очередь Celery.
     """
+    from .observation_config import enabled_for
+    if enabled_for(attempt):
+        return None
     was_marked_running = try_mark_attempt_check_running(
         attempt=attempt,
         operation_id=operation_id,
