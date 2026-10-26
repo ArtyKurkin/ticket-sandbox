@@ -1,0 +1,14 @@
+{
+  "available": 187,
+  "selected": 183,
+  "excluded": [
+    "trusted_checker_network.tests.test_native_v2_helper.IsolationTests.test_native_calls_guard_before_syscall",
+    "trusted_checker_network.tests.test_native_v2_helper.IsolationTests.test_old_os_fake_backend_does_not_accept_new_kernel",
+    "trusted_checker_network.tests.test_native_v2_helper.LifecycleTests.test_helper_one_invocation_only",
+    "trusted_checker_network.tests.test_native_v2_helper.LifecycleTests.test_native_entry_closed_for_fake_approval"
+  ],
+  "tests": 183,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0
+}

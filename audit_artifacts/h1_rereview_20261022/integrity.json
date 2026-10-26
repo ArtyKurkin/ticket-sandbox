@@ -1,0 +1,27 @@
+{
+  "baseline_artifacts": 324,
+  "changed": [],
+  "source_digest_before": "bffce5ec1e43bf1783f2b48a23b3372397c4fd5f8aded93ff3b4e95561efae3a",
+  "source_digest_after": "bffce5ec1e43bf1783f2b48a23b3372397c4fd5f8aded93ff3b4e95561efae3a",
+  "audit_files": {
+    "audit_artifacts/h1_rereview_20261022/README.md": "04bb0164b3476f2b8be009c7dcc106a4545150946ee4a4dec9166925b042a829",
+    "audit_artifacts/h1_rereview_20261022/baseline.json": "6c26a2f0f9d0b128b3d9ec1d83725f0e5e887c3c791b5f22a7b1b0f56b2715cf",
+    "audit_artifacts/h1_rereview_20261022/existing-results.json": "f7d8d75b4cabbb6d5b74d184d413d5e92249bd6441981a46ca63d595f4e0f913",
+    "audit_artifacts/h1_rereview_20261022/existing.log": "408d067ebf67d7161999d6368556cfef53a0a8e0abf6d107d333501d972f2f5b",
+    "audit_artifacts/h1_rereview_20261022/invariants.md": "f758075a291c1d0ec7456f1757e7460fffb69df1d85560d5880c4043f93498c5",
+    "audit_artifacts/h1_rereview_20261022/observations.json": "9d2a3ea489d9081b9bfdfd54b3fd558dca13b4bf1db571d7958c88a201852119",
+    "audit_artifacts/h1_rereview_20261022/observations.log": "b9c9a03821c894971b8c8dc21449d7a58608601e1c3cce49da00a0327b8e8536",
+    "audit_artifacts/h1_rereview_20261022/run_existing_offline.py": "c3cbf5da2c5acc26c8b81a0980c5c6cf63fc6b1943408733dcbd830bf79c7789",
+    "audit_artifacts/h1_rereview_20261022/safe.json": "6ae3aa146b47f694926e66aea5c16918a6f889b663f4817dfe60b379e0588146",
+    "audit_artifacts/h1_rereview_20261022/safe.log": "c71eb43a68ee93bd3be6edd30637611d077f7b59a32954b75150429e320726f1",
+    "audit_artifacts/h1_rereview_20261022/test_h1_rereview.py": "35d72edddd36b92ec5a4d5f2a0dfc9b53f3e32bf90da8688cc74312689c0a120"
+  },
+  "report_sha256": "0d7f835f8ead46bc03607af4d8ae64cbbf7dad76d2a770e71c4dd83b905be473",
+  "runs": {
+    "observations_exit": 0,
+    "safe_exit": 1,
+    "existing_exit": 0
+  },
+  "production_modified": false,
+  "native_entry_called": false
+}

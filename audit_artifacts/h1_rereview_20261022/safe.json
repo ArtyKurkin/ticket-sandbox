@@ -1,0 +1,861 @@
+{
+  "assert_safe": true,
+  "errors": 0,
+  "failures": 5,
+  "observations": {
+    "A01": {
+      "no_closed_reads": true,
+      "no_double_close": true,
+      "results": [
+        "helper_fake_capture_preserved",
+        "unknown"
+      ]
+    },
+    "A02": {
+      "no_orphans": true,
+      "outcomes": [
+        {
+          "after": false,
+          "cleanup": "no_dispatch",
+          "method": "register_helper"
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "method": "register_helper"
+        },
+        {
+          "after": false,
+          "cleanup": "reaped_closed",
+          "method": "reserve_child"
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "method": "reserve_child"
+        }
+      ]
+    },
+    "A03": {
+      "latch": true,
+      "late_completion_rejected": true
+    },
+    "A04": {
+      "calls": 10000,
+      "default_off_calls": 0,
+      "pending": 0
+    },
+    "A05": {
+      "circuit": true,
+      "original_case_closed": true,
+      "terminal": "unknown"
+    },
+    "A06": {
+      "group_precedence": true,
+      "modes": {
+        "0000": "refused",
+        "0600": "refused",
+        "0644": "refused",
+        "0755": "admitted"
+      }
+    },
+    "A07": {
+      "foreign_closed": false,
+      "malformed_closed": true,
+      "outcomes": [
+        {
+          "received": 0,
+          "result": "unknown"
+        },
+        {
+          "received": 6,
+          "result": "unknown"
+        },
+        {
+          "received": 7,
+          "result": "helper_fake_capture_preserved"
+        },
+        {
+          "received": 8,
+          "result": "unknown"
+        },
+        {
+          "received": 9,
+          "result": "unknown"
+        },
+        {
+          "received": 16,
+          "result": "unknown"
+        }
+      ]
+    },
+    "I-clocks": {
+      "results": {
+        "frozen": "incomplete_output",
+        "missing_eof": "timeout",
+        "rollback": "clock_rollback"
+      }
+    },
+    "I-coherent-replacement": {
+      "accounting": {
+        "closed_fds": [
+          30,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "owned_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "processes": {
+          "d607abf13abb0bedce0b1ad751154b0b6ffcf4d5ae472c9de2f9a1e8d6eb421c": {
+            "closed": true,
+            "reaped": true,
+            "role": "child",
+            "running": false
+          },
+          "f449b50de19c0b05bdfa01d463b526f5712950b45131cf6d42ac970f17a7431e": {
+            "closed": true,
+            "reaped": true,
+            "role": "helper",
+            "running": false
+          }
+        },
+        "unresolved_fds": 1
+      },
+      "cleanup": "cleanup_unproven",
+      "result": "unknown"
+    },
+    "I-double-cleanup-fault": {
+      "accounting": {
+        "closed_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "owned_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "processes": {
+          "d607abf13abb0bedce0b1ad751154b0b6ffcf4d5ae472c9de2f9a1e8d6eb421c": {
+            "closed": true,
+            "reaped": true,
+            "role": "child",
+            "running": false
+          },
+          "f449b50de19c0b05bdfa01d463b526f5712950b45131cf6d42ac970f17a7431e": {
+            "closed": true,
+            "reaped": true,
+            "role": "helper",
+            "running": false
+          }
+        },
+        "unresolved_fds": 0
+      },
+      "cleanup": "cleanup_unproven",
+      "result": "unknown"
+    },
+    "I-effect-boundaries": {
+      "cases": [
+        {
+          "after": false,
+          "cleanup": "no_dispatch",
+          "error": "RuntimeError",
+          "method": "prepare_owned",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "no_dispatch",
+          "error": "KeyboardInterrupt",
+          "method": "prepare_owned",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "no_dispatch",
+          "error": "RuntimeError",
+          "method": "prepare_owned",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "no_dispatch",
+          "error": "KeyboardInterrupt",
+          "method": "prepare_owned",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "no_dispatch",
+          "error": "RuntimeError",
+          "method": "register_helper",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "no_dispatch",
+          "error": "KeyboardInterrupt",
+          "method": "register_helper",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "RuntimeError",
+          "method": "register_helper",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "KeyboardInterrupt",
+          "method": "register_helper",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "reaped_closed",
+          "error": "RuntimeError",
+          "method": "reserve_child",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "reaped_closed",
+          "error": "KeyboardInterrupt",
+          "method": "reserve_child",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "RuntimeError",
+          "method": "reserve_child",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "KeyboardInterrupt",
+          "method": "reserve_child",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "reaped_closed",
+          "error": "RuntimeError",
+          "method": "dispatch_helper",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "reaped_closed",
+          "error": "KeyboardInterrupt",
+          "method": "dispatch_helper",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "RuntimeError",
+          "method": "dispatch_helper",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "KeyboardInterrupt",
+          "method": "dispatch_helper",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "reaped_closed",
+          "error": "RuntimeError",
+          "method": "exec_fd_child",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "reaped_closed",
+          "error": "KeyboardInterrupt",
+          "method": "exec_fd_child",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "RuntimeError",
+          "method": "exec_fd_child",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "KeyboardInterrupt",
+          "method": "exec_fd_child",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "reaped_closed",
+          "error": "RuntimeError",
+          "method": "poll_child",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "reaped_closed",
+          "error": "KeyboardInterrupt",
+          "method": "poll_child",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "RuntimeError",
+          "method": "poll_child",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "KeyboardInterrupt",
+          "method": "poll_child",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "reaped_closed",
+          "error": "RuntimeError",
+          "method": "transfer_receipt",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "reaped_closed",
+          "error": "KeyboardInterrupt",
+          "method": "transfer_receipt",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "RuntimeError",
+          "method": "transfer_receipt",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "reaped_closed",
+          "error": "KeyboardInterrupt",
+          "method": "transfer_receipt",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "cleanup_unproven",
+          "error": "RuntimeError",
+          "method": "reap_owned",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "cleanup_unproven",
+          "error": "KeyboardInterrupt",
+          "method": "reap_owned",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "cleanup_unproven",
+          "error": "RuntimeError",
+          "method": "reap_owned",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "cleanup_unproven",
+          "error": "KeyboardInterrupt",
+          "method": "reap_owned",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "cleanup_unproven",
+          "error": "RuntimeError",
+          "method": "close_owned",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "cleanup_unproven",
+          "error": "KeyboardInterrupt",
+          "method": "close_owned",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "cleanup_unproven",
+          "error": "RuntimeError",
+          "method": "close_owned",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "cleanup_unproven",
+          "error": "KeyboardInterrupt",
+          "method": "close_owned",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "cleanup_unproven",
+          "error": "RuntimeError",
+          "method": "close_transferred",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "cleanup_unproven",
+          "error": "KeyboardInterrupt",
+          "method": "close_transferred",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "cleanup_unproven",
+          "error": "RuntimeError",
+          "method": "close_transferred",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "cleanup_unproven",
+          "error": "KeyboardInterrupt",
+          "method": "close_transferred",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "cleanup_unproven",
+          "error": "RuntimeError",
+          "method": "close_control",
+          "open_fds": 0
+        },
+        {
+          "after": false,
+          "cleanup": "cleanup_unproven",
+          "error": "KeyboardInterrupt",
+          "method": "close_control",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "cleanup_unproven",
+          "error": "RuntimeError",
+          "method": "close_control",
+          "open_fds": 0
+        },
+        {
+          "after": true,
+          "cleanup": "cleanup_unproven",
+          "error": "KeyboardInterrupt",
+          "method": "close_control",
+          "open_fds": 0
+        }
+      ]
+    },
+    "I-positive": {
+      "accounting": {
+        "closed_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "owned_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "processes": {
+          "d607abf13abb0bedce0b1ad751154b0b6ffcf4d5ae472c9de2f9a1e8d6eb421c": {
+            "closed": true,
+            "reaped": true,
+            "role": "child",
+            "running": false
+          },
+          "f449b50de19c0b05bdfa01d463b526f5712950b45131cf6d42ac970f17a7431e": {
+            "closed": true,
+            "reaped": true,
+            "role": "helper",
+            "running": false
+          }
+        },
+        "unresolved_fds": 0
+      },
+      "result": "helper_fake_capture_preserved"
+    },
+    "I-resource-caps": {
+      "aggregate": 16777216,
+      "outputs": {
+        "stderr": "stderr_limit",
+        "stdout": "stdout_limit"
+      },
+      "stream_limit": 4096
+    },
+    "I-shared-registry": {
+      "first": "helper_fake_capture_preserved",
+      "second": "unknown",
+      "second_calls": 0
+    },
+    "R01": {
+      "accounting": {
+        "closed_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "owned_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "processes": {
+          "d607abf13abb0bedce0b1ad751154b0b6ffcf4d5ae472c9de2f9a1e8d6eb421c": {
+            "closed": true,
+            "reaped": true,
+            "role": "child",
+            "running": false
+          },
+          "f449b50de19c0b05bdfa01d463b526f5712950b45131cf6d42ac970f17a7431e": {
+            "closed": true,
+            "reaped": true,
+            "role": "helper",
+            "running": false
+          }
+        },
+        "unresolved_fds": 0
+      },
+      "cleanup": "reaped_closed",
+      "foreign_closed": false,
+      "reason": "offline_helper_model_complete",
+      "remaining_descriptor_facts": true,
+      "result": "helper_fake_capture_preserved",
+      "supplied_inherited": [
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        999
+      ],
+      "validated_inherited": [
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ]
+    },
+    "R02": {
+      "accounting": {
+        "closed_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "owned_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "processes": {
+          "f449b50de19c0b05bdfa01d463b526f5712950b45131cf6d42ac970f17a7431e": {
+            "closed": true,
+            "reaped": true,
+            "role": "helper",
+            "running": false
+          }
+        },
+        "unresolved_fds": 0
+      },
+      "after": {
+        "closed": true,
+        "reaped": true,
+        "role": "helper",
+        "running": false
+      },
+      "before": {
+        "closed": false,
+        "reaped": false,
+        "role": "helper",
+        "running": true
+      },
+      "first_registry_still_active": true,
+      "second_cleanup": "reaped_closed",
+      "second_reason": "replay",
+      "second_registry_circuit": true,
+      "second_result": "unknown"
+    },
+    "R03": {
+      "accounting": {
+        "closed_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "owned_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "processes": {
+          "d607abf13abb0bedce0b1ad751154b0b6ffcf4d5ae472c9de2f9a1e8d6eb421c": {
+            "closed": true,
+            "reaped": true,
+            "role": "child",
+            "running": false
+          },
+          "f449b50de19c0b05bdfa01d463b526f5712950b45131cf6d42ac970f17a7431e": {
+            "closed": true,
+            "reaped": true,
+            "role": "helper",
+            "running": false
+          }
+        },
+        "unresolved_fds": 0
+      },
+      "cleanup": "reaped_closed",
+      "current_monotonic_us": 1600000,
+      "deadline_monotonic_us": 1500000,
+      "elapsed_wall_us": 600000,
+      "result": "helper_fake_capture_preserved"
+    },
+    "R04": {
+      "accounting": {
+        "closed_fds": [],
+        "owned_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "processes": {
+          "d607abf13abb0bedce0b1ad751154b0b6ffcf4d5ae472c9de2f9a1e8d6eb421c": {
+            "closed": false,
+            "reaped": false,
+            "role": "child",
+            "running": true
+          },
+          "f449b50de19c0b05bdfa01d463b526f5712950b45131cf6d42ac970f17a7431e": {
+            "closed": false,
+            "reaped": false,
+            "role": "helper",
+            "running": true
+          }
+        },
+        "unresolved_fds": 7
+      },
+      "active": true,
+      "both_blocked": true,
+      "cancel_stack": [
+        {
+          "file": "native_v2_helper_runtime.py",
+          "function": "cancel",
+          "line": 37
+        },
+        {
+          "file": "test_h1_rereview.py",
+          "function": "marked_cancel",
+          "line": 137
+        },
+        {
+          "file": "native_v2_helper_runtime.py",
+          "function": "kill",
+          "line": 418
+        },
+        {
+          "file": "threading.py",
+          "function": "run",
+          "line": 992
+        },
+        {
+          "file": "threading.py",
+          "function": "_bootstrap_inner",
+          "line": 1041
+        },
+        {
+          "file": "threading.py",
+          "function": "_bootstrap",
+          "line": 1012
+        }
+      ],
+      "cancellation_set": true,
+      "circuit": false,
+      "completed": 0,
+      "dispatch_committed": true,
+      "errors": [],
+      "primary_stack": [
+        {
+          "file": "native_v2_helper_runtime.py",
+          "function": "kill",
+          "line": 416
+        },
+        {
+          "file": "test_h1_rereview.py",
+          "function": "execute",
+          "line": 126
+        },
+        {
+          "file": "native_v2_helper_runtime.py",
+          "function": "<lambda>",
+          "line": 213
+        },
+        {
+          "file": "native_v2_helper_runtime.py",
+          "function": "dispatch",
+          "line": 57
+        },
+        {
+          "file": "native_v2_helper_runtime.py",
+          "function": "run_fake",
+          "line": 213
+        },
+        {
+          "file": "native_v2_helper_runtime.py",
+          "function": "_run",
+          "line": 463
+        },
+        {
+          "file": "native_v2_helper_runtime.py",
+          "function": "run_fake",
+          "line": 427
+        },
+        {
+          "file": "test_h1_rereview.py",
+          "function": "run",
+          "line": 130
+        },
+        {
+          "file": "threading.py",
+          "function": "run",
+          "line": 992
+        },
+        {
+          "file": "threading.py",
+          "function": "_bootstrap_inner",
+          "line": 1041
+        },
+        {
+          "file": "threading.py",
+          "function": "_bootstrap",
+          "line": 1012
+        }
+      ],
+      "terminal": false
+    },
+    "R05": {
+      "accounting": {
+        "closed_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "owned_fds": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ],
+        "processes": {
+          "d607abf13abb0bedce0b1ad751154b0b6ffcf4d5ae472c9de2f9a1e8d6eb421c": {
+            "closed": true,
+            "reaped": true,
+            "role": "child",
+            "running": false
+          },
+          "f449b50de19c0b05bdfa01d463b526f5712950b45131cf6d42ac970f17a7431e": {
+            "closed": true,
+            "reaped": true,
+            "role": "helper",
+            "running": false
+          }
+        },
+        "unresolved_fds": 0
+      },
+      "admitted_before_interrupt": true,
+      "circuit": true,
+      "issued": "helper_fake_capture_preserved",
+      "same_object": false,
+      "terminal_after": "unknown"
+    }
+  },
+  "skips": 0,
+  "tests": 31
+}
