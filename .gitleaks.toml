@@ -1,0 +1,21 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Trusted Checker integrity manifests containing SHA-256 hashes"
+paths = [
+  '''^experiments/trusted_checker_mvp/(.*/)?(integrity|real_lab_integrity)\.json$''',
+  '''^audit_artifacts/h1_rereview_20261022/baseline\.json$'''
+]
+regexes = [
+  '''[a-fA-F0-9]{64}'''
+]
+
+[[allowlists]]
+description = "Known non-secret dictionary membership check"
+paths = [
+  '''^trusted_checker_network/native_v2_readback\.py$'''
+]
+regexes = [
+  '''c\._require\(key in chains'''
+]
