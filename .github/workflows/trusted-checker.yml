@@ -1,0 +1,94 @@
+name: Trusted Checker Tests
+
+on:
+  push:
+    branches:
+      - main
+      - feature/roadmap-react
+    paths:
+      - 'trusted_checker_*/**'
+      - 'experiments/trusted_checker_mvp/**'
+      - 'experiments/terminal_broker/**'
+      - 'terminal/Dockerfile.broker'
+      - '.github/workflows/trusted-checker.yml'
+
+  pull_request:
+    paths:
+      - 'trusted_checker_*/**'
+      - 'experiments/trusted_checker_mvp/**'
+      - 'experiments/terminal_broker/**'
+      - 'terminal/Dockerfile.broker'
+      - '.github/workflows/trusted-checker.yml'
+
+  workflow_dispatch:
+
+jobs:
+  checker-tests:
+    name: Trusted Checker offline tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      PYTHONPATH: .
+      SECRET_KEY: ci-trusted-checker-test-key
+      DEBUG: "True"
+      DB_ENGINE: django.db.backends.sqlite3
+      DB_NAME: ":memory:"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Network tests
+        run: |
+          python -m unittest discover \
+            -s trusted_checker_network/tests \
+            -t . \
+            -p 'test_*.py'
+
+      - name: Physical tests
+        run: |
+          python -m unittest discover \
+            -s trusted_checker_physical/tests \
+            -t . \
+            -p 'test_*.py'
+
+      - name: Live tests
+        run: |
+          python -m unittest discover \
+            -s trusted_checker_live/tests \
+            -t . \
+            -p 'test_*.py'
+
+      - name: MVP tests
+        run: |
+          python -m unittest \
+            experiments.trusted_checker_mvp.test_mvp
+
+      - name: Docker Pilot offline tests
+        run: |
+          python -m unittest \
+            experiments.trusted_checker_mvp.docker_pilot.test_pilot
+
+      - name: Terminal Broker syntax check
+        run: |
+          python -m py_compile \
+            experiments/terminal_broker/terminal_broker_lab.py
+
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## Trusted Checker" >> "$GITHUB_STEP_SUMMARY"
+          echo "Offline Network, Physical, Live, MVP and DockerPilot checks." >> "$GITHUB_STEP_SUMMARY"
+          echo "Private native capture tests are skipped if evidence is unavailable." >> "$GITHUB_STEP_SUMMARY"
+          echo "Docker-backed E2E and Terminal Broker security tests are not included." >> "$GITHUB_STEP_SUMMARY"
