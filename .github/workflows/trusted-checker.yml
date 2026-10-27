@@ -92,3 +92,10 @@ jobs:
           echo "Offline Network, Physical, Live, MVP and DockerPilot checks." >> "$GITHUB_STEP_SUMMARY"
           echo "Private native capture tests are skipped if evidence is unavailable." >> "$GITHUB_STEP_SUMMARY"
           echo "Docker-backed E2E and Terminal Broker security tests are not included." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Terminal Broker unit tests
+        run: |
+          python -m unittest discover \
+            -s experiments/terminal_broker \
+            -p 'test_*.py' \
+            -v
