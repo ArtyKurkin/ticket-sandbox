@@ -25,7 +25,23 @@ from .native_v2_native61_support import (
 from .native_v2_management_support import ManagementFixture2
 
 
+# Original VDS captures are intentionally excluded from Git.
+# Tests requiring original bytes must be explicitly skipped when absent.
+ORIGINAL_EVIDENCE_AVAILABLE = (
+    (ORIGINALS / "SHA256SUMS").is_file()
+    and (ORIGINALS / "iproute2.txt").is_file()
+    and (ORIGINALS / "kernel.txt").is_file()
+    and (ORIGINALS / "host/address.json").is_file()
+    and (FIXTURES / "tc-native-capture-20261021T082517Z.tar.gz").is_file()
+)
+
+ORIGINAL_EVIDENCE_REASON = (
+    "Original private VDS capture is not present in this checkout"
+)
+
+
 class ProvenanceTests(unittest.TestCase):
+    @unittest.skipUnless(ORIGINAL_EVIDENCE_AVAILABLE, ORIGINAL_EVIDENCE_REASON)
     def test_archive_bytes_hash_and_safe_original_paths(self):
         p=json.loads((FIXTURES/'provenance.json').read_text())
         raw=(FIXTURES/p['archive_name']).read_bytes()
@@ -38,6 +54,7 @@ class ProvenanceTests(unittest.TestCase):
                 self.assertFalse(member.name.startswith('/'));self.assertNotIn('..',Path(member.name).parts)
                 if member.isfile():self.assertEqual(archive.extractfile(member).read(),(FIXTURES/'native'/member.name).read_bytes())
 
+    @unittest.skipUnless(ORIGINAL_EVIDENCE_AVAILABLE, ORIGINAL_EVIDENCE_REASON)
     def test_original_manifest_exact_107_entries(self):
         sums={}
         for line in (ORIGINALS/'SHA256SUMS').read_text().splitlines():
@@ -48,6 +65,7 @@ class ProvenanceTests(unittest.TestCase):
         files={str(p.relative_to(ORIGINALS)) for p in ORIGINALS.rglob('*') if p.is_file()}
         self.assertEqual(files,set(sums)|{'SHA256SUMS'})
 
+    @unittest.skipUnless(ORIGINAL_EVIDENCE_AVAILABLE, ORIGINAL_EVIDENCE_REASON)
     def test_all_originals_bound_in_provenance(self):
         p=json.loads((FIXTURES/'provenance.json').read_text())
         self.assertEqual(len(p['files']),108)
@@ -58,18 +76,21 @@ class ProvenanceTests(unittest.TestCase):
                      'trusted_namespace_fd_witnesses_recorded','measurement_before_after_recorded','atomic_snapshot'):
             self.assertIs(p[flag],False)
 
+    @unittest.skipUnless(ORIGINAL_EVIDENCE_AVAILABLE, ORIGINAL_EVIDENCE_REASON)
     def test_all_exit_stderr_records(self):
         exits=list(ORIGINALS.glob('*/*.exit'));errors=list(ORIGINALS.glob('*/*.err'))
         self.assertEqual(len(exits),34);self.assertEqual(len(errors),34)
         self.assertTrue(all(p.read_bytes()==b'0\n' for p in exits))
         self.assertTrue(all(p.read_bytes()==b'' for p in errors))
 
+    @unittest.skipUnless(ORIGINAL_EVIDENCE_AVAILABLE, ORIGINAL_EVIDENCE_REASON)
     def test_all_34_json_documents_are_strictly_decodable(self):
         paths=list(ORIGINALS.glob('*/*.json'));self.assertEqual(len(paths),34)
         for path in paths:
             with self.subTest(path=str(path)):
                 self.assertIsNotNone(bounded_topology_json2(path.read_bytes()))
 
+    @unittest.skipUnless(ORIGINAL_EVIDENCE_AVAILABLE, ORIGINAL_EVIDENCE_REASON)
     def test_source_mapping_preserves_unknown_execution_argv(self):
         mapping=json.loads((FIXTURES/'source_mapping.json').read_text())
         self.assertFalse(mapping['actual_argv_recorded'])
@@ -81,6 +102,7 @@ class ProvenanceTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(raw).hexdigest(),item['stdout_sha256'])
             if item['source_id']!='nft':self.assertEqual(tuple(item['nominal_future_source_argv']),dict(s.NOMINAL_ARGV)[item['source_id']])
 
+    @unittest.skipUnless(ORIGINAL_EVIDENCE_AVAILABLE, ORIGINAL_EVIDENCE_REASON)
     def test_declared_versions_not_binary_attestation(self):
         self.assertIn(b'6.8.0-147-generic',(ORIGINALS/'kernel.txt').read_bytes())
         self.assertIn(b'1.0.9',(ORIGINALS/'nft-version.txt').read_bytes())
@@ -108,6 +130,7 @@ class ProvenanceTests(unittest.TestCase):
         self.assertEqual(matrix['route6']['paths']['*.metrics']['cardinality'],{'min':1,'max':1})
 
 
+@unittest.skipUnless(ORIGINAL_EVIDENCE_AVAILABLE, ORIGINAL_EVIDENCE_REASON)
 class NativeFormatTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
