@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
-    && apt-get install -y curl vim nano less grep procps iproute2 lsof coreutils \
+    && apt-get install -y python3 curl vim nano less grep procps iproute2 lsof coreutils \
     && rm -rf /var/lib/apt/lists/*
 COPY files/logger.sh /opt/logger/logger.sh
 COPY files/start.sh /start.sh

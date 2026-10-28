@@ -2,10 +2,12 @@ from django.urls import path
 
 from . import views
 from . import observation_views
+from . import terminal_broker_views
 
 app_name = "sandbox"
 
 urlpatterns = [
+    path("terminal-broker-auth/", terminal_broker_views.authorize, name="terminal_broker_authorize"),
     path("attempts/<int:attempt_id>/http-observation/", observation_views.start_http_observation, name="http_observation"),
     path("attempts/<int:attempt_id>/http-observation-status/", observation_views.http_observation_status, name="http_observation_status"),
     path(

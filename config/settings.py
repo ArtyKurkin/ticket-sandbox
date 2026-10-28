@@ -150,6 +150,14 @@ TERMINAL_DOCKER_NETWORK = os.getenv(
     "training-platform-runtime",
 )
 
+TERMINAL_BROKER_ENABLED = os.getenv("TERMINAL_BROKER_ENABLED", "false").lower() in ("1", "true", "yes")
+TERMINAL_BROKER_IMAGE = os.getenv("TERMINAL_BROKER_IMAGE", "ticket-sandbox-terminal-broker:v2")
+TERMINAL_BROKER_TTYD_IMAGE = os.getenv("TERMINAL_BROKER_TTYD_IMAGE", "ticket-sandbox-ttyd:broker-v2")
+TERMINAL_BROKER_AUTHORIZATION_URL = os.getenv(
+    "TERMINAL_BROKER_AUTHORIZATION_URL", "http://web:8000/terminal-broker-auth/"
+)
+TERMINAL_BROKER_START_TIMEOUT = 15
+
 USE_I18N = True
 
 USE_TZ = True

@@ -1,4 +1,5 @@
 import logging
+from django.conf import settings
 
 from sentry_sdk import capture_exception
 
@@ -15,6 +16,7 @@ from sandbox.services.docker_service import (
     remove_task_container,
     remove_terminal_container,
     wait_for_terminal_ready,
+    task_resource_name,
 )
 from sandbox.services.terminal_gateway import (
     build_terminal_base_path,
@@ -33,6 +35,19 @@ ENVIRONMENT_STARTING_OUTPUT = (
 ENVIRONMENT_RESTARTING_OUTPUT = (
     "Окружение перезапускается. Это может занять несколько секунд..."
 )
+
+
+def _pin_broker_environment(attempt, container):
+    if not settings.TERMINAL_BROKER_ENABLED:
+        return
+    # Persist ownership before the broker/ttyd launch can fail. Error cleanup
+    # can then find the exact generation, even after a worker crash.
+    attempt.environment_generation = container.labels["ticket-sandbox.generation"]
+    attempt.container_id = container.id
+    attempt.container_name = container.name
+    attempt.terminal_container_name = task_resource_name(
+        attempt.task.queue.slug, attempt.task.slug, attempt.pk, terminal=True)
+    attempt.save(update_fields=["environment_generation", "container_id", "container_name", "terminal_container_name"])
 
 
 def cleanup_attempt_environment(attempt):
@@ -286,6 +301,7 @@ def run_environment_start(attempt):
         task_slug=attempt.task.slug,
         attempt_id=attempt.id,
     )
+    _pin_broker_environment(attempt, container)
     from .observation_config import capture_runtime
     observation_runtime = capture_runtime(attempt, container)
     if observation_runtime is not None:
@@ -389,6 +405,7 @@ def run_environment_restart(attempt):
         task_slug=attempt.task.slug,
         attempt_id=attempt.id,
     )
+    _pin_broker_environment(attempt, container)
     from .observation_config import capture_runtime
     observation_runtime = capture_runtime(attempt, container)
     if observation_runtime is not None:

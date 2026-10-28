@@ -1086,6 +1086,13 @@ def terminal_auth(request, attempt_id=None, port=None):
 
     response = HttpResponse(status=204)
 
+    if attempt.environment_generation:
+        from django.conf import settings
+        from .services.terminal_broker import authorization_header
+        if not settings.TERMINAL_BROKER_ENABLED:
+            return HttpResponse(status=403)
+        response["X-Terminal-Authorization"] = authorization_header(attempt.pk, attempt.environment_generation)
+
     if docker_network_mode:
         response["X-Terminal-Upstream"] = (
             f"{attempt.terminal_container_name}:7681"

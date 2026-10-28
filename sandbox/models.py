@@ -440,6 +440,8 @@ class TaskAttempt(models.Model):
         verbose_name="Команда подключения"
     )
 
+    environment_generation = models.UUIDField(null=True, blank=True, editable=False)
+
     terminal_container_name = models.CharField(
         max_length=255,
         blank=True,

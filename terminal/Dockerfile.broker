@@ -3,5 +3,10 @@ FROM tsl0922/ttyd:1.7.7
 USER root
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends socat \
+    && apt-get install -y --no-install-recommends python3 \
     && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY terminal /app/terminal
+ENTRYPOINT []
+CMD ["ttyd", "-W", "--check-origin", "python3", "-m", "terminal.broker_client"]

@@ -8,7 +8,7 @@ class LedgerMigrationTests(TransactionTestCase):
 
     def test_existing_attempts_unchanged_no_coverage_backfill(self):
         previous = ("sandbox", "0031_sandbox_program_completion")
-        current = ("sandbox", "0034_http_observation")
+        current = MigrationExecutor(connection).loader.graph.leaf_nodes()
         try:
             executor = MigrationExecutor(connection)
             executor.migrate([previous])
@@ -28,7 +28,7 @@ class LedgerMigrationTests(TransactionTestCase):
                 user=user, task=task, attempts_count=3, restart_count=2
             )
             before = Attempt.objects.filter(pk=attempt.pk).values().get()
-            MigrationExecutor(connection).migrate([current])
+            MigrationExecutor(connection).migrate(current)
             from sandbox.models import TaskAttempt
             from sandbox.ledger_models import (
                 SandboxAttemptCoverage,

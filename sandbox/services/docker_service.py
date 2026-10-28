@@ -4,10 +4,26 @@ import time
 import docker
 import random
 import socket
+import uuid
+import hashlib
 
 from django.conf import settings
 
 from sandbox.services.terminal_gateway import terminal_uses_docker_network
+
+
+def task_resource_name(queue_slug, task_slug, attempt_id=None, *, terminal=False):
+    # The default is unchanged. Isolated test settings use a private namespace
+    # while exercising the actual production launcher without monkeypatches.
+    prefix = getattr(settings, "SANDBOX_DOCKER_PREFIX", "ticket-sandbox")
+    suffix = f"-{attempt_id}" if attempt_id is not None else ""
+    kind = "-terminal" if terminal else ""
+    name = f"{prefix}{kind}-{queue_slug}-{task_slug}{suffix}"
+    # Docker accepts longer names, but DNS/idna consumers reject labels >63.
+    # Keep short legacy names stable; full identity remains in immutable labels.
+    if len(name) > 63:
+        return name[:46] + '-' + hashlib.sha256(name.encode()).hexdigest()[:16]
+    return name
 
 
 def get_free_port(start: int = 20000, end: int = 30000):
@@ -80,8 +96,8 @@ def wait_for_terminal_ready(
 def create_task_container(queue_slug: str, task_slug: str, attempt_id: int):
     client = get_docker_client()
 
-    container_name = f"ticket-sandbox-{queue_slug}-{task_slug}-{attempt_id}"
-    image_name = f"ticket-sandbox-{queue_slug}-{task_slug}"
+    container_name = task_resource_name(queue_slug, task_slug, attempt_id)
+    image_name = task_resource_name(queue_slug, task_slug)
 
     task_path = Path(f"training_tasks/{queue_slug}/{task_slug}")
 
@@ -112,6 +128,7 @@ def create_task_container(queue_slug: str, task_slug: str, attempt_id: int):
         name=container_name,
         detach=True,
         tty=True,
+        **({"init": True} if settings.TERMINAL_BROKER_ENABLED else {}),
         environment={"TZ": settings.TASK_CONTAINER_TZ},
         mem_limit="768m",
         pids_limit=256,
@@ -132,6 +149,8 @@ def create_task_container(queue_slug: str, task_slug: str, attempt_id: int):
             "ticket-sandbox.queue": queue_slug,
             "ticket-sandbox.task": task_slug,
             "ticket-sandbox.attempt": str(attempt_id),
+            **({"ticket-sandbox.generation": str(uuid.uuid4())}
+               if settings.TERMINAL_BROKER_ENABLED else {}),
         },
         **pilot_options,
     )
@@ -191,6 +210,14 @@ def remove_task_container(container_name: str):
 
     try:
         container = client.containers.get(container_name)
+        # Revoke associated broker even when the feature flag was switched off
+        # after this environment was created.
+        if container.labels.get("ticket-sandbox.generation"):
+            from .terminal_broker import revoke
+            terminal_name = task_resource_name(container.labels["ticket-sandbox.queue"],
+                container.labels["ticket-sandbox.task"], container.labels["ticket-sandbox.attempt"], terminal=True)
+            revoke(client, terminal_name,
+                   target_id=container.id, generation=container.labels["ticket-sandbox.generation"])
         container.remove(force=True)
         return True, f"Контейнер {container_name} удален."
     except docker.errors.NotFound:
@@ -207,11 +234,13 @@ def create_terminal_container(
 ):
     client = get_docker_client()
 
-    terminal_container_name = (
-        f"ticket-sandbox-terminal-{queue_slug}-{task_slug}-{attempt_id}"
-    )
+    terminal_container_name = task_resource_name(queue_slug, task_slug, attempt_id, terminal=True)
 
     socket_path = get_docker_socket_path()
+
+    if settings.TERMINAL_BROKER_ENABLED:
+        return _create_broker_terminal(client, queue_slug, task_slug, attempt_id,
+                                       target_container_name, port, base_path, socket_path)
 
     try:
         old_container = client.containers.get(
@@ -285,9 +314,45 @@ def remove_terminal_container(container_name: str):
     if not container_name:
         return True, "Контейнер терминала не указан."
 
+    from .terminal_broker import revoke
+    revoke(client, container_name)
+
     try:
         container = client.containers.get(container_name)
         container.remove(force=True)
         return True, f"Контейнер терминала {container_name} удален."
     except docker.errors.NotFound:
         return True, f"Контейнер терминала {container_name} уже отсутствует."
+
+
+def _create_broker_terminal(client, queue, task, attempt, target, port, base_path, socket_path, *, terminal_name=None):
+    from .terminal_broker import launch, credential
+    name = terminal_name or task_resource_name(queue, task, attempt, terminal=True)
+    if not terminal_uses_docker_network() and port is None:
+        raise ValueError("host_port requires a terminal port")
+    # Both old transports are opt-in; never silently fall back on broker error.
+    remove_terminal_container(name)
+    broker, volume, generation = launch(client, queue, task, attempt, target, name, socket_path)
+    command = ["ttyd", "-W", "--check-origin", "--credential",
+               f"broker:{credential(attempt, generation)}"]
+    if base_path:
+        command += ["--base-path", base_path]
+    command += ["python3", "-m", "terminal.broker_client"]
+    kwargs = dict(image=settings.TERMINAL_BROKER_TTYD_IMAGE, name=name, command=command,
+        volumes={volume: {"bind": "/run/terminal", "mode": "ro"}}, detach=True,
+        mem_limit="256m", pids_limit=128, read_only=True, cap_drop=["ALL"],
+        security_opt=["no-new-privileges:true"], tmpfs={"/tmp": "rw,nosuid,size=64m"},
+        labels={"ticket-sandbox.type": "terminal", "ticket-sandbox.attempt": str(attempt),
+                "ticket-sandbox.queue": queue, "ticket-sandbox.task": task,
+                "ticket-sandbox.generation": generation,
+                "ticket-sandbox.target": broker.labels["ticket-sandbox.target"]})
+    if terminal_uses_docker_network():
+        kwargs["network"] = settings.TERMINAL_DOCKER_NETWORK
+    else:
+        kwargs["ports"] = {"7681/tcp": ("127.0.0.1", port)}
+    try:
+        return client.containers.run(**kwargs)
+    except Exception:
+        from .terminal_broker import revoke
+        revoke(client, name)
+        raise

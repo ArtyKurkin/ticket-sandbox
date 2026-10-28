@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
-    && apt-get install -y curl vim nano less grep procps coreutils \
+    && apt-get install -y python3 curl vim nano less grep procps coreutils \
     && rm -rf /var/lib/apt/lists/*
 COPY files/run.sh /opt/myapp/run.sh
 COPY files/start.sh /start.sh
