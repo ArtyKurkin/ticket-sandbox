@@ -77,6 +77,10 @@ def environment(kind):
 
         @wraps(function)
         def wrapped(attempt, *, operation_id=None, actor=None, origin="unknown"):
+            from django.conf import settings
+            if settings.TERMINAL_BROKER_ENABLED or attempt.environment_generation:
+                from .terminal_lite import run
+                return run(attempt, kind, operation_id, actor=actor, origin=origin)
             attempt.refresh_from_db()
             op = operation_id or getattr(attempt, "_ledger_environment_id", None)
             request, started = ledger.begin_environment(

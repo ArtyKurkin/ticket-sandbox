@@ -58,6 +58,26 @@ def cleanup_attempt_environment(attempt):
     Поля конкретного контейнера очищаются только после успешного удаления
     или если Docker сообщил, что контейнер уже отсутствует.
     """
+    if attempt.environment_generation:
+        from .terminal_lite import cleanup
+        from .terminal_teardown import IdentityError, TeardownPending
+        import docker
+        from .terminal_lite import OperationBusy
+        try:
+            return cleanup(attempt)
+        except IdentityError:
+            environment_logger.exception('broker_cleanup_identity_error attempt_id=%s', attempt.pk)
+            return False
+        except (docker.errors.DockerException, OSError, OperationBusy, TeardownPending):
+            environment_logger.exception('broker_cleanup_pending attempt_id=%s', attempt.pk)
+            from sandbox.tasks import cleanup_broker_environment_task
+            def retry_cleanup():
+                try:
+                    cleanup_broker_environment_task.delay(attempt.pk)
+                except Exception:
+                    environment_logger.exception('broker_cleanup_dispatch_failed attempt_id=%s', attempt.pk)
+            transaction.on_commit(retry_cleanup)
+            return False
     update_fields = []
 
     if attempt.terminal_container_name:
@@ -180,6 +200,10 @@ def mark_environment_starting(attempt, *, actor=None, origin="unknown", operatio
 @transaction.atomic
 @ledger.trusted
 def try_mark_environment_starting(attempt, *, actor=None, origin="unknown", operation_id=None):
+    if settings.TERMINAL_BROKER_ENABLED:
+        current = TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+        if current.environment_operation.get('stage') in ('teardown', 'create', 'terminal'):
+            return False
     event,created=ledger.request_environment(attempt,"start",actor,origin,operation_id)
     if not created:return False
     now = timezone.now()
@@ -250,6 +274,10 @@ def mark_environment_restarting(attempt, *, actor=None, origin="unknown", operat
 @transaction.atomic
 @ledger.trusted
 def try_mark_environment_restarting(attempt, *, actor=None, origin="unknown", operation_id=None):
+    if settings.TERMINAL_BROKER_ENABLED:
+        current = TaskAttempt.objects.select_for_update().get(pk=attempt.pk)
+        if current.environment_operation.get('stage') in ('teardown', 'create', 'terminal'):
+            return False
     event,created=ledger.request_environment(attempt,"reset",actor,origin,operation_id)
     if not created:return False
     now = timezone.now()

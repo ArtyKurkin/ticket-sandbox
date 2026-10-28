@@ -24,8 +24,8 @@ docker run -d --user 0 --name "${prefix}driver" --label "terminal-broker.e2e=$pr
   -e DB_ENGINE=django.db.backends.sqlite3 -e DB_NAME=/lab/e2e.sqlite3 \
   -e ALLOWED_HOSTS='web,localhost,127.0.0.1' -e TERMINAL_GATEWAY_ENABLED=true \
   -e TERMINAL_BROKER_ENABLED=true -e "TERMINAL_DOCKER_NETWORK=${prefix}network" \
-  -e TERMINAL_BROKER_IMAGE=ticket-sandbox-terminal-broker:v2 \
-  -e TERMINAL_BROKER_TTYD_IMAGE=ticket-sandbox-ttyd:broker-v2 \
+  -e "TERMINAL_BROKER_IMAGE=${TB_E2E_BROKER_IMAGE:-ticket-sandbox-terminal-broker:v2}" \
+  -e "TERMINAL_BROKER_TTYD_IMAGE=${TB_E2E_TTYD_IMAGE:-ticket-sandbox-ttyd:broker-v2}" \
   -e TERMINAL_BROKER_AUTHORIZATION_URL=http://web:8000/terminal-broker-auth/ \
   "$TB_E2E_DRIVER_IMAGE" python -m experiments.terminal_broker.e2e_runtime > /dev/null
 for i in $(seq 1 120); do

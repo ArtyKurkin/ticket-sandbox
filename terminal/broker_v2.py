@@ -1,7 +1,7 @@
 """One immutable task identity per broker. Only this trusted service sees Docker.
 
 The old laboratory entrypoint remains available for reproducing earlier tests.
-V2 uses Docker's PTY directly and journals Exec IDs before starting them.
+Lite uses Docker's PTY directly and journals each exact interactive process.
 Requires Linux python3 with pidfd support in the task image for safe cleanup.
 """
 import argparse
@@ -80,57 +80,7 @@ def sync_dir(path):
         os.close(fd)
 
 
-# Sent as an argument, never placed in a task-writable file. Open a pidfd BEFORE
-# reading identity and signal that fd, so PID reuse cannot redirect a signal.
-# PID 1 and the helper itself are explicitly excluded. Zombies cannot execute.
-CLEANUP = r'''
-import os, select, signal, sys, time
-token = ("TB_SESSION_TOKEN=" + sys.argv[1]).encode()
-def owned():
-    result = []
-    try:
-        for entry in os.listdir('/proc'):
-            if not entry.isdigit() or int(entry) <= 1 or int(entry) == os.getpid():
-                continue
-            pid = int(entry)
-            try:
-                fd = os.pidfd_open(pid)
-            except ProcessLookupError:
-                continue
-            try:
-                with open('/proc/%s/environ' % entry, 'rb') as stream:
-                    env = stream.read().split(b'\0')
-                if token in env:
-                    result.append(fd)
-                    fd = None
-            except PermissionError:
-                # Linux revokes environ access during exit, even before stat
-                # says Z. A readable pidfd positively proves exit. Never ignore
-                # an unreadable live task or guess ownership from a reused PID.
-                if not select.select([fd], [], [], .25)[0]: raise
-            except (FileNotFoundError, ProcessLookupError):
-                pass
-            finally:
-                if fd is not None: os.close(fd)
-        return result
-    except BaseException:
-        for fd in result: os.close(fd)
-        raise
-for sig in (signal.SIGTERM, signal.SIGKILL):
-    for _ in range(4):
-        fds = owned()
-        if not fds: sys.exit(0)
-        try:
-            for fd in fds:
-                try: signal.pidfd_send_signal(fd, sig)
-                except ProcessLookupError: pass
-        finally:
-            for fd in fds: os.close(fd)
-        time.sleep(.1)
-fds = owned()
-for fd in fds: os.close(fd)
-sys.exit(1 if fds else 0)
-'''
+from terminal.session_exec import BOOTSTRAP, CLEANUP
 
 
 class Broker:
@@ -172,10 +122,10 @@ class Broker:
         except (docker.errors.DockerException, OSError, ValueError):
             return False
 
-    def save(self, token, exec_id):
+    def save(self, token, exec_id, process=None):
         atomic_json(self.state / (token + ".json"), {
-            "version": 2, "identity": dataclasses.asdict(self.identity),
-            "token": token, "exec_id": exec_id,
+            "version": 3, "identity": dataclasses.asdict(self.identity),
+            "token": token, "exec_id": exec_id, "process": process,
         })
 
     def cleanup(self, token, exec_id):
@@ -194,8 +144,23 @@ class Broker:
                 return True
             if not self.identity.matches(target):
                 return not target.get("State", {}).get("Running", True)
+            if not info["Running"] and info.get("ExitCode") is not None:
+                return True  # Background processes belong to the task lifetime.
+            record = json.loads((self.state / (token + ".json")).read_text())
+            process = record.get("process")
+            if process is None:
+                # Bootstrap cannot exec Bash without a durable identity + ACK.
+                for _ in range(60):
+                    if not self.api.exec_inspect(exec_id)["Running"]:
+                        return True
+                    time.sleep(.1)
+                return False
+            if (set(process) != {"pid", "start"}
+                    or any(type(process[k]) is not int for k in process)
+                    or process["pid"] <= 1 or process["start"] <= 0):
+                return False
             helper = self.api.exec_create(self.identity.container_id,
-                ["python3", "-I", "-c", CLEANUP, token], tty=False)["Id"]
+                ["python3", "-I", "-c", CLEANUP, str(process["pid"]), str(process["start"])], tty=False)["Id"]
             helper_output = self.api.exec_start(helper)
             for _ in range(20):
                 helper_state = self.api.exec_inspect(helper)
@@ -224,7 +189,7 @@ class Broker:
             except (docker.errors.DockerException, OSError):
                 pass
             return False
-        except (docker.errors.DockerException, OSError, KeyError):
+        except (docker.errors.DockerException, OSError, KeyError, ValueError, TypeError):
             log.exception("Session cleanup unconfirmed")
             return False
 
@@ -236,7 +201,12 @@ class Broker:
                     raise ValueError("Symlink journal")
                 record = json.loads(path.read_text())
                 token, exec_id = record["token"], record["exec_id"]
-                if (record.get("version") != 2 or record["identity"] != dataclasses.asdict(self.identity)
+                process = record['process']
+                if process is not None and (type(process) is not dict or set(process) != {'pid', 'start'}
+                        or any(type(process[k]) is not int for k in process)
+                        or process['pid'] <= 1 or process['start'] <= 0):
+                    raise ValueError('Invalid process journal')
+                if (record.get("version") != 3 or record["identity"] != dataclasses.asdict(self.identity)
                         or not TOKEN.fullmatch(token) or path.name != token + ".json"
                         or not FULL_ID.fullmatch(exec_id)):
                     raise ValueError("Foreign or malformed journal")
@@ -274,7 +244,7 @@ class Broker:
             if self.failed.is_set() or self.shutdown.is_set() or not self.valid() or not self.authorized():
                 return
             exec_id = self.api.exec_create(self.identity.container_id,
-                ["bash", "-i"], stdin=True, tty=True,
+                ["python3", "-I", "-c", BOOTSTRAP], stdin=True, tty=True,
                 environment={"TB_SESSION_TOKEN": token, "TERM": "xterm-256color"},
                 detach_keys="")["Id"]
             # No process exists until its Exec ID is durable. A crash during
@@ -283,7 +253,24 @@ class Broker:
             attached = self.api.exec_start(exec_id, tty=True, socket=True)
             raw = getattr(attached, "_sock", attached)
             raw.settimeout(2)
+            header = bytearray()
+            while not header.endswith(b"\n"):
+                if len(header) > 256:
+                    raise ValueError("Invalid Exec bootstrap")
+                part = raw.recv(1)
+                if not part:
+                    raise EOFError("Exec bootstrap ended")
+                header.extend(part)
+            if not header.startswith(b"TB2 "):
+                raise ValueError("Invalid Exec bootstrap prefix")
+            process = json.loads(header[4:])
+            if (type(process) is not dict or set(process) != {"pid", "start"}
+                    or any(type(process[k]) is not int for k in process)
+                    or process["pid"] <= 1 or process["start"] <= 0):
+                raise ValueError("Invalid Exec process identity")
+            self.save(token, exec_id, process)
             self.api.exec_resize(exec_id, height=rows, width=cols)
+            raw.sendall(b"G")
             conn.settimeout(2)
 
             def downstream():

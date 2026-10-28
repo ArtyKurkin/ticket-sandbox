@@ -7,6 +7,10 @@ services:
     env_file:
       - .env
 
+  terminal_scheduler:
+    env_file:
+      - .env
+
   gateway:
     ports:
       - "127.0.0.1:8081:80"

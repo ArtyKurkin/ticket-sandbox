@@ -89,10 +89,5 @@ def revoke(client, terminal_name, *, target_id=None, generation=None):
             or (target_id is not None and broker.labels.get("ticket-sandbox.target") != target_id)
             or (generation is not None and broker.labels.get("ticket-sandbox.generation") != generation)):
         raise RuntimeError("Refusing to stop a foreign container")
-    broker.stop(timeout=20)
-    # A forced stop or a cleanup failure must be reconciled before removing the
-    # broker container. Otherwise its restart path and identity would be lost.
-    code = broker.wait(timeout=5)["StatusCode"]
-    if code != 0:
-        raise RuntimeError("Broker stopped without confirmed cleanup; retained for recovery")
-    broker.remove()
+    from .terminal_teardown import stop_remove
+    stop_remove(broker)

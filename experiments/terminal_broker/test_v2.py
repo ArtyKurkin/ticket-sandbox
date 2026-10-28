@@ -6,6 +6,7 @@ import tempfile
 import threading
 import time
 import unittest
+import signal
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -124,6 +125,7 @@ class RecoveryTests(unittest.TestCase):
         self.api.exec_create.assert_not_called()
 
     def test_cleanup_waits_for_docker_to_publish_process_exit(self):
+        self.broker.save(self.token, self.exec_id, {"pid":123, "start":456})
         self.api.exec_inspect.side_effect = [
             {"ContainerID": IDENTITY.container_id, "Running": True},
             {"Running": True, "ExitCode": None}, {"Running": False, "ExitCode": 0},
@@ -138,24 +140,19 @@ class RecoveryTests(unittest.TestCase):
     def test_no_authorization_service_fails_closed(self):
         self.assertFalse(self.broker.authorized())
 
-    def test_unreadable_zombie_is_dead_but_unreadable_live_process_fails_closed(self):
+    def test_exact_process_stat_failure_is_not_silently_ignored(self):
         def run(state):
             def read(path, mode="r"):
-                if path.endswith("environ"):
-                    raise PermissionError("exiting task")
-                return io.StringIO("123 (sleep) " + state + " 0")
+                raise PermissionError("unreadable exact process")
             with patch("os.listdir", return_value=["123"]), patch("os.getpid", return_value=999), \
                  patch("os.pidfd_open", return_value=4, create=True), patch("os.close"), \
-                 patch("builtins.open", side_effect=read), patch("sys.argv", ["helper", self.token]), \
+                 patch("builtins.open", side_effect=read), patch("sys.argv", ["helper", "123", "456"]), \
                  patch("select.select", return_value=([4] if state == "Z" else [], [], [])), \
                  patch("signal.pidfd_send_signal", create=True) as kill:
                 try:
                     exec(CLEANUP, {})
                 finally:
                     kill.assert_not_called()
-        with self.assertRaises(SystemExit) as exited:
-            run("Z")
-        self.assertEqual(exited.exception.code, 0)
         with self.assertRaises(PermissionError):
             run("S")
 
@@ -171,6 +168,36 @@ class RecoveryTests(unittest.TestCase):
             finally:
                 left.close()
                 right.close()
+
+    def test_reused_pid_is_never_signalled_and_no_environment_is_scanned(self):
+        stat = '123 (bash) S ' + '0 ' * 18 + '789'
+        with patch('sys.argv', ['helper', '123', '456']), \
+             patch('os.pidfd_open', return_value=4, create=True), patch('os.close'), \
+             patch('builtins.open', return_value=io.StringIO(stat)), \
+             patch('os.listdir') as scan, patch('signal.pidfd_send_signal', create=True) as kill:
+            with self.assertRaises(SystemExit) as stopped:
+                exec(CLEANUP, {})
+            self.assertEqual(stopped.exception.code, 0)
+            scan.assert_not_called()
+            kill.assert_not_called()
+
+    def test_exact_pidfd_is_signalled_and_exit_confirmed(self):
+        stat = '123 (bash) S ' + '0 ' * 18 + '456'
+        with patch('sys.argv', ['helper', '123', '456']), \
+             patch('os.pidfd_open', return_value=4, create=True), patch('os.close'), \
+             patch('builtins.open', return_value=io.StringIO(stat)), \
+             patch('select.select', side_effect=[([], [], []), ([4], [], [])]), \
+             patch('signal.pidfd_send_signal', create=True) as kill:
+            with self.assertRaises(SystemExit) as stopped:
+                exec(CLEANUP, {})
+            self.assertEqual(stopped.exception.code, 0)
+            kill.assert_called_once_with(4, signal.SIGHUP)
+
+    def test_pid_one_rejected_before_opening_pidfd(self):
+        with patch('sys.argv', ['helper', '1', '456']), patch('os.pidfd_open', create=True) as open_pid:
+            with self.assertRaises(AssertionError):
+                exec(CLEANUP, {})
+            open_pid.assert_not_called()
 
 
 if __name__ == "__main__":

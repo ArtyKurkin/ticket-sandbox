@@ -93,10 +93,12 @@ def wait_for_terminal_ready(
     )
 
 
-def create_task_container(queue_slug: str, task_slug: str, attempt_id: int):
+def create_task_container(queue_slug: str, task_slug: str, attempt_id: int, *, generation=None):
     client = get_docker_client()
 
     container_name = task_resource_name(queue_slug, task_slug, attempt_id)
+    if generation is not None:
+        container_name = task_resource_name(queue_slug, task_slug, f"{attempt_id}-{generation}")
     image_name = task_resource_name(queue_slug, task_slug)
 
     task_path = Path(f"training_tasks/{queue_slug}/{task_slug}")
@@ -149,7 +151,7 @@ def create_task_container(queue_slug: str, task_slug: str, attempt_id: int):
             "ticket-sandbox.queue": queue_slug,
             "ticket-sandbox.task": task_slug,
             "ticket-sandbox.attempt": str(attempt_id),
-            **({"ticket-sandbox.generation": str(uuid.uuid4())}
+            **({"ticket-sandbox.generation": str(generation or uuid.uuid4())}
                if settings.TERMINAL_BROKER_ENABLED else {}),
         },
         **pilot_options,
@@ -213,11 +215,19 @@ def remove_task_container(container_name: str):
         # Revoke associated broker even when the feature flag was switched off
         # after this environment was created.
         if container.labels.get("ticket-sandbox.generation"):
-            from .terminal_broker import revoke
+            from terminal.broker_v2 import Identity
+            from .terminal_teardown import teardown
             terminal_name = task_resource_name(container.labels["ticket-sandbox.queue"],
                 container.labels["ticket-sandbox.task"], container.labels["ticket-sandbox.attempt"], terminal=True)
-            revoke(client, terminal_name,
-                   target_id=container.id, generation=container.labels["ticket-sandbox.generation"])
+            generation = container.labels['ticket-sandbox.generation']
+            lite_name = task_resource_name(container.labels['ticket-sandbox.queue'],
+                container.labels['ticket-sandbox.task'], f"{container.labels['ticket-sandbox.attempt']}-{generation}")
+            if container.name == lite_name:
+                terminal_name = task_resource_name(container.labels['ticket-sandbox.queue'],
+                    container.labels['ticket-sandbox.task'], f"{container.labels['ticket-sandbox.attempt']}-{generation}", terminal=True)
+            teardown(client, Identity(container.id, int(container.labels['ticket-sandbox.attempt']),
+                container.labels['ticket-sandbox.queue'], container.labels['ticket-sandbox.task'], generation), terminal_name)
+            return True, f"Контейнер {container_name} удален."
         container.remove(force=True)
         return True, f"Контейнер {container_name} удален."
     except docker.errors.NotFound:
@@ -231,6 +241,7 @@ def create_terminal_container(
     target_container_name: str,
     port: int | None,
     base_path: str = "",
+    *, terminal_name=None,
 ):
     client = get_docker_client()
 
@@ -240,7 +251,8 @@ def create_terminal_container(
 
     if settings.TERMINAL_BROKER_ENABLED:
         return _create_broker_terminal(client, queue_slug, task_slug, attempt_id,
-                                       target_container_name, port, base_path, socket_path)
+                                       target_container_name, port, base_path, socket_path,
+                                       terminal_name=terminal_name)
 
     try:
         old_container = client.containers.get(

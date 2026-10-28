@@ -1,0 +1,52 @@
+{
+  "baseCommit": "ac91823ed6bfbb52716fb0a248304508c5373880",
+  "branch": "feature/terminal-broker-v2",
+  "localSourceSHA256": {
+    "terminal/broker_v2.py": "071898ba9d86aaf8920442de3b8477a7a7aff89e65faaa86512df65270709846",
+    "terminal/session_exec.py": "83dec01ee083edf90dd0624c1fff8e829bbff6b6a228b966282e30bba6a1a5bf",
+    "terminal/runtime_probe.py": "0598f8dc36861a30aedd4dadd5cd9c190b8ba95800f1c23662b12957d1376a17",
+    "sandbox/services/terminal_lite.py": "3ffe7a328b07e5dd7d5c43e578ba5bac0f3a8190f449c7ab49fed7ca8eb561ec",
+    "sandbox/services/terminal_teardown.py": "a17dd89729c140bc378adb51fab9c22b843b91de941f1e7ecae6265e023c1f3f",
+    "sandbox/tasks.py": "a55876d3d5f59c5f4bc31aac287a000df606779b79a1eedbfa372226b96b5c8b",
+    "sandbox/models.py": "405089cb84b89f2764ba0ca68949635c05f0f157a8de1828370894e5273eec0e",
+    "sandbox/migrations/0036_terminal_lite_operation.py": "8cdecfc0b05d44976ee87c8aba031f2de52cda3b2fee7ed10b26ffd25ab32cf0",
+    "config/settings.py": "0893d6d3ac1e18593c162df21ddb6e500923ff0b7df8b486d07c07dddcfe1e16",
+    "experiments/terminal_broker/fullstack_browser.cjs": "6ee726c87468c07bbb4beb15daa667823e05c627018596a8be2592bf5a6ae0b0",
+    "experiments/terminal_broker/browser_terminal.cjs": "8178a39f1a0927fcffe6977d1403950d2da94499632c08a1996baa8ba08c5a3e",
+    "experiments/terminal_broker/fullstack_tasks.py": "7d4016c0cc742fc0df5b8d31d238e0a6fa2cdb187ab9e4d13c5bf763e35c2e0d",
+    "experiments/terminal_broker/fullstack_security.py": "1e01a107da273f5688cf020bab7b838ace2281cdba3585c8777b82fa7dfe54d4"
+  },
+  "images": {
+    "broker": "sha256:dfd3027d13e12258ab77f9fb3cdd729641bf8cdadba12f8347cca2a51ff9b2fb",
+    "ttyd": "sha256:7223f878807fe4c890a142e4ca57fdfa1fd9895dc1cd86886f3e0151cad9ba6f"
+  },
+  "fullstackPrefix": "tc-tb2-20261028-lite6",
+  "fullstackSource": "/root/tc-e2e-pilot/terminal-broker-lite-20261028-run6/source",
+  "brokerUnitTests": 55,
+  "focusedDjangoTests": 40,
+  "fullDjangoTests": 834,
+  "fullDjangoSkipped": 7,
+  "fullstackBothModesPassed": true,
+  "browserCIBothModesPassed": true,
+  "disabledFlagRetirementReconciliationVerified": true,
+  "checkedInBrokerDefaultEnabled": false,
+  "productionReady": false,
+  "f1": "OPEN: unrestricted Docker daemon access",
+  "hostedCI": "not run for local changes",
+  "originalLabTarget": {
+    "id": "85be72834bdf8007f253d2b0fb1e08edfecbca4993f9cd59e099cbd8a075f972",
+    "running": true,
+    "startedAt": "2026-10-22T14:02:54.421725064Z",
+    "restartCount": 0
+  },
+  "cleanupVerified": {
+    "ownLiteContainersRemaining": 0,
+    "foreignResourcesRemoved": false,
+    "volumesImagesDatabasesRemoved": false
+  },
+  "prePublicationReview": {
+    "committedBrokerUnitTests": 46,
+    "historicalCgroupTestsExcluded": 9,
+    "historicalCgroupMaterials": "preserved outside checkout, not published with Lite"
+  }
+}

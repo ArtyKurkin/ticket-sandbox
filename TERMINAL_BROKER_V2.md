@@ -1,5 +1,14 @@
 # Terminal Broker 2.0 — итоговый отчёт и security-review
 
+Актуальная реализация и проверка **Terminal Broker 2.0 Lite** описаны в
+[новом отчёте](TERMINAL_BROKER_LITE.md): интерактивный Exec завершается при закрытии
+вкладки, фоновые процессы живут до удаления task. Restart больше не зависит от
+обхода `/proc/*/environ`. Оба PostgreSQL/Redis/Celery E2E прошли; F1 остаётся открытым,
+**production NO-GO**. Флаг выключен; публикация и CI проверяются отдельно. Cgroup-review —
+историческая проверка прежней строгой модели, не требование Lite. Ниже сохранён
+отчёт **до первого push**; его NOT RUN/отсутствующая remote-ветка относятся к тому
+моменту. Hosted CI для `ac91823` затем прошёл; актуальные результаты Lite — в Actions feature-ветки.
+
 28 октября 2026, Europe/Moscow. Ветка `feature/terminal-broker-v2`, база `edf8d9d`.
 **Рекомендация: NO-GO для production rollout.** Функциональные проверки пройдены,
 но воспроизведён HIGH-риск обхода cleanup пользователем root. Полный Docker socket

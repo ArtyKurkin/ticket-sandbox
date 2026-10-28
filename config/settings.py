@@ -265,3 +265,9 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_RESULT_SERIALIZER = "json"
 
 CELERY_TIMEZONE = TIME_ZONE
+
+CELERY_BEAT_SCHEDULE = ({
+    "reconcile-terminal-broker": {
+        "task": "sandbox.reconcile_broker_environments", "schedule": 30.0,
+    },
+} if TERMINAL_BROKER_ENABLED else {})

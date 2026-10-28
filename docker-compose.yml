@@ -113,6 +113,24 @@ services:
     networks:
       - platform
 
+  terminal_scheduler:
+    profiles: [terminal-broker]
+    build:
+      context: .
+    restart: unless-stopped
+    command: [celery, -A, config, beat, --loglevel=INFO, --schedule=/tmp/terminal-beat]
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - platform
+
   gateway:
     image: nginx:1.28-alpine
     container_name: training-platform-gateway

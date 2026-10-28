@@ -34,4 +34,11 @@ async function terminal(context, url) {
   await output(page, 'TB_READY');
   return page;
 }
-module.exports = { output, command, terminal };
+async function quitFullscreen(page) {
+  const cursor = await page.evaluate(() => window.__tbOutput.length);
+  await page.keyboard.press('q');
+  // top flushes pending input when restoring termios. Type only after Bash
+  // publishes its new prompt, so the next command cannot be partially lost.
+  await page.waitForFunction(start => /[#$] $/.test(window.__tbOutput.slice(start)), cursor);
+}
+module.exports = { output, command, terminal, quitFullscreen };

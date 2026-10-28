@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const crypto = require('node:crypto');
 const path = require('node:path');
 const { chromium } = require('playwright');
-const { terminal, command, output } = require('./browser_terminal.cjs');
+const { terminal, command, output, quitFullscreen } = require('./browser_terminal.cjs');
 const { reportFailure, loadPrivateConfig } = require('./ci_diagnostics.cjs');
 const modes = loadPrivateConfig(process.argv[2]);
 const out = process.argv[3];
@@ -12,7 +12,7 @@ let stage = 'startup';
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function control(mode, action = 'state', extra = {}) {
   const response = await fetch(mode.webOrigin + '/__tb2_test__/', { method: 'POST',
-    headers: { Authorization: 'Bearer ' + mode.control, 'Content-Type': 'application/json' },
+    headers: { Authorization: 'Bearer ' + mode.control, 'Content-Type': 'application/json', Connection: 'close' },
     body: JSON.stringify({ action, ...extra }) });
   if (!response.ok) throw new Error('Control HTTP ' + response.status);
   const state = await response.json();
@@ -80,11 +80,30 @@ async function browserContext(browser, mode, role) {
       await one.keyboard.press('Control+c');
       await command(one, "printf 'CTRL_%s\\n' OK");
       await output(one, 'CTRL_OK', 3000);
+      await command(one, 'top');
+      await output(one, 'Tasks:');
+      await one.setViewportSize({ width: 1200, height: 800 });
+      await pause(300);
+      await quitFullscreen(one);
+      await command(one, "printf 'TOP_%s\\n' OK");
+      await output(one, 'TOP_OK');
       await two.close();
       await command(one, "printf 'INDEPENDENT_%s\\n' OK");
       await output(one, 'INDEPENDENT_OK');
+      stage = mode.mode + ': broker SIGKILL and recovery';
+      await command(one, 'trap "" HUP TERM');
+      await control(mode, 'broker-cycle');
+      let cycle;
+      for (let i=0; i<120; i++) {
+        cycle=(await control(mode)).broker_cycle;
+        if(cycle?.recovered) break;
+        await pause(500);
+      }
+      if(!cycle?.recovered) throw new Error('Broker SIGKILL recovery failed');
+      await one.close();
+      const afterCrash = await terminal(owner, mode.gatewayOrigin + first.url);
       stage = mode.mode + ': Celery restart';
-      const oldSocket = one.__tbSockets[0];
+      const oldSocket = afterCrash.__tbSockets[0];
       if (!oldSocket || oldSocket.isClosed()) throw new Error('Old session was not connected before restart');
       await action(owner, mode, 'owner', 'restart');
       const restarted = await waitReady(mode, first.generation);
@@ -93,24 +112,26 @@ async function browserContext(browser, mode, role) {
       if (!next.events.some(e => e.kind === 'reset' && e.phase === 'finished' && e.outcome === 'success')) throw new Error('No successful restart ledger event');
       for (let i = 0; i < 50 && !oldSocket.isClosed(); i++) await pause(100);
       if (!oldSocket.isClosed()) throw new Error('Old WebSocket survived environment restart');
-      await one.close();
+      await afterCrash.close();
       const fresh = await terminal(owner, mode.gatewayOrigin + next.url);
       await fresh.screenshot({ path: path.join(out, mode.mode + '-new-generation.png') });
       stage = mode.mode + ': active security review';
-      // A deliberately adversarial trainee root can discard the cleanup token.
-      // Reproduce and record this remaining HIGH risk; never call it safe.
+      // Lite: daemon-like work belongs to the task lifetime, not the tab.
+      await command(fresh, "printf 'SHELL_PID=%s\\n' $$");
+      await output(fresh, 'SHELL_PID=[0-9]+');
+      const interactivePid=Number((await fresh.evaluate(()=>window.__tbOutput)).match(/SHELL_PID=([0-9]+)/)[1]);
       await command(fresh, "env -i PATH=/usr/bin:/bin bash -c 'trap \"\" HUP TERM; exec sleep 600' & printf 'ESCAPE_PID=%s\\n' \"$!\"");
       await output(fresh, 'ESCAPE_PID=[0-9]+');
       const escapedPid = Number((await fresh.evaluate(() => window.__tbOutput)).match(/ESCAPE_PID=([0-9]+)/)[1]);
       await fresh.close();
-      await control(mode, 'security', { escaped_pid: escapedPid });
+      await control(mode, 'security', { escaped_pid: escapedPid, interactive_pid: interactivePid });
       let security = null;
       for (let i = 0; i < 120; i++) {
         security = (await control(mode)).security;
         if (security) break;
         await pause(500);
       }
-      if (!security || !security.authorizationChecksPassed) throw new Error('Active security probes did not complete');
+      if (!security || !security.authorizationChecksPassed || !security.backgroundSurvivesTabClose || !security.interactiveExecExited) throw new Error('Lite security/session probes did not complete');
       fs.writeFileSync(path.join(out, mode.mode + '-security.json'), JSON.stringify(security, null, 2));
       stage = mode.mode + ': cleanup through real Celery worker';
       await control(mode, 'cleanup');
@@ -122,11 +143,14 @@ async function browserContext(browser, mode, role) {
       }
       if (!cleaned.attempts.every(a => a.environment_status === 'idle' && !a.container_name && !a.terminal_name)) throw new Error('Celery cleanup incomplete');
       if ((await owner.request.get(mode.gatewayOrigin + next.url)).status() !== 403) throw new Error('Deleted environment still authorized');
+      const killed=cleaned.faults.filter(x=>x.kind==='worker-SIGKILL-after-create');
+      const duplicates=cleaned.faults.filter(x=>x.kind==='duplicate-delivery');
+      if(killed.length!==2 || duplicates.length<3) throw new Error('Worker loss / duplicate fault injection did not execute');
       await fresh.close();
       await owner.close(); await outsider.close();
       results.push({ mode: mode.mode, passed: true, database: started.database, eager: started.eager,
         queue: started.queue, original: first, replacement: next, foreignAttempt: other,
-        beforeSize, afterSize, cleaned: cleaned.attempts, security,
+        beforeSize, afterSize, cleaned: cleaned.attempts, security, workerFaults: cleaned.faults, brokerSIGKILLRecovery: cycle,
         checks: ['actual-start-view', 'real-Celery-start', 'PostgreSQL', 'Redis', 'two-attempt-isolation',
           'parallel-PTY', 'resize', 'Ctrl+C', 'internal-endpoints-hidden', 'real-Celery-restart',
           'old-session-revoked', 'generation-and-Docker-ID-replaced', 'real-Celery-cleanup'] });

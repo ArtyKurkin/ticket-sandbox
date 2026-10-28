@@ -58,6 +58,8 @@ class PTYTransportTests(unittest.TestCase):
                      patch.object(broker, "cleanup", return_value=True) as cleanup:
                     worker = threading.Thread(target=broker.session, args=(conn,))
                     worker.start()
+                    remote.sendall(b'TB2 {"pid":20,"start":123}\n')
+                    self.assertEqual(remote.recv(1), b'G')
                     eventually(lambda: api.exec_resize.call_count >= 1)
                     self.assertEqual(api.exec_resize.call_args.kwargs, {"height": 24, "width": 80})
                     # Ctrl+C must pass through as a byte, without killing the client.

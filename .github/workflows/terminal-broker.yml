@@ -26,7 +26,7 @@ jobs:
           python-version: '3.13'
       - run: pip install -r requirements.txt
       - run: python -m unittest discover -s experiments/terminal_broker -p 'test_*.py' -v
-      - run: python manage.py test sandbox.tests.test_terminal_broker sandbox.tests.test_terminal_auth sandbox.tests.test_docker_service
+      - run: python manage.py test sandbox.tests.test_terminal_broker sandbox.tests.test_terminal_lite sandbox.tests.test_terminal_auth sandbox.tests.test_docker_service
       - name: Build isolated E2E images
         run: |
           docker build -t ticket-sandbox-terminal-broker:v2 -f terminal/Dockerfile.service .

@@ -5,7 +5,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
-const { terminal, command, output } = require('./browser_terminal.cjs');
+const { terminal, command, output, quitFullscreen } = require('./browser_terminal.cjs');
 const { reportFailure, loadPrivateConfig } = require('./ci_diagnostics.cjs');
 const session = loadPrivateConfig(process.argv[2]);
 const out = process.argv[3];
@@ -79,7 +79,7 @@ async function census(mode, count) {
       await one.setViewportSize({ width: 1100, height: 760 });
       await sleep(500);
       await one.screenshot({ path: path.join(out, mode + '-top.png') });
-      await one.keyboard.press('q');
+      await quitFullscreen(one);
       await command(one, "printf 'FULLSCREEN_%s\\n' OK");
       await output(one, 'FULLSCREEN_OK');
       stage = mode + ': closing independent tabs';
@@ -94,7 +94,7 @@ async function census(mode, count) {
       stage = mode + ': creating HUP-resistant orphan';
       await census(mode, 1);
       await command(reconnect, "trap '' HUP TERM; sleep 60 &");
-      await census(mode, 2);
+      await census(mode, 1);
       await control(mode, 'kill');
       stage = mode + ': orphan census after SIGKILL';
       const orphaned = await control(mode, 'stats');

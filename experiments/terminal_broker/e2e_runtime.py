@@ -88,31 +88,26 @@ def bootstrap():
 
 def statistics(mode):
     item = fixtures[mode]
-    # Inspect namespace processes without returning environment values/tokens.
-    code, output = item["target"].exec_run(["python3", "-I", "-c", """
-import os,json,select
-owned=[]
-for entry in os.listdir('/proc'):
-    if not entry.isdigit() or int(entry)<=1: continue
-    try:
-        env=open('/proc/'+entry+'/environ','rb').read().split(b'\\0')
-        if any(x.startswith(b'TB_SESSION_TOKEN=') for x in env): owned.append(int(entry))
-    except PermissionError:
-        try:
-            fd=os.pidfd_open(int(entry))
-            try:
-                if not select.select([fd],[],[],.25)[0]: raise
-            finally: os.close(fd)
-        except (FileNotFoundError, ProcessLookupError): pass
-    except (FileNotFoundError, ProcessLookupError): pass
-print(json.dumps(owned))
-"""])
-    if code:
-        print("Process census failed:", output.decode(errors="replace"), flush=True)
-        raise RuntimeError("Process census failed")
-    item["target"].reload()
     broker = client.containers.get(item["name"] + "-broker")
-    return {"pids": json.loads(output), "pid1Running": item["target"].attrs["State"]["Running"],
+    broker.reload()
+    if broker.status == "running":
+        code, output = broker.exec_run(["python", "-c", """
+import json,pathlib
+records=[]
+for path in pathlib.Path('/var/lib/terminal').glob('*.json'):
+    try:
+        obj=json.loads(path.read_text())
+        if obj.get('process'): records.append({'exec_id':obj['exec_id'],'pid':obj['process']['pid']})
+    except FileNotFoundError: pass
+print(json.dumps(records))
+"""])
+        if code:
+            raise RuntimeError("Broker journal census failed")
+        item['records'] = json.loads(output)
+    running = [record['pid'] for record in item.get('records', [])
+               if client.api.exec_inspect(record['exec_id'])['Running']]
+    item["target"].reload()
+    return {"pids": running, "pid1Running": item["target"].attrs["State"]["Running"],
             "foreignRunning": client.api.exec_inspect(item["sentinel"])["Running"],
             "brokerErrors": b"ERROR:terminal.broker" in broker.logs()}
 
@@ -125,6 +120,7 @@ def action(obj):
     if operation == "stats":
         return statistics(mode)
     if operation == "kill":
+        statistics(mode)  # Preserve the exact Exec census across broker SIGKILL.
         broker = client.containers.get(item["name"] + "-broker")
         _, digest = broker.exec_run(["python", "-c", "import hashlib; print(hashlib.sha256(open('/run/terminal/client.json','rb').read()).hexdigest())"])
         item["old_config_digest"] = digest

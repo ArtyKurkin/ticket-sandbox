@@ -14,6 +14,8 @@ def main():
     parser.add_argument('--host-state', required=True)
     parser.add_argument('--prefix', default='tc-tb2-20261028-pg')
     parser.add_argument('--app-image', default='tc-e2e-django:lab')
+    parser.add_argument('--broker-image', default='ticket-sandbox-terminal-broker:review')
+    parser.add_argument('--ttyd-image', default='ticket-sandbox-ttyd:broker-review')
     args = parser.parse_args()
     if not args.prefix.startswith('tc-tb2-') or not args.prefix.replace('-', '').isalnum():
         parser.error('Dedicated lab prefix required')
@@ -59,8 +61,8 @@ def main():
             'ALLOWED_HOSTS': 'localhost,127.0.0.1,' + web_host,
             'TERMINAL_GATEWAY_ENABLED': 'true', 'TERMINAL_BROKER_ENABLED': 'true',
             'TERMINAL_DOCKER_NETWORK': network,
-            'TERMINAL_BROKER_IMAGE': 'ticket-sandbox-terminal-broker:review',
-            'TERMINAL_BROKER_TTYD_IMAGE': 'ticket-sandbox-ttyd:broker-review',
+            'TERMINAL_BROKER_IMAGE': args.broker_image,
+            'TERMINAL_BROKER_TTYD_IMAGE': args.ttyd_image,
             'TERMINAL_BROKER_AUTHORIZATION_URL': f'http://{web_host}:8000/terminal-broker-auth/'}
         volumes = {args.host_source: {'bind': '/app', 'mode': 'ro'}, args.host_state: {'bind': '/lab', 'mode': 'rw'}}
         bootstrap = client.containers.run(args.app_image, ['python', '-m', 'experiments.terminal_broker.fullstack_setup'],
@@ -83,9 +85,13 @@ def main():
             redis = client.containers.get(args.prefix + '-redis')
             worker_env['CELERY_BROKER_URL'] = f"redis://{redis.attrs['NetworkSettings']['Networks'][network]['IPAddress']}:6379/{index}"
         client.containers.run(args.app_image,
-            ['celery', '-A', 'config', 'worker', '--loglevel=INFO', '--concurrency=1', '-Q', name, '--hostname', name],
+            ['celery', '-A', 'config', 'worker', '--loglevel=INFO', '--concurrency=2', '-Q', name, '--hostname', name],
             name=name + '-worker', detach=True, user='0', network_mode='host' if mode == 'host_port' else network,
             labels=labels, environment=worker_env, volumes=worker_volumes, working_dir='/app', mem_limit='384m')
+        client.containers.run(args.app_image,
+            ['celery', '-A', 'config', 'beat', '--loglevel=INFO', '--schedule=/tmp/terminal-beat'],
+            name=name + '-scheduler', detach=True, user='0', network=network, labels=labels,
+            environment=env, volumes=volumes, working_dir='/app', mem_limit='128m')
         # Exercise the existing nginx files, changing only lab addresses/ports.
         if mode == 'host_port':
             config = Path('deploy/nginx/ticket-sandbox-local.conf').read_text()

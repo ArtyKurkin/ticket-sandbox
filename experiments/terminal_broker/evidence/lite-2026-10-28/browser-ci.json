@@ -1,0 +1,50 @@
+[
+  {
+    "mode": "host_port",
+    "passed": true,
+    "initialSize": "46 124",
+    "resizedSize": "56 182",
+    "independentPids": [
+      "22",
+      "34"
+    ],
+    "initialOwnedProcesses": 2,
+    "checks": [
+      "foreign-user-denied",
+      "parallel-PTY",
+      "browser-resize",
+      "SIGWINCH",
+      "Ctrl+C",
+      "top",
+      "browser-close-cleanup",
+      "reconnect",
+      "SIGKILL-recovery",
+      "restart-revocation",
+      "generation-revocation"
+    ]
+  },
+  {
+    "mode": "docker_network",
+    "passed": true,
+    "initialSize": "46 124",
+    "resizedSize": "56 182",
+    "independentPids": [
+      "20",
+      "32"
+    ],
+    "initialOwnedProcesses": 2,
+    "checks": [
+      "foreign-user-denied",
+      "parallel-PTY",
+      "browser-resize",
+      "SIGWINCH",
+      "Ctrl+C",
+      "top",
+      "browser-close-cleanup",
+      "reconnect",
+      "SIGKILL-recovery",
+      "restart-revocation",
+      "generation-revocation"
+    ]
+  }
+]

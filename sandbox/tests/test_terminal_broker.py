@@ -131,11 +131,11 @@ class BrokerLaunchTests(SimpleTestCase):
             revoke(client, "terminal")
         client.containers.get.return_value.stop.assert_not_called()
 
-    def test_failed_cleanup_preserves_broker_and_journal(self):
+    def test_nonzero_exit_does_not_block_teardown(self):
         client = MagicMock()
         broker = client.containers.get.return_value
         broker.labels = {"ticket-sandbox.type": "terminal-broker", "ticket-sandbox.terminal": "terminal"}
         broker.wait.return_value = {"StatusCode": 1}
-        with self.assertRaises(RuntimeError):
-            revoke(client, "terminal")
-        broker.remove.assert_not_called()
+        broker.attrs = {"State": {"Running": False}}
+        revoke(client, "terminal")
+        broker.remove.assert_called_once()

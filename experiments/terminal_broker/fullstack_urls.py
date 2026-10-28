@@ -26,7 +26,10 @@ def control(request):
             cleanup_environment.delay(attempt.pk)
     elif obj['action'] == 'security':
         from experiments.terminal_broker.fullstack_tasks import inspect_boundaries
-        inspect_boundaries.delay(1, obj.get('escaped_pid'))
+        inspect_boundaries.delay(1, obj.get('escaped_pid'), obj.get('interactive_pid'))
+    elif obj['action'] == 'broker-cycle':
+        from experiments.terminal_broker.fullstack_tasks import broker_cycle
+        broker_cycle.delay(1)
     elif obj['action'] != 'state':
         return HttpResponse(status=400)
     attempts = []
@@ -41,7 +44,11 @@ def control(request):
                           .values('kind', 'phase', 'outcome', 'reason'))})
     security_file = Path('/lab') / ('security-' + settings.TB2_MODE + '.json')
     security = json.loads(security_file.read_text()) if security_file.is_file() else None
-    return JsonResponse({'database': connection.vendor, 'eager': app.conf.task_always_eager, 'security': security,
+    faults_file = Path('/lab') / ('faults-' + settings.TB2_MODE + '.jsonl')
+    faults = [json.loads(line) for line in faults_file.read_text().splitlines()] if faults_file.exists() else []
+    cycle_file = Path('/lab') / ('cycle-' + settings.TB2_MODE + '.json')
+    cycle = json.loads(cycle_file.read_text()) if cycle_file.exists() else None
+    return JsonResponse({'database': connection.vendor, 'eager': app.conf.task_always_eager, 'security': security, 'faults': faults, 'broker_cycle': cycle,
                          'queue': app.conf.task_default_queue, 'attempts': attempts})
 
 

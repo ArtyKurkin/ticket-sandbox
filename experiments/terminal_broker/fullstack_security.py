@@ -13,7 +13,7 @@ from sandbox.services.terminal_broker import authorization_header, credential, l
 from experiments.terminal_broker.e2e_probe import PROBE
 
 
-def inspect_boundaries(attempt_id, escaped_pid=None):
+def inspect_boundaries(attempt_id, escaped_pid=None, interactive_pid=None):
     assert settings.TB2_FULLSTACK_TEST
     client = docker.from_env(timeout=10)
     attempt = TaskAttempt.objects.select_related('task', 'task__queue').get(pk=attempt_id)
@@ -56,6 +56,17 @@ def inspect_boundaries(attempt_id, escaped_pid=None):
     lease_url = web + '/terminal-broker-auth/'
     bearer = 'Bearer ' + lease_credential(attempt.pk, attempt.environment_generation)
     assert status(lease_url, bearer, identity) == 204
+    old = attempt.environment_operation.get('old')
+    assert old, 'No prior generation recorded by the real restart'
+    old_identity = {k: old[k] for k in identity}
+    assert status(lease_url, 'Bearer ' + lease_credential(attempt.pk, old['generation']), old_identity) == 403
+    assert status(direct, authorization_header(attempt.pk, old['generation'])) == 401
+    try:
+        client.containers.get(old['container_id'])
+    except docker.errors.NotFound:
+        pass
+    else:
+        raise AssertionError('Old task container survived restart')
     assert status(lease_url, 'Bearer ' + credential(attempt.pk, attempt.environment_generation), identity) == 403
     for key in identity:
         changed = dict(identity)
@@ -68,7 +79,8 @@ def inspect_boundaries(attempt_id, escaped_pid=None):
         'dockerSocketAndCLIAbsentInTtyd': True, 'journalNotMountedInTtyd': True,
         'socketMountReadOnly': True, 'webHasNoDockerSocket': True,
         'brokerHasUnrestrictedDockerSocket': True, 'brokerIsHostRootTrustBoundary': True,
-        'rootEscapeReproduced': False}
+        'backgroundSurvivesTabClose': False, 'interactiveExecExited': False}
+    result.update(oldGenerationLease=403, oldGenerationBasic=401, oldTaskAbsent=True)
     if escaped_pid is not None:
         assert type(escaped_pid) is int and 1 < escaped_pid < 2**31
         time.sleep(1)
@@ -77,7 +89,15 @@ def inspect_boundaries(attempt_id, escaped_pid=None):
             'assert open("/proc/%s/comm"%p).read().strip()=="sleep"; '
             'assert not any(x.startswith(b"TB_SESSION_TOKEN=") for x in open("/proc/%s/environ"%p,"rb").read().split(b"\\0"))',
             str(escaped_pid)])
-        result['rootEscapeReproduced'] = code == 0
-        result['rootEscapeStatus'] = 'HIGH: token-cleared child survives browser close' if code == 0 else 'not-reproduced'
+        result['backgroundSurvivesTabClose'] = code == 0
+        assert code == 0, 'Background service did not survive tab close'
+    if interactive_pid is not None:
+        assert type(interactive_pid) is int and interactive_pid > 1
+        code, _ = target.exec_run(['python3', '-I', '-c',
+            'import sys; p=sys.argv[1]; '
+            's=open("/proc/"+p+"/stat").read().rsplit(")",1)[1].split()[0] if __import__("os").path.exists("/proc/"+p+"/stat") else "gone"; '
+            'assert s in ("gone","Z")', str(interactive_pid)])
+        assert code == 0, 'Interactive Bash survived browser closure'
+        result['interactiveExecExited'] = True
     (Path('/lab') / ('security-' + settings.TB2_MODE + '.json')).write_text(json.dumps(result, indent=2))
     return result

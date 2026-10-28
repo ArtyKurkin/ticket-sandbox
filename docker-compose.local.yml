@@ -23,6 +23,10 @@ services:
     environment:
       DEBUG: "True"
 
+  terminal_scheduler:
+    env_file:
+      - .env
+
   gateway:
     ports:
       - "8081:80"

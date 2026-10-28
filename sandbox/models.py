@@ -441,6 +441,8 @@ class TaskAttempt(models.Model):
     )
 
     environment_generation = models.UUIDField(null=True, blank=True, editable=False)
+    environment_operation = models.JSONField(default=dict, editable=False)
+    environment_cleanup_requested = models.BooleanField(default=False, editable=False)
 
     terminal_container_name = models.CharField(
         max_length=255,
@@ -530,7 +532,7 @@ class TaskAttempt(models.Model):
         После отправки ответа на ручную проверку доступ закрывается,
         даже если Docker-окружение по какой-то причине еще не удалено.
         """
-        if not self.is_current:
+        if not self.is_current or self.environment_cleanup_requested:
             return False
 
         if self.environment_status != self.EnvironmentStatus.READY:

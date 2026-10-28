@@ -23,6 +23,10 @@ services:
       TERMINAL_NETWORK_MODE: docker_network
       TERMINAL_DOCKER_NETWORK: training-platform-runtime
 
+  terminal_scheduler:
+    env_file:
+      - .env.prod
+
   gateway:
     ports:
       - "127.0.0.1:8080:80"
