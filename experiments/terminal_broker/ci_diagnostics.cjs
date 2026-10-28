@@ -18,4 +18,15 @@ function reportFailure(message, secrets = []) {
   }
   return safe;
 }
-module.exports = { safeMessage, reportFailure };
+function loadPrivateConfig(path) {
+  try {
+    return JSON.parse(require('node:fs').readFileSync(path, 'utf8'));
+  } catch (error) {
+    // JSON parsing errors can contain a fragment of the private file. Publish
+    // only the error category, including failures before the browser starts.
+    const message = 'Private browser fixture unavailable (' + (error.code || error.name) + ')';
+    reportFailure(message);
+    throw new Error(message);
+  }
+}
+module.exports = { safeMessage, reportFailure, loadPrivateConfig };

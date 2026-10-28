@@ -39,6 +39,10 @@ jobs:
           TB_E2E_TARGET_IMAGE: tc-tb2-target:ci
           TB_E2E_DRIVER_IMAGE: tc-tb2-driver:ci
         run: bash experiments/terminal_broker/e2e_start.sh
+      - name: Give the runner ownership of private browser credentials
+        run: |
+          sudo chown "$(id -u):$(id -g)" /tmp/tc-tb2-e2e/session.json
+          test "$(stat -c '%a' /tmp/tc-tb2-e2e/session.json)" = 600
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -98,6 +102,10 @@ jobs:
             -v "$PWD:/app:ro" -v /tmp/tb2-fullstack:/lab -w /app \
             tc-tb2-driver:ci python -m experiments.terminal_broker.fullstack_start \
             --app-image tc-tb2-driver:ci --host-source "$PWD" --host-state /tmp/tb2-fullstack
+      - name: Give the runner ownership of private fullstack credentials
+        run: |
+          sudo chown "$(id -u):$(id -g)" /tmp/tb2-fullstack/stack.json
+          test "$(stat -c '%a' /tmp/tb2-fullstack/stack.json)" = 600
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
