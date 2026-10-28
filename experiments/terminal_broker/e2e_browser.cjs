@@ -5,6 +5,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { terminal, command, output } = require('./browser_terminal.cjs');
+const { reportFailure } = require('./ci_diagnostics.cjs');
 const session = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const out = process.argv[3];
 fs.mkdirSync(out, { recursive: true });
@@ -33,37 +35,6 @@ async function census(mode, count) {
   }
   throw new Error('Unexpected owned process count: expected ' + count);
 }
-async function output(page, pattern, timeout = 10000) {
-  await page.waitForFunction(source => new RegExp(source).test(window.__tbOutput || ''), pattern, { timeout });
-}
-async function command(page, text) {
-  await page.locator('.xterm-helper-textarea').focus();
-  await page.keyboard.type(text);
-  await page.keyboard.press('Enter');
-}
-async function terminal(context, url) {
-  const page = await context.newPage();
-  await page.addInitScript(() => {
-    window.__tbOutput = '';
-    const Original = window.WebSocket;
-    window.WebSocket = class extends Original {
-      constructor(...args) {
-        super(...args);
-        this.addEventListener('message', async event => {
-          const bytes = typeof event.data === 'string' ? new TextEncoder().encode(event.data)
-            : new Uint8Array(event.data instanceof Blob ? await event.data.arrayBuffer() : event.data);
-          if (bytes[0] === 48) window.__tbOutput += new TextDecoder().decode(bytes.slice(1));
-        });
-      }
-    };
-  });
-  await page.goto(url);
-  await page.locator('.xterm-helper-textarea').waitFor();
-  await command(page, "printf 'TB_%s\\n' READY");
-  await output(page, 'TB_READY');
-  return page;
-}
-
 (async () => {
   const browser = await chromium.launch({ headless: true,
     ...(process.env.TB_CHROME ? { executablePath: process.env.TB_CHROME } : {}) });
@@ -156,6 +127,7 @@ async function terminal(context, url) {
     }
   } finally { await browser.close(); }
 })().catch(error => {
-  fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify([...results, { passed: false, stage, error: error.message }], null, 2));
-  console.error(stage + ': ' + error.message); process.exitCode = 1;
+  const safe = reportFailure(stage + ': ' + error.message, [session.control, session.owner, session.outsider]);
+  fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify([...results, { passed: false, stage, error: safe }], null, 2));
+  process.exitCode = 1;
 });

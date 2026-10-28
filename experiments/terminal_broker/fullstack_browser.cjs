@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 const { chromium } = require('playwright');
 const { terminal, command, output } = require('./browser_terminal.cjs');
+const { reportFailure } = require('./ci_diagnostics.cjs');
 const modes = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const out = process.argv[3];
 fs.mkdirSync(out, { recursive: true });
@@ -21,7 +22,8 @@ async function control(mode, action = 'state', extra = {}) {
 async function waitReady(mode, previousGeneration = null) {
   for (let i = 0; i < 240; i++) {
     const state = await control(mode);
-    if (state.attempts.some(a => a.environment_status === 'error')) throw new Error('Environment failed; inspect private worker logs');
+    const failed = state.attempts.find(a => a.environment_status === 'error');
+    if (failed) throw new Error('Environment failed: ' + failed.error);
     if (state.attempts.every(a => a.environment_status === 'ready') &&
         (!previousGeneration || state.attempts[0].generation !== previousGeneration)) return state;
     await pause(500);
@@ -142,6 +144,7 @@ async function browserContext(browser, mode, role) {
     throw error;
   } finally { await browser.close(); }
 })().catch(error => {
-  fs.writeFileSync(path.join(out, 'fullstack.json'), JSON.stringify([...results, { passed: false, stage, error: error.message }], null, 2));
-  console.error(stage + ': ' + error.message); process.exitCode = 1;
+  const safe = reportFailure(stage + ': ' + error.message, modes.flatMap(mode => [mode.control, mode.owner, mode.outsider, mode.csrf]));
+  fs.writeFileSync(path.join(out, 'fullstack.json'), JSON.stringify([...results, { passed: false, stage, error: safe }], null, 2));
+  process.exitCode = 1;
 });
