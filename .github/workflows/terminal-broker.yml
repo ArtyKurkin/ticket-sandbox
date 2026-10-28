@@ -1,0 +1,117 @@
+name: Terminal Broker v2
+on:
+  pull_request:
+    paths: ['terminal/**', 'training_tasks/**', 'requirements.txt', 'experiments/terminal_broker/**', 'sandbox/**', 'config/**', 'deploy/nginx/**', '.github/workflows/terminal-broker.yml']
+  push:
+    branches: [feature/terminal-broker-v2]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: terminal-broker-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  broker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DEBUG: 'True'
+      SECRET_KEY: ci-terminal-broker-only
+      DB_ENGINE: django.db.backends.sqlite3
+      DB_NAME: ':memory:'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s experiments/terminal_broker -p 'test_*.py' -v
+      - run: python manage.py test sandbox.tests.test_terminal_broker sandbox.tests.test_terminal_auth sandbox.tests.test_docker_service
+      - name: Build isolated E2E images
+        run: |
+          docker build -t ticket-sandbox-terminal-broker:v2 -f terminal/Dockerfile.service .
+          docker build -t ticket-sandbox-ttyd:broker-v2 -f terminal/Dockerfile.broker .
+          docker build --target target -t tc-tb2-target:ci -f terminal/Dockerfile.e2e .
+          docker build --target driver -t tc-tb2-driver:ci -f terminal/Dockerfile.e2e .
+      - name: Start real Docker, Django, nginx and ttyd fixture
+        env:
+          TB_E2E_HOST_ROOT: /tmp/tc-tb2-e2e
+          TB_E2E_TARGET_IMAGE: tc-tb2-target:ci
+          TB_E2E_DRIVER_IMAGE: tc-tb2-driver:ci
+        run: bash experiments/terminal_broker/e2e_start.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test dependencies
+        run: |
+          npm install --prefix /tmp/tb2-browser playwright@1.56.1
+          /tmp/tb2-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Browser E2E in both gateway modes
+        env:
+          NODE_PATH: /tmp/tb2-browser/node_modules
+        run: node experiments/terminal_broker/e2e_browser.cjs /tmp/tc-tb2-e2e/session.json /tmp/tb2-artifacts
+      - name: Actual ttyd isolation boundary
+        run: docker exec tc-tb2-20261028-driver python -m experiments.terminal_broker.e2e_probe > /tmp/tb2-artifacts/isolation.json
+      - name: Django broker lifecycle cleanup
+        run: docker exec tc-tb2-20261028-driver python -m experiments.terminal_broker.e2e_cleanup > /tmp/tb2-artifacts/cleanup.json
+      - name: Collect non-secret test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terminal-broker-e2e
+          path: /tmp/tb2-artifacts
+          if-no-files-found: ignore
+  compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build isolated audit driver
+        run: docker build --target driver -t tc-tb2-driver:ci -f terminal/Dockerfile.e2e .
+      - name: Probe all task images on Linux
+        run: |
+          mkdir -p /tmp/tb2-audit
+          docker run --name tc-tb2-20261028-audit-driver --user 0 \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/app:ro" -v /tmp/tb2-audit:/audit -w /app \
+            tc-tb2-driver:ci python -m experiments.terminal_broker.compatibility_audit --output /audit --require-compatible
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: terminal-broker-image-compatibility
+          path: /tmp/tb2-audit
+  fullstack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build isolated runtime images
+        run: |
+          docker build -t ticket-sandbox-terminal-broker:review -f terminal/Dockerfile.service .
+          docker build -t ticket-sandbox-ttyd:broker-review -f terminal/Dockerfile.broker .
+          docker build --target driver -t tc-tb2-driver:ci -f terminal/Dockerfile.e2e .
+      - name: Start PostgreSQL, Redis and real Celery workers
+        run: |
+          mkdir -p /tmp/tb2-fullstack
+          docker run --name tc-tb2-20261028-pg-driver --user 0 \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/app:ro" -v /tmp/tb2-fullstack:/lab -w /app \
+            tc-tb2-driver:ci python -m experiments.terminal_broker.fullstack_start \
+            --app-image tc-tb2-driver:ci --host-source "$PWD" --host-state /tmp/tb2-fullstack
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          npm install --prefix /tmp/tb2-browser playwright@1.56.1
+          /tmp/tb2-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Actual task create, restart, revocation, generation and deletion
+        env:
+          NODE_PATH: /tmp/tb2-browser/node_modules
+        run: node experiments/terminal_broker/fullstack_browser.cjs /tmp/tb2-fullstack/stack.json /tmp/tb2-fullstack-evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: terminal-broker-fullstack
+          path: /tmp/tb2-fullstack-evidence
+          if-no-files-found: ignore

@@ -1,0 +1,18 @@
+[
+  {
+    "mode": "host_port",
+    "socketMounted": false,
+    "dockerCLI": false,
+    "wrongCredentialDenied": true,
+    "containerCommandAndExecSelectionDenied": true,
+    "directNetworkBypassDenied": "loopback-only"
+  },
+  {
+    "mode": "docker_network",
+    "socketMounted": false,
+    "dockerCLI": false,
+    "wrongCredentialDenied": true,
+    "containerCommandAndExecSelectionDenied": true,
+    "directNetworkBypassDenied": true
+  }
+]

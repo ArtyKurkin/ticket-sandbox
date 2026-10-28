@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-28",
+  "rollout_recommendation": "NO-GO",
+  "broker_tests": {
+    "run": 43,
+    "status": "PASS"
+  },
+  "django_tests": {
+    "run": 807,
+    "skipped": 7,
+    "status": "PASS"
+  },
+  "focused_tests": {
+    "run": 31,
+    "status": "PASS"
+  },
+  "image_compatibility": {
+    "before": 8,
+    "after": 20,
+    "total": 20
+  },
+  "hosted_github_actions": "NOT RUN: branch unpublished; push withheld by user instruction",
+  "actionlint": {
+    "version": "1.7.7",
+    "status": "PASS",
+    "shellcheck": false
+  },
+  "fullstack_modes": [
+    "host_port",
+    "docker_network"
+  ],
+  "root_cleanup_escape_reproduced_in_both_modes": true,
+  "original_lab_target_restart_count": 0,
+  "existing_images_volumes_databases_removed": false
+}

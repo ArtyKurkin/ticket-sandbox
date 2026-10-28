@@ -1,0 +1,12 @@
+{
+  "experiments/terminal_broker/evidence/review-2026-10-28/compatibility-baseline.json": "7235e35c18cb68dccdec7f3eb79db78060f796a0f543f8ece9f11baafefa288a",
+  "experiments/terminal_broker/evidence/review-2026-10-28/compatibility-fixed.json": "0af199c7cc21a200a0342f38729d95c6d9160086089d3f3f795f00e5b5ced784",
+  "experiments/terminal_broker/evidence/review-2026-10-28/docker_network-new-generation.png": "6e7b6d114651a2427f45554f87f7c1cfb3a3c0d00d302e7318232450cd8db895",
+  "experiments/terminal_broker/evidence/review-2026-10-28/docker_network-security.json": "2bbcecb4c364f4bd5af341873e7bcbff80e3145c7a2eaf42d8d13d476fecf462",
+  "experiments/terminal_broker/evidence/review-2026-10-28/fullstack.json": "b2b60f933608e84f1d7753161426e23977d8a3d6c00c7f96de27b3d9e0f1f27a",
+  "experiments/terminal_broker/evidence/review-2026-10-28/host_port-new-generation.png": "d6a5caca70e8612683f21abb3a51001ca10a91e3d53ad291f1cb9d61a0cb41d1",
+  "experiments/terminal_broker/evidence/review-2026-10-28/host_port-security.json": "7f38d18e287ea53f03357f1755c1b49d07d8009f9a5e8b12c728dcd8a76d0069",
+  "experiments/terminal_broker/evidence/review-2026-10-28/summary.json": "dd210a0799cc1dc89eab496d11e3da4ca25286188f4e2b4905a8c628ad50eb53",
+  "experiments/terminal_broker/evidence/review-2026-10-28/worker-docker_network.txt": "2229966c1573f73396c1885db45868f7dce83a8544b7bee33a611cb297aa1912",
+  "experiments/terminal_broker/evidence/review-2026-10-28/worker-host_port.txt": "8654b900fdd87da4b6899d4fe773d1231a41df3fe4da29cd14670dc8d535deca"
+}

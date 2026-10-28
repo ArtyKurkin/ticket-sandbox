@@ -1,0 +1,12 @@
+{
+  "gracefulDjangoRevocation": true,
+  "removed": [
+    "tc-tb2-20261028-host_port-terminal-broker",
+    "tc-tb2-20261028-host_port-terminal",
+    "tc-tb2-20261028-host_port-target",
+    "tc-tb2-20261028-docker_network-terminal-broker",
+    "tc-tb2-20261028-docker_network-terminal",
+    "tc-tb2-20261028-docker_network-target"
+  ],
+  "volumesImagesAndDatabasesRemoved": false
+}

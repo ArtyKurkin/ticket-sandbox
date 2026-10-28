@@ -1,0 +1,482 @@
+[
+  {
+    "mode": "host_port",
+    "passed": true,
+    "database": "postgresql",
+    "eager": false,
+    "queue": "tc-tb2-20261028-pg5-host_port",
+    "original": {
+      "id": 1,
+      "status": "in_progress",
+      "environment_status": "ready",
+      "container_id": "208422b231a5c7f5826cf65d5afac40f5b73664faf37f785f161fa375018f3be",
+      "container_name": "tc-tb2-20261028-pg5-host_port-l1-service-bind-localhost-1",
+      "terminal_name": "tc-tb2-20261028-pg5-host_port-terminal-l1-serv-8516b60ec307b2ae",
+      "generation": "77df7cee-4379-4641-ba87-b4f02ec88002",
+      "url": "/terminal/1/27400/",
+      "restart_count": 0,
+      "error": "",
+      "events": [
+        {
+          "kind": "start",
+          "phase": "requested",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "started",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "finished",
+          "outcome": "success",
+          "reason": ""
+        }
+      ]
+    },
+    "replacement": {
+      "id": 1,
+      "status": "in_progress",
+      "environment_status": "ready",
+      "container_id": "d0ae335c1e0f1ad4c41ed4d198d579313dcdfc03d27bc9f0b5f88ae5ba19c0d1",
+      "container_name": "tc-tb2-20261028-pg5-host_port-l1-service-bind-localhost-1",
+      "terminal_name": "tc-tb2-20261028-pg5-host_port-terminal-l1-serv-8516b60ec307b2ae",
+      "generation": "14f93aca-311a-41b5-b3c6-2fd4a88f885c",
+      "url": "/terminal/1/29090/",
+      "restart_count": 1,
+      "error": "",
+      "events": [
+        {
+          "kind": "start",
+          "phase": "requested",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "started",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "finished",
+          "outcome": "success",
+          "reason": ""
+        },
+        {
+          "kind": "reset",
+          "phase": "requested",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "reset",
+          "phase": "started",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "reset",
+          "phase": "finished",
+          "outcome": "success",
+          "reason": ""
+        }
+      ]
+    },
+    "foreignAttempt": {
+      "id": 2,
+      "status": "in_progress",
+      "environment_status": "ready",
+      "container_id": "02d6723c9b2167ff33e4e1646c765f3331b115a3cdc1cdd593ddca7437f49a7e",
+      "container_name": "tc-tb2-20261028-pg5-host_port-l1-service-bind-localhost-2",
+      "terminal_name": "tc-tb2-20261028-pg5-host_port-terminal-l1-serv-cf7ff9d5b3feeeba",
+      "generation": "be3d851e-e432-4322-8c3f-66d2a5ec2579",
+      "url": "/terminal/2/29566/",
+      "restart_count": 0,
+      "error": "",
+      "events": [
+        {
+          "kind": "start",
+          "phase": "requested",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "started",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "finished",
+          "outcome": "success",
+          "reason": ""
+        }
+      ]
+    },
+    "beforeSize": "46 124",
+    "afterSize": "56 182",
+    "cleaned": [
+      {
+        "id": 1,
+        "status": "on_review",
+        "environment_status": "idle",
+        "container_id": "",
+        "container_name": "",
+        "terminal_name": "",
+        "generation": "14f93aca-311a-41b5-b3c6-2fd4a88f885c",
+        "url": "",
+        "restart_count": 1,
+        "error": "",
+        "events": [
+          {
+            "kind": "start",
+            "phase": "requested",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "start",
+            "phase": "started",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "start",
+            "phase": "finished",
+            "outcome": "success",
+            "reason": ""
+          },
+          {
+            "kind": "reset",
+            "phase": "requested",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "reset",
+            "phase": "started",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "reset",
+            "phase": "finished",
+            "outcome": "success",
+            "reason": ""
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "status": "on_review",
+        "environment_status": "idle",
+        "container_id": "",
+        "container_name": "",
+        "terminal_name": "",
+        "generation": "be3d851e-e432-4322-8c3f-66d2a5ec2579",
+        "url": "",
+        "restart_count": 0,
+        "error": "",
+        "events": [
+          {
+            "kind": "start",
+            "phase": "requested",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "start",
+            "phase": "started",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "start",
+            "phase": "finished",
+            "outcome": "success",
+            "reason": ""
+          }
+        ]
+      }
+    ],
+    "security": {
+      "mode": "host_port",
+      "authorizationChecksPassed": true,
+      "directWithoutBasic": 401,
+      "wrongOrOtherAttemptBasic": 401,
+      "correctBasic": 200,
+      "basicAsLease": 403,
+      "validLease": 204,
+      "changedIdentityLease": 403,
+      "dockerSocketAndCLIAbsentInTtyd": true,
+      "journalNotMountedInTtyd": true,
+      "socketMountReadOnly": true,
+      "webHasNoDockerSocket": true,
+      "brokerHasUnrestrictedDockerSocket": true,
+      "brokerIsHostRootTrustBoundary": true,
+      "rootEscapeReproduced": true,
+      "rootEscapeStatus": "HIGH: token-cleared child survives browser close"
+    },
+    "checks": [
+      "actual-start-view",
+      "real-Celery-start",
+      "PostgreSQL",
+      "Redis",
+      "two-attempt-isolation",
+      "parallel-PTY",
+      "resize",
+      "Ctrl+C",
+      "internal-endpoints-hidden",
+      "real-Celery-restart",
+      "old-session-revoked",
+      "generation-and-Docker-ID-replaced",
+      "real-Celery-cleanup"
+    ]
+  },
+  {
+    "mode": "docker_network",
+    "passed": true,
+    "database": "postgresql",
+    "eager": false,
+    "queue": "tc-tb2-20261028-pg5-docker_network",
+    "original": {
+      "id": 1,
+      "status": "in_progress",
+      "environment_status": "ready",
+      "container_id": "3edb89ac2da96458eef37893a89f84eb956397e91c4037c0fb682f22db646eff",
+      "container_name": "tc-tb2-20261028-pg5-docker_network-l1-service-bind-localhost-1",
+      "terminal_name": "tc-tb2-20261028-pg5-docker_network-terminal-l1-085ec61656ebf077",
+      "generation": "37249f26-38f6-4bf0-aa70-9078e75507b1",
+      "url": "/terminal/1/",
+      "restart_count": 0,
+      "error": "",
+      "events": [
+        {
+          "kind": "start",
+          "phase": "requested",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "started",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "finished",
+          "outcome": "success",
+          "reason": ""
+        }
+      ]
+    },
+    "replacement": {
+      "id": 1,
+      "status": "in_progress",
+      "environment_status": "ready",
+      "container_id": "191c0388e4abd72526236beb69583ab4998021b696d6acf488fe7513dd78a809",
+      "container_name": "tc-tb2-20261028-pg5-docker_network-l1-service-bind-localhost-1",
+      "terminal_name": "tc-tb2-20261028-pg5-docker_network-terminal-l1-085ec61656ebf077",
+      "generation": "7c5f8604-1316-48b5-9aed-28b7156587c9",
+      "url": "/terminal/1/",
+      "restart_count": 1,
+      "error": "",
+      "events": [
+        {
+          "kind": "start",
+          "phase": "requested",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "started",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "finished",
+          "outcome": "success",
+          "reason": ""
+        },
+        {
+          "kind": "reset",
+          "phase": "requested",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "reset",
+          "phase": "started",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "reset",
+          "phase": "finished",
+          "outcome": "success",
+          "reason": ""
+        }
+      ]
+    },
+    "foreignAttempt": {
+      "id": 2,
+      "status": "in_progress",
+      "environment_status": "ready",
+      "container_id": "ca6a31c9fdf270f10869221635bd57e47da5f80e77990aaafaaa3f7aa8388373",
+      "container_name": "tc-tb2-20261028-pg5-docker_network-l1-service-bind-localhost-2",
+      "terminal_name": "tc-tb2-20261028-pg5-docker_network-terminal-l1-282114c5b2031573",
+      "generation": "fc00d058-3d52-4408-aedd-6e7a54c1d3ba",
+      "url": "/terminal/2/",
+      "restart_count": 0,
+      "error": "",
+      "events": [
+        {
+          "kind": "start",
+          "phase": "requested",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "started",
+          "outcome": "unknown",
+          "reason": ""
+        },
+        {
+          "kind": "start",
+          "phase": "finished",
+          "outcome": "success",
+          "reason": ""
+        }
+      ]
+    },
+    "beforeSize": "46 124",
+    "afterSize": "56 182",
+    "cleaned": [
+      {
+        "id": 1,
+        "status": "on_review",
+        "environment_status": "idle",
+        "container_id": "",
+        "container_name": "",
+        "terminal_name": "",
+        "generation": "7c5f8604-1316-48b5-9aed-28b7156587c9",
+        "url": "",
+        "restart_count": 1,
+        "error": "",
+        "events": [
+          {
+            "kind": "start",
+            "phase": "requested",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "start",
+            "phase": "started",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "start",
+            "phase": "finished",
+            "outcome": "success",
+            "reason": ""
+          },
+          {
+            "kind": "reset",
+            "phase": "requested",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "reset",
+            "phase": "started",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "reset",
+            "phase": "finished",
+            "outcome": "success",
+            "reason": ""
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "status": "on_review",
+        "environment_status": "idle",
+        "container_id": "",
+        "container_name": "",
+        "terminal_name": "",
+        "generation": "fc00d058-3d52-4408-aedd-6e7a54c1d3ba",
+        "url": "",
+        "restart_count": 0,
+        "error": "",
+        "events": [
+          {
+            "kind": "start",
+            "phase": "requested",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "start",
+            "phase": "started",
+            "outcome": "unknown",
+            "reason": ""
+          },
+          {
+            "kind": "start",
+            "phase": "finished",
+            "outcome": "success",
+            "reason": ""
+          }
+        ]
+      }
+    ],
+    "security": {
+      "mode": "docker_network",
+      "authorizationChecksPassed": true,
+      "directWithoutBasic": 401,
+      "wrongOrOtherAttemptBasic": 401,
+      "correctBasic": 200,
+      "basicAsLease": 403,
+      "validLease": 204,
+      "changedIdentityLease": 403,
+      "dockerSocketAndCLIAbsentInTtyd": true,
+      "journalNotMountedInTtyd": true,
+      "socketMountReadOnly": true,
+      "webHasNoDockerSocket": true,
+      "brokerHasUnrestrictedDockerSocket": true,
+      "brokerIsHostRootTrustBoundary": true,
+      "rootEscapeReproduced": true,
+      "rootEscapeStatus": "HIGH: token-cleared child survives browser close"
+    },
+    "checks": [
+      "actual-start-view",
+      "real-Celery-start",
+      "PostgreSQL",
+      "Redis",
+      "two-attempt-isolation",
+      "parallel-PTY",
+      "resize",
+      "Ctrl+C",
+      "internal-endpoints-hidden",
+      "real-Celery-restart",
+      "old-session-revoked",
+      "generation-and-Docker-ID-replaced",
+      "real-Celery-cleanup"
+    ]
+  }
+]

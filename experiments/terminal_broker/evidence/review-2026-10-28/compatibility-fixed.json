@@ -1,0 +1,362 @@
+[
+  {
+    "queue": "candidate",
+    "task": "missing-hosts-entry",
+    "dockerfile": "training_tasks/candidate/missing-hosts-entry/Dockerfile",
+    "dockerfile_sha256": "77603e8a8595d7a7eadad9fd9cb55994b83bb24cf1b6390890a430c75a8e0b27",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:d7aecee169e30a6ffd8254f0cabad0ba72c925c5cd7b3e9d0efeb0ba3f75a231",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "candidate",
+    "task": "nginx-wrong-port",
+    "dockerfile": "training_tasks/candidate/nginx-wrong-port/Dockerfile",
+    "dockerfile_sha256": "1aa9d26c1aee320df96d7f4183817e8606d32c7d2c619c95395b901e2da2069b",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:3c696016dc470252922b3cbca95246677e252e14e70b8ca2f2caaa39d775ee62",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "candidate",
+    "task": "service-not-running",
+    "dockerfile": "training_tasks/candidate/service-not-running/Dockerfile",
+    "dockerfile_sha256": "de0a9c2d2d2cabf344064d6107d22a9dca0efe67a53dfe200d311c5a910bf423",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:66350db47185a097d63f48615497a65cc478b2ce511154ae4c3d2f29593e035c",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "candidate",
+    "task": "single-file-permission",
+    "dockerfile": "training_tasks/candidate/single-file-permission/Dockerfile",
+    "dockerfile_sha256": "1aa9d26c1aee320df96d7f4183817e8606d32c7d2c619c95395b901e2da2069b",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:7645625712504943919ac8f27369e3bb6a23de79f21976c599b7383601793429",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "candidate",
+    "task": "wrong-index-filename",
+    "dockerfile": "training_tasks/candidate/wrong-index-filename/Dockerfile",
+    "dockerfile_sha256": "1aa9d26c1aee320df96d7f4183817e8606d32c7d2c619c95395b901e2da2069b",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:e098d06694667ac56d9020bbb027714b8af30bd67cc9ba16f5cfa61d2f221e3a",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "cron-not-working",
+    "dockerfile": "training_tasks/l1/cron-not-working/Dockerfile",
+    "dockerfile_sha256": "cd139d042119c02b5dab7781c99039ff5bebfc89bc1f33686f86526291792659",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:6f068d8991895feb81037031718f845cfb48297174c63a57eb0bb5c6cad1eb40",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "deleted-file-descriptor",
+    "dockerfile": "training_tasks/l1/deleted-file-descriptor/Dockerfile",
+    "dockerfile_sha256": "2b98deede3835edd21a8614504b86c59b6cd904124ddebb29d3e83cfe04e1f95",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:a73eac403a3496de9b00d20f5d8392f836982c4d16a2e1b4cf867a4de53c98cb",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "disk-full",
+    "dockerfile": "training_tasks/l1/disk-full/Dockerfile",
+    "dockerfile_sha256": "2fd17e24148164f97927dcd277e04a45de4a6606f4e7b9862e99dc58b7a111c8",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:f4bb59f78b14f8b06aff708e9e4e822b64cf79c1f84245332858aba8534a72dc",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "https-ipv4-listener",
+    "dockerfile": "training_tasks/l1/https-ipv4-listener/Dockerfile",
+    "dockerfile_sha256": "acd86f28f183d5ed835c8ec25e2be812bbc59ea73f38d073f1ee5554b0648124",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:395e5f75cabad3377d8d6a7829475f1845f2f127d42ab971ef0564d48c1a0bee",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "https-sni-wrong-vhost",
+    "dockerfile": "training_tasks/l1/https-sni-wrong-vhost/Dockerfile",
+    "dockerfile_sha256": "d837bebeef2677f3255a613aefc786f33a33ca08029adbb2ee1c44d9022f6790",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:91e986db87ee67931486ac96e1c7f69651020a07541b76501e485d74b9ccb29f",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "nginx-413-upload",
+    "dockerfile": "training_tasks/l1/nginx-413-upload/Dockerfile",
+    "dockerfile_sha256": "85fa42e51bda192feef51fdbde03a7ac8386335595555e39ab2a9e8c0b22dce5",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:9b918c636b94ad5a6dfa6deeb4cef51dc35aa0ae1a8635867943ccb068cdda8d",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "nginx-upstream-timeout",
+    "dockerfile": "training_tasks/l1/nginx-upstream-timeout/Dockerfile",
+    "dockerfile_sha256": "9474c95cda43682c5b2012a9677eb8ae9fc0d439927ed5558dc9c9849e3c7f63",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:83fed4a3ea0044e00c50a3d54f1d8542077b038e6b56d7508fbe6b53e670b2c9",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "nginx-upstream-wrong-port",
+    "dockerfile": "training_tasks/l1/nginx-upstream-wrong-port/Dockerfile",
+    "dockerfile_sha256": "c2f3e61398dfeb5be61ab8360db94fa474c0f887d21b5242db6295f4398e24e7",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:11334191f19a484a5971a82371525eb86489ae4a9d489c3c03b841c54f23f793",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "nginx_not_starting",
+    "dockerfile": "training_tasks/l1/nginx_not_starting/Dockerfile",
+    "dockerfile_sha256": "3b7598fa35b2fb2a1dfce31034e6eb3485bedc234e366850bfaa9b41f6515f91",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:ae6bf59b55b8c1add3627e87f917c61b539bc7f47549a3efdc9c2a101b0c1551",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "php-fpm-down",
+    "dockerfile": "training_tasks/l1/php-fpm-down/Dockerfile",
+    "dockerfile_sha256": "02a1293ccd7a72d58bd1bde23e53ffd113223f7a0379914a68562868cdec9446",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:c6c325d11e465ef8c9a348d4dbeab1b0e2db08261e0cf7ac029385e2eb27f65d",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "port-already-in-use",
+    "dockerfile": "training_tasks/l1/port-already-in-use/Dockerfile",
+    "dockerfile_sha256": "8d7778859409ca0b20c8e28a29fff21fa5cc3ade7f9d3f1a62d63a128b144d89",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:3d37fcd56c5c8f6e40134543cf0d0bd856eca5210c987faeb3dbb5f33e035f82",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "restored-backup-permissions",
+    "dockerfile": "training_tasks/l1/restored-backup-permissions/Dockerfile",
+    "dockerfile_sha256": "bea473defaddb6ddf0fb82c1ca5a354cdbe86f4c6f4a169d9eecf3279e4e9281",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:ffe507097a2ce9d9333ce2f0563fb09f2f0d2d48e1b319df7ef6326e5070f3d2",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "sajt-ne-rabotaet-posle-perenosa",
+    "dockerfile": "training_tasks/l1/sajt-ne-rabotaet-posle-perenosa/Dockerfile",
+    "dockerfile_sha256": "f2b41fe6da7cc3a4769f9e94ad4fc269b0dc8f354377c92f76bf134fe2fb8286",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:fa382fc20a6c2b0fc41c0bec273570f62f8e9d124161474131aa6ad0e2e27781",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "service-bind-localhost",
+    "dockerfile": "training_tasks/l1/service-bind-localhost/Dockerfile",
+    "dockerfile_sha256": "903cd6072436b419a41d4fadc61c81c671c5e5b8b5866c8999df66d956d40e6b",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:38a4a26decc8af272b3c20569ed5904b60b2c1ccad749766abafbb9d170d0d02",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "wordpress-500-after-move",
+    "dockerfile": "training_tasks/l1/wordpress-500-after-move/Dockerfile",
+    "dockerfile_sha256": "ca42f51822a643c958806b4a3ff8f9271980f4bc5a5ef65c3b71e8fdf799a29d",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:4798f351415a206af8debbd76cf8e5d7e6727d1bdb8a134c362b8633dbdfe09c",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  }
+]

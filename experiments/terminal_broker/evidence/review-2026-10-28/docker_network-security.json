@@ -1,0 +1,18 @@
+{
+  "mode": "docker_network",
+  "authorizationChecksPassed": true,
+  "directWithoutBasic": 401,
+  "wrongOrOtherAttemptBasic": 401,
+  "correctBasic": 200,
+  "basicAsLease": 403,
+  "validLease": 204,
+  "changedIdentityLease": 403,
+  "dockerSocketAndCLIAbsentInTtyd": true,
+  "journalNotMountedInTtyd": true,
+  "socketMountReadOnly": true,
+  "webHasNoDockerSocket": true,
+  "brokerHasUnrestrictedDockerSocket": true,
+  "brokerIsHostRootTrustBoundary": true,
+  "rootEscapeReproduced": true,
+  "rootEscapeStatus": "HIGH: token-cleared child survives browser close"
+}

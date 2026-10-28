@@ -1,0 +1,11 @@
+FROM ubuntu:22.04 AS target
+RUN apt-get update && apt-get install -y --no-install-recommends python3 bash procps \
+    && rm -rf /var/lib/apt/lists/*
+CMD ["sleep", "infinity"]
+
+FROM python:3.13-slim AS driver
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["python", "-m", "experiments.terminal_broker.e2e_runtime"]

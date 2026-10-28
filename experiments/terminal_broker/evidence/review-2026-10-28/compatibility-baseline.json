@@ -1,0 +1,290 @@
+[
+  {
+    "queue": "candidate",
+    "task": "missing-hosts-entry",
+    "dockerfile": "training_tasks/candidate/missing-hosts-entry/Dockerfile",
+    "dockerfile_sha256": "77603e8a8595d7a7eadad9fd9cb55994b83bb24cf1b6390890a430c75a8e0b27",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:d7aecee169e30a6ffd8254f0cabad0ba72c925c5cd7b3e9d0efeb0ba3f75a231",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "candidate",
+    "task": "nginx-wrong-port",
+    "dockerfile": "training_tasks/candidate/nginx-wrong-port/Dockerfile",
+    "dockerfile_sha256": "53890c82f54009e018228ef8f1c51589acbf6c4eeaf59f8041fe47db7506b091",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:a0e6e75f8e769f1cc6896329d5c89eedc9dcf8477a635a3691ea9e8bbc49733c",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "candidate",
+    "task": "service-not-running",
+    "dockerfile": "training_tasks/candidate/service-not-running/Dockerfile",
+    "dockerfile_sha256": "eb4d27ba210964acb8726154108c495dee3dea715613e875d23f5dbb845fceba",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:e94b2527c61e89a70ab8453c8f008a0df336bd97cbb7b9e508954afa5552886e",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "candidate",
+    "task": "single-file-permission",
+    "dockerfile": "training_tasks/candidate/single-file-permission/Dockerfile",
+    "dockerfile_sha256": "53890c82f54009e018228ef8f1c51589acbf6c4eeaf59f8041fe47db7506b091",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:b4134abd8638ef34924bcf830367074b294b1208f08bd38508e273dc92a0ef26",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "candidate",
+    "task": "wrong-index-filename",
+    "dockerfile": "training_tasks/candidate/wrong-index-filename/Dockerfile",
+    "dockerfile_sha256": "53890c82f54009e018228ef8f1c51589acbf6c4eeaf59f8041fe47db7506b091",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:72e6b64a041770d96ef1f8f15f501b701688f1c58c677898f82999ac44d84610",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "l1",
+    "task": "cron-not-working",
+    "dockerfile": "training_tasks/l1/cron-not-working/Dockerfile",
+    "dockerfile_sha256": "4a15a515dfecfbdfcc3b1033daab737673c4933fd6f0c84a719735ac96f02195",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:d9fd961dfb289bfefe94d4f85055edbde651da4bbc39af79e4ba53f7e83faee7",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "l1",
+    "task": "deleted-file-descriptor",
+    "dockerfile": "training_tasks/l1/deleted-file-descriptor/Dockerfile",
+    "dockerfile_sha256": "e38c518da8c95390fc527e7379ab2041fb3ed6235ccdd3f5dc8786ed9d0ad795",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:39bb0191dd2f52256ecfe5b0dd3c29165b11695d7ecc2bd62488b5c173097a01",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "l1",
+    "task": "disk-full",
+    "dockerfile": "training_tasks/l1/disk-full/Dockerfile",
+    "dockerfile_sha256": "9cdffa8bd148d941edeb8c0c830a61f27e56a3d5a2f5002988cc6c8d6437828d",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:a27a79f9d116276c3f59ce85bcc06e95c94bdbfe0aba1ab2cb2752e513b44f4c",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "l1",
+    "task": "https-ipv4-listener",
+    "dockerfile": "training_tasks/l1/https-ipv4-listener/Dockerfile",
+    "dockerfile_sha256": "e8ebc340f9052ba2e668a72e8194e17fa9f6948f650dfaa6c417e431c9f37f3f",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:c992c83da358d76c97e0625df69fbf3a0b5b20f9dc4c0389f79ba9e2ac1aeade",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "l1",
+    "task": "https-sni-wrong-vhost",
+    "dockerfile": "training_tasks/l1/https-sni-wrong-vhost/Dockerfile",
+    "dockerfile_sha256": "8602c2e5c3e0a59c30d121d1a0fa1adf642b375520986711d8975d12f884dcd0",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:408c68527bb65c2b4072e1a696e2b37b6756913f73afb5ef6cbaddb4d5dd63a3",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "l1",
+    "task": "nginx-413-upload",
+    "dockerfile": "training_tasks/l1/nginx-413-upload/Dockerfile",
+    "dockerfile_sha256": "f8d9d243c7ead001676040c90b0a3ba4944b0e4ce92fd168efb28ca0c095f106",
+    "python_explicit": false,
+    "compatible": true,
+    "image_id": "sha256:df7b97cf1a382872a509c92043d175b46110394cd4de07236da0d27d6261d641",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "nginx-upstream-timeout",
+    "dockerfile": "training_tasks/l1/nginx-upstream-timeout/Dockerfile",
+    "dockerfile_sha256": "9474c95cda43682c5b2012a9677eb8ae9fc0d439927ed5558dc9c9849e3c7f63",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:83fed4a3ea0044e00c50a3d54f1d8542077b038e6b56d7508fbe6b53e670b2c9",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "nginx-upstream-wrong-port",
+    "dockerfile": "training_tasks/l1/nginx-upstream-wrong-port/Dockerfile",
+    "dockerfile_sha256": "c2f3e61398dfeb5be61ab8360db94fa474c0f887d21b5242db6295f4398e24e7",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:11334191f19a484a5971a82371525eb86489ae4a9d489c3c03b841c54f23f793",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "nginx_not_starting",
+    "dockerfile": "training_tasks/l1/nginx_not_starting/Dockerfile",
+    "dockerfile_sha256": "4834c7e5c130da413919119bebcf91feebf9246baa279f822c9fdaf73fc3a5c5",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:5f9447cdf7f4b0095d589869ddd3e82bb98978858baacc781fcf56c34f0c70c2",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "l1",
+    "task": "php-fpm-down",
+    "dockerfile": "training_tasks/l1/php-fpm-down/Dockerfile",
+    "dockerfile_sha256": "e03fd564922f75f922c1cb2393811e1e397900ccac621ac2b84a52bb9cf7f80d",
+    "python_explicit": false,
+    "compatible": true,
+    "image_id": "sha256:b2cf5de7707d3385b84ba8992b3c2f79a2c4de8ee96b0833077febc554ad0833",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "port-already-in-use",
+    "dockerfile": "training_tasks/l1/port-already-in-use/Dockerfile",
+    "dockerfile_sha256": "8d7778859409ca0b20c8e28a29fff21fa5cc3ade7f9d3f1a62d63a128b144d89",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:3d37fcd56c5c8f6e40134543cf0d0bd856eca5210c987faeb3dbb5f33e035f82",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "restored-backup-permissions",
+    "dockerfile": "training_tasks/l1/restored-backup-permissions/Dockerfile",
+    "dockerfile_sha256": "6d72a3742383ab08976553339245c2ee2334347d773a86d76674fcbd195ff24a",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:c1f56c61e9e1bd0689dc5500bda64f6bd23b958d68011a0c1c681cc1f218b597",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "l1",
+    "task": "sajt-ne-rabotaet-posle-perenosa",
+    "dockerfile": "training_tasks/l1/sajt-ne-rabotaet-posle-perenosa/Dockerfile",
+    "dockerfile_sha256": "7bceef0e06cf688b071bcce0709ee9ac7be43aa54939b2095aa96a9e4fc7f13e",
+    "python_explicit": false,
+    "compatible": false,
+    "image_id": "sha256:366b32078a2783958cd3eca7a0a20a3cae5c60d2b0a17e539c210d1a313bbbb4",
+    "bash_proc": true,
+    "probe_exit": 127,
+    "reason": "OCI runtime exec failed: exec failed: unable to start container process: exec: \"python3\": executable file not found in $PATH\r\n"
+  },
+  {
+    "queue": "l1",
+    "task": "service-bind-localhost",
+    "dockerfile": "training_tasks/l1/service-bind-localhost/Dockerfile",
+    "dockerfile_sha256": "903cd6072436b419a41d4fadc61c81c671c5e5b8b5866c8999df66d956d40e6b",
+    "python_explicit": true,
+    "compatible": true,
+    "image_id": "sha256:38a4a26decc8af272b3c20569ed5904b60b2c1ccad749766abafbb9d170d0d02",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  },
+  {
+    "queue": "l1",
+    "task": "wordpress-500-after-move",
+    "dockerfile": "training_tasks/l1/wordpress-500-after-move/Dockerfile",
+    "dockerfile_sha256": "d700b5d7992eaf7715457233364e01fea92ec9e214f489b6c3f81fabc8cea826",
+    "python_explicit": false,
+    "compatible": true,
+    "image_id": "sha256:39a638f2fba1871904ad59485122ca49c7c07b2bc6d314954336f8bec85595ef",
+    "bash_proc": true,
+    "probe_exit": 0,
+    "runtime": {
+      "python": "3.10.12",
+      "pidfd": true,
+      "bash": true,
+      "proc": true,
+      "kernel": "6.8.0-147-generic"
+    }
+  }
+]
