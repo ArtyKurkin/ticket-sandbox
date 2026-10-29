@@ -19,7 +19,9 @@ from sandbox.services import ledger
 from terminal.broker_v2 import Identity
 from . import docker_service as ds
 from .terminal_gateway import build_terminal_base_path, build_terminal_url, terminal_uses_docker_network
-from .terminal_teardown import teardown, verify, get, stop_remove, IdentityError, TeardownPending
+from .terminal_teardown import (
+    teardown, verify, get, stop_remove, IdentityError, TeardownPending, LegacyIdentity,
+)
 
 
 class OperationBusy(RuntimeError):
@@ -70,10 +72,18 @@ def snapshot(attempt):
         if attempt.container_name or attempt.terminal_container_name:
             raise IdentityError('Environment names without a pinned Docker ID')
         return None
-    return dict(container_id=attempt.container_id, attempt=attempt.pk,
+    result = dict(container_id=attempt.container_id, attempt=attempt.pk,
         queue=attempt.task.queue.slug, task=attempt.task.slug,
-        generation=str(attempt.environment_generation), terminal=attempt.terminal_container_name,
+        generation=str(attempt.environment_generation) if attempt.environment_generation else None,
+        terminal=attempt.terminal_container_name,
         task_name=attempt.container_name)
+    if attempt.environment_generation is None:
+        # Legacy ttyd has no target-ID label. Pin its own immutable ID before
+        # rotating generation, so a retried migration cannot delete a replacement.
+        terminal = (get(ds.get_docker_client(), attempt.terminal_container_name)
+                    if attempt.terminal_container_name else None)
+        result['terminal_id'] = terminal.id if terminal is not None else None
+    return result
 
 
 def destroy(client, old, attempt):
@@ -89,11 +99,17 @@ def destroy(client, old, attempt):
             if target is None:
                 return
             values['container_id'] = target.id
-        teardown(client, Identity(**values), name)
+        if values['generation'] is None:
+            identity = LegacyIdentity(**values)
+        else:
+            identity = Identity(**values)
+        teardown(client, identity, name)
 
 
 def retire(state, spec):
-    if spec and not any(old['generation'] == spec['generation'] for old in state.setdefault('retired', [])):
+    # Legacy containers predate this operation; they cannot be late creates of
+    # its generation. Never retain their reusable terminal names for the reaper.
+    if spec and spec['generation'] is not None and not any(old['generation'] == spec['generation'] for old in state.setdefault('retired', [])):
         state['retired'].append(spec)
 
 

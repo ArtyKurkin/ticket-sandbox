@@ -36,6 +36,12 @@ class BrokerAuthorizationTests(TestCase):
     def test_exact_identity_authorized(self):
         self.assertEqual(self.authorize().status_code, 204)
 
+    @override_settings(SECURE_SSL_REDIRECT=True)
+    def test_internal_http_lease_works_with_https_enforced_for_browser(self):
+        self.assertEqual(self.authorize().status_code, 204)
+        self.assertEqual(self.authorize(token='wrong').status_code, 403)
+        self.assertEqual(self.client.get('/').status_code, 301)
+
     def test_basic_password_cannot_authorize_a_lease(self):
         basic_password = credential(self.attempt.pk, self.attempt.environment_generation)
         self.assertNotEqual(self.token, basic_password)

@@ -201,6 +201,10 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "login"
 
+# Private, bearer-authenticated broker callback over the Docker network.
+# Both nginx gateway configurations deny public access to this exact endpoint.
+SECURE_REDIRECT_EXEMPT = [r"^terminal-broker-auth/$"]
+
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = True

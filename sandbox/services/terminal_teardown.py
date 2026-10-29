@@ -1,4 +1,6 @@
 """Delete one pinned environment. Names locate gateways; IDs authorize deletion."""
+from dataclasses import dataclass
+
 import docker
 
 
@@ -10,12 +12,25 @@ class TeardownPending(RuntimeError):
     pass
 
 
+@dataclass(frozen=True)
+class LegacyIdentity:
+    """Only for retiring a pre-broker environment; never passed to a broker."""
+    container_id: str
+    attempt: int
+    queue: str
+    task: str
+    terminal_id: str | None
+    generation: None = None
+
+
 def verify(container, identity, kind):
     labels = container.labels
     expected = {"type": kind, "attempt": str(identity.attempt), "queue": identity.queue,
                 "task": identity.task, "generation": identity.generation}
     if kind == "task":
         valid = container.id == identity.container_id
+    elif isinstance(identity, LegacyIdentity):
+        valid = kind == "terminal" and container.id == identity.terminal_id
     else:
         valid = labels.get("ticket-sandbox.target") == identity.container_id
     if not valid or any(labels.get("ticket-sandbox." + k) != v for k, v in expected.items()):

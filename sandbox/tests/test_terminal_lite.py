@@ -125,6 +125,68 @@ class LiteLifecycleTests(BrokerAuthorizationTests):
         self.add(terminal_name + '-broker', 'terminal-broker', target, obj.labels['ticket-sandbox.generation'])
         return self.add(terminal_name, 'terminal', target, obj.labels['ticket-sandbox.generation'])
 
+    def legacy_environment(self):
+        self.objects.pop('terminal-broker')
+        for obj in self.objects.values():
+            obj.labels.pop('ticket-sandbox.generation')
+            obj.labels.pop('ticket-sandbox.target')
+        with ledger.writer():
+            lite.save(self.attempt, environment_generation=None)
+
+    def test_explicit_restart_migrates_existing_legacy_environment(self):
+        self.legacy_environment()
+        old_task = self.objects['task']
+        old_terminal = self.objects['terminal']
+        lite.run(self.attempt, 'reset', str(uuid.uuid4()))
+        old_task.remove.assert_called_once_with(force=True)
+        old_terminal.remove.assert_called_once_with()
+        self.attempt.refresh_from_db()
+        self.assertEqual(self.attempt.environment_status, 'ready')
+        self.assertIsNotNone(self.attempt.environment_generation)
+        self.assertNotEqual(self.attempt.container_id, old_task.id)
+
+    def test_legacy_migration_resumes_after_worker_death(self):
+        self.legacy_environment()
+        gateway = self.objects['terminal']
+        gateway.stop.side_effect = SystemExit('worker died during migration')
+        op = str(uuid.uuid4())
+        with self.assertRaises(SystemExit):
+            lite.run(self.attempt, 'reset', op)
+        gateway.stop.side_effect = lambda **kw: gateway.attrs['State'].update(Running=False)
+        lite.run(self.attempt, 'reset', op)
+        self.assertEqual(self.attempt.environment_status, 'ready')
+        self.assertEqual(self.attempt.restart_count, 1)
+
+    def test_replaced_legacy_terminal_blocks_deletion(self):
+        self.legacy_environment()
+        old = lite.snapshot(self.attempt)
+        self.objects['terminal'].id = 'b' * 64
+        with self.assertRaises(IdentityError):
+            lite.destroy(self.client_docker, old, self.attempt)
+        for obj in self.objects.values():
+            obj.remove.assert_not_called()
+
+    def test_interrupted_legacy_migration_can_be_cleaned_up_with_flag_disabled(self):
+        self.legacy_environment()
+        gateway = self.objects['terminal']
+        gateway.stop.side_effect = SystemExit('worker died during migration')
+        with self.assertRaises(SystemExit):
+            lite.run(self.attempt, 'reset', str(uuid.uuid4()))
+        gateway.stop.side_effect = lambda **kw: gateway.attrs['State'].update(Running=False)
+        with override_settings(TERMINAL_BROKER_ENABLED=False):
+            lite.cleanup(self.attempt)
+        self.assertEqual(self.objects, {})
+        self.assertEqual(self.attempt.environment_status, 'idle')
+
+    def test_foreign_legacy_task_labels_block_all_deletions(self):
+        self.legacy_environment()
+        self.objects['task'].labels['ticket-sandbox.attempt'] = str(self.attempt.pk + 1)
+        with self.assertRaises(IdentityError):
+            lite.run(self.attempt, 'reset', str(uuid.uuid4()))
+        for obj in self.objects.values():
+            obj.remove.assert_not_called()
+        self.create.assert_not_called()
+
     def test_crash_after_create_resumes_and_duplicate_does_not_reset_again(self):
         op = str(uuid.uuid4())
         def crash(*args, **kwargs):
