@@ -105,6 +105,24 @@ LEGACY_CATALOG = {
     },
 }
 
+# Confirmed by read-only inspection of the live catalog on 2026-10-30.
+# This is one complete historical profile, never independent per-field options.
+# Keep LEGACY_CATALOG unchanged: it is also the default for new seed records.
+CONFIRMED_LEGACY_OVERRIDES = {
+    "before-tickets": {"order": 5},
+    "client-service": {"max_days": 3},
+    "managed-services": {"max_days": 4},
+    "no-review": {"max_days": 14},
+    "optional-review": {"min_days": 10, "max_days": 14},
+    "sandbox-candidate": {"order": 6, "max_days": 3},
+    "with-review": {"min_days": 28, "max_days": 35},
+}
+
+CONFIRMED_LEGACY_CATALOG = {
+    slug: {**fields, **CONFIRMED_LEGACY_OVERRIDES.get(slug, {})}
+    for slug, fields in LEGACY_CATALOG.items()
+}
+
 TRAINING_PROGRAM = {
     "name": "Программа обучения",
     "order": 1,
@@ -129,11 +147,19 @@ def catalog_issues(Stage, Journey, History, alias, *, classified=False):
     issues = []
     stages = list(Stage.objects.using(alias).all())
     by_slug = {stage.slug: stage for stage in stages}
+    # Require the entire observed profile, including both order changes and all
+    # duration changes. Partial/hybrid catalogs still fail the original contract.
+    confirmed = set(LEGACY_CATALOG) <= set(by_slug) and all(
+        getattr(by_slug[slug], field) == value
+        for slug, fields in CONFIRMED_LEGACY_OVERRIDES.items()
+        for field, value in fields.items()
+    )
+    legacy_catalog = CONFIRMED_LEGACY_CATALOG if confirmed else LEGACY_CATALOG
     for stage in stages:
         expected = (
             TRAINING_PROGRAM
             if stage.slug == "training-program"
-            else LEGACY_CATALOG.get(stage.slug)
+            else legacy_catalog.get(stage.slug)
         )
         if expected is None:
             issues.append(

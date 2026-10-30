@@ -2,12 +2,26 @@
 
 from copy import deepcopy
 from importlib import import_module
+from types import SimpleNamespace
 from unittest import TestCase
+from unittest.mock import MagicMock
 
 from django.db import connections
 from django.db.backends.sqlite3.base import DatabaseWrapper
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.exceptions import IrreversibleError
+
+
+# Independent regression fixture from the administrator's read-only SQL result.
+LIVE_OVERRIDES = {
+    "before-tickets": {"order": 5},
+    "client-service": {"max_days": 3},
+    "managed-services": {"max_days": 4},
+    "no-review": {"max_days": 14},
+    "optional-review": {"min_days": 10, "max_days": 14},
+    "sandbox-candidate": {"order": 6, "max_days": 3},
+    "with-review": {"min_days": 28, "max_days": 35},
+}
 
 
 class StageMigrationTests(TestCase):
@@ -76,7 +90,21 @@ class StageMigrationTests(TestCase):
         executor.migrate(self.after)
         return executor.loader.project_state(self.after).apps
 
+    def apply_live_profile(self):
+        for slug, fields in LIVE_OVERRIDES.items():
+            self.Stage.objects.using(self.alias).filter(slug=slug).update(**fields)
+
     def test_migration_preserves_all_historical_fields_and_foreign_keys(self):
+        self.assert_historical_data_preserved()
+
+    def test_confirmed_profile_preserves_all_historical_fields_and_foreign_keys(self):
+        self.apply_live_profile()
+        from traineediary.services.stage_catalog import check_stage_catalog
+
+        self.assertEqual(check_stage_catalog(database=self.alias, classified=False), [])
+        self.assert_historical_data_preserved()
+
+    def assert_historical_data_preserved(self):
         for index, slug in enumerate(
             (
                 "first-day",
@@ -137,6 +165,81 @@ class StageMigrationTests(TestCase):
             (10, 14, 35),
         )
         self.assertEqual(new_stage.catalog_scope, "unified")
+        self.assertEqual(
+            self.contract.catalog_issues(
+                apps.get_model("traineediary", "TraineeStage"),
+                apps.get_model("traineediary", "TraineeJourney"),
+                apps.get_model("traineediary", "StageHistory"),
+                self.alias,
+                classified=True,
+            ),
+            [],
+        )
+
+    def test_all_partial_combinations_of_confirmed_changes_are_rejected(self):
+        changes = [(slug, field, value) for slug, fields in LIVE_OVERRIDES.items()
+                   for field, value in fields.items()]
+        self.assertEqual(len(changes), 10)
+        Stage, Journey, History = MagicMock(), MagicMock(), MagicMock()
+        Journey.objects.using.return_value.exists.return_value = False
+        History.objects.using.return_value.exists.return_value = False
+        for mask in range(1, (1 << len(changes)) - 1):
+            stages = {slug: SimpleNamespace(pk=i, slug=slug, **fields)
+                      for i, (slug, fields) in enumerate(self.contract.LEGACY_CATALOG.items(), 1)}
+            for bit, (slug, field, value) in enumerate(changes):
+                if mask & (1 << bit):
+                    setattr(stages[slug], field, value)
+            Stage.objects.using.return_value.all.return_value = list(stages.values())
+            with self.subTest(mask=mask):
+                self.assertTrue(self.contract.catalog_issues(Stage, Journey, History, self.alias))
+
+    def test_confirmed_profile_still_rejects_unsupported_changes(self):
+        self.apply_live_profile()
+        changes = {
+            "name": "Unsupported name", "group": "teachbase",
+            "progress_weight_percent": 99, "applies_to_new_hire": False,
+            "applies_to_internal_transfer": False, "order": 70,
+            "min_days": 29, "max_days": 36,
+        }
+        for field, value in changes.items():
+            with self.subTest(field=field):
+                original = getattr(self.Stage.objects.using(self.alias).get(slug="with-review"), field)
+                self.Stage.objects.using(self.alias).filter(slug="with-review").update(**{field: value})
+                issues = self.contract.catalog_issues(self.Stage, self.Journey, self.History, self.alias)
+                self.assertTrue(any(field + "=" in issue for issue in issues))
+                self.Stage.objects.using(self.alias).filter(slug="with-review").update(**{field: original})
+
+    def test_confirmed_profile_rejects_unknown_and_missing_stages(self):
+        self.apply_live_profile()
+        self.journey("with-review", 0)
+        extra = self.Stage.objects.using(self.alias).create(
+            slug="custom-teachbase", name="Custom", order=50, group="teachbase"
+        )
+        with self.assertRaisesRegex(RuntimeError, "неизвестный этап"):
+            self.migrate()
+        extra.delete(using=self.alias)
+        self.Stage.objects.using(self.alias).filter(slug="first-day").delete()
+        with self.assertRaisesRegex(RuntimeError, "Отсутствует исторический этап first-day"):
+            self.migrate()
+
+    def test_confirmed_profile_preserves_accepted_labels_and_activity(self):
+        self.apply_live_profile()
+        self.Stage.objects.using(self.alias).filter(slug="sandbox-candidate").update(
+            name="Задания в Ticket Sandbox", color="#123456", is_active=False
+        )
+        self.Stage.objects.using(self.alias).filter(slug="optional-review").update(
+            name="Проверки по желанию"
+        )
+        self.assert_historical_data_preserved()
+
+    def test_program_in_use_is_still_rejected_with_confirmed_profile(self):
+        self.apply_live_profile()
+        self.Stage.objects.using(self.alias).create(
+            slug="training-program", **self.contract.TRAINING_PROGRAM
+        )
+        self.journey("training-program", 0)
+        with self.assertRaisesRegex(RuntimeError, "training-program уже используется"):
+            self.migrate()
 
     def test_unknown_catalog_aborts_without_changing_data(self):
         journey = self.journey("vds", 0)
