@@ -1,0 +1,30 @@
+{
+  "audit_version": 1,
+  "status": "audited",
+  "source": "operator_summary_2026-11-03",
+  "catalog_profile": "confirmed_2026_10_30",
+  "counts": {
+    "journeys": 14,
+    "legacy_journeys": 14,
+    "unified_journeys": 0,
+    "legacy_done": 11,
+    "history_rows": 64,
+    "weekly_metric_rows": 37,
+    "roadmap_confirmation_rows": 0
+  },
+  "expected_legacy_stages": {"done": 11, "vds": 1, "with-review": 1, "optional-review": 1},
+  "expected_legacy_outcomes": {"": 3, "success": 5, "terminated": 6},
+  "integrity": {
+    "blocked_legacy_journeys": 0,
+    "ready_for_mapping_review": true,
+    "migration_authorized": false
+  },
+  "preservation_baseline": {
+    "snapshot_sha256": "6ac550041f848c57743679a0be92a4f6dc4b4eae34345061c9d79cdca9ee5c29",
+    "tables": {
+      "journeys": {"rows": 14, "sha256": "d11098bdad1a992ffa22fd245555ee4ea2636b0e313dadae8390d0130c1bac40"},
+      "history": {"rows": 64, "sha256": "e075a7d9e74230678d1f440c3c1dbac8f82949e58960bfbb9c43d5d52b6e9c44"},
+      "metrics": {"rows": 37, "sha256": "d348a0727783b696b2dab55188547da77c371bc4c14c44dce82ee66e44477bc2"}
+    }
+  }
+}

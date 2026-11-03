@@ -22,6 +22,7 @@ from django.views.decorators.http import (
 
 from ..models import (
     StageGroup,
+    StageSchemeTransfer,
     StageScheme,
     TraineeJourney,
     TraineeStage,
@@ -53,6 +54,7 @@ def _build_kanban_boards():
         .select_related(
             "user",
             "current_stage",
+            "scheme_transfer__batch",
         )
         .prefetch_related(
             Prefetch(
@@ -154,6 +156,13 @@ def _kanban_context():
 def trainees_kanban(request):
     if not request.user.is_staff:
         raise PermissionDenied
+
+    if request.GET.get("view") == "original":
+        # Historical presentation only: no mutation URLs or drag handlers.
+        transfers = StageSchemeTransfer.objects.select_related(
+            "journey__user", "source_stage",
+        ).order_by("source_stage__order", "journey_id")
+        return render(request, "traineediary/kanban_original.html", {"transfers": transfers})
 
     context = _kanban_context()
     context["pre_adaptation_count"] = get_pre_adaptation_users_queryset().count()

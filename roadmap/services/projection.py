@@ -32,13 +32,13 @@ def _working_evidence(journey, history, outcome):
     valid = bool(history)
     for index, row in enumerate(history):
         if (row.started_at < journey.probation_start_date or row.started_at > today
-                or not stage_applies(row.stage, journey.stage_scheme, journey.entry_type)):
+                or not stage_applies(row.effective_stage, journey.stage_scheme, journey.entry_type)):
             valid = False
         if index < len(history) - 1:
             following = history[index + 1]
             if row.ended_at != following.started_at or row.started_at > following.started_at:
                 valid = False
-        elif (row.stage_id != journey.current_stage_id or row.ended_at is not None
+        elif (row.effective_stage.pk != journey.current_stage_id or row.ended_at is not None
               or row.started_at != journey.stage_started_at):
             valid = False
     if not valid:

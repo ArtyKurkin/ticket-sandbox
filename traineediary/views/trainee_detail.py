@@ -59,7 +59,7 @@ def _build_gantt_rows(
 
     for history_entry in history_entries:
         history_by_stage.setdefault(
-            history_entry.stage_id,
+            history_entry.effective_stage.pk,
             [],
         ).append(
             history_entry,

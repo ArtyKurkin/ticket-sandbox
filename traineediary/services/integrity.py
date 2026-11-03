@@ -148,7 +148,7 @@ def check_journey_integrity(
         open_entry = open_entries[0]
 
         if (
-            open_entry.stage_id
+            open_entry.effective_stage.pk
             != journey.current_stage_id
         ):
             add_issue(
