@@ -4,8 +4,31 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
+  workflow-policy:
+    name: Check CI and manual CD boundaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install workflow policy parser
+        run: python -m pip install PyYAML==6.0.2
+      - name: Check workflows and regression tests
+        run: |
+          python deploy/ci/workflow_policy.py
+          python -m unittest discover -s deploy/ci -p 'test_*.py' -v
+
   tests:
+    needs: workflow-policy
     runs-on: ubuntu-latest
 
     env:
@@ -80,137 +103,3 @@ jobs:
 
       - name: Run tests
         run: python manage.py test sandbox traineediary assessment
-
-  deploy-staging:
-    name: Deploy staging
-    runs-on: ubuntu-latest
-    needs: tests
-
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
-          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/staging_key
-          chmod 600 ~/.ssh/staging_key
-
-          ssh-keyscan -p "${{ secrets.STAGING_PORT }}" "${{ secrets.STAGING_HOST }}" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Deploy to staging
-        run: |
-          set -e
-
-          echo "## Staging deploy" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-
-          run_remote_step() {
-            local title="$1"
-            local command="$2"
-
-            echo "▶️ ${title}"
-
-            if ssh \
-              -i ~/.ssh/staging_key \
-              -p "${{ secrets.STAGING_PORT }}" \
-              -o IdentitiesOnly=yes \
-              -o StrictHostKeyChecking=yes \
-              "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" \
-              "${command}"
-            then
-              echo "- ✅ ${title}" >> "$GITHUB_STEP_SUMMARY"
-            else
-              echo "- ❌ ${title}" >> "$GITHUB_STEP_SUMMARY"
-              exit 1
-            fi
-          }
-
-          run_compose_step() {
-            local title="$1"
-            local command="$2"
-
-            run_remote_step \
-              "${title}" \
-              "set -e; runuser -u ticket-sandbox -- bash -lc 'set -e; cd /opt/training-platform-compose/app; ${command}'"
-          }
-
-          run_local_step() {
-            local title="$1"
-            local command="$2"
-
-            echo "▶️ ${title}"
-
-            if bash -lc "${command}"
-            then
-              echo "- ✅ ${title}" >> "$GITHUB_STEP_SUMMARY"
-            else
-              echo "- ❌ ${title}" >> "$GITHUB_STEP_SUMMARY"
-              exit 1
-            fi
-          }
-
-          run_compose_step \
-            "Fetch latest code" \
-            "git fetch origin main && git reset --hard ${{ github.sha }}"
-
-          run_compose_step \
-            "Normalize training task permissions" \
-            "bash deploy/normalize_training_task_permissions.sh"
-
-          run_compose_step \
-            "Check Docker socket GID" \
-            "sh deploy/check_docker_socket_gid.sh .env.prod"
-
-          run_compose_step \
-            "Validate Docker Compose config" \
-            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml config --quiet"
-
-          run_compose_step \
-            "Build application images" \
-            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml build web worker"
-
-          run_compose_step \
-            "Start database" \
-            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --wait --wait-timeout 60 db"
-
-          run_compose_step \
-            "Run migrations" \
-            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps web python manage.py migrate --noinput"
-
-          run_compose_step \
-            "Sync training tasks in strict mode" \
-            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps web python manage.py sync_training_tasks --strict"
-
-          run_compose_step \
-            "Build task images" \
-            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps worker python manage.py build_task_images"
-
-          run_compose_step \
-            "Start application" \
-            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --wait --wait-timeout 60 web worker"
-
-          run_compose_step \
-            "Recreate gateway" \
-            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --force-recreate --wait --wait-timeout 60 gateway"
-
-          run_compose_step \
-            "Show Docker Compose status" \
-            "docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps"
-
-          run_local_step \
-            "Check staging healthz" \
-            "curl --retry 10 --retry-delay 3 --retry-connrefused -fsS '${{ secrets.STAGING_URL }}/healthz/' > /dev/null"
-
-          run_local_step \
-            "Check staging homepage" \
-            "curl --retry 5 --retry-delay 2 --retry-connrefused -fsSI '${{ secrets.STAGING_URL }}/' > /dev/null"
-
-          run_local_step \
-            "Check staging admin login" \
-            "curl --retry 5 --retry-delay 2 --retry-connrefused -fsSI '${{ secrets.STAGING_URL }}/admin/login/' > /dev/null"
-
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Staging deploy finished successfully." >> "$GITHUB_STEP_SUMMARY"

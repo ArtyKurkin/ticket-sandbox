@@ -1,0 +1,67 @@
+name: Manual staging deployment (disabled)
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full 40-character commit SHA reachable from main
+        required: true
+        type: string
+      target_environment:
+        description: Isolated staging only; production is not supported
+        required: true
+        type: choice
+        options: [staging]
+      confirmation:
+        description: Type DEPLOY STAGING followed by a space and the exact SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-staging-deployment
+  cancel-in-progress: false
+
+jobs:
+  validate-request:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      revision: ${{ steps.request.outputs.revision }}
+    steps:
+      - name: Checkout trusted workflow code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Validate explicit revision and confirmation
+        id: request
+        env:
+          ACTION_EVENT_NAME: ${{ github.event_name }}
+          ACTION_WORKFLOW_REF: ${{ github.ref }}
+          REQUESTED_REVISION: ${{ inputs.revision }}
+          REQUESTED_ENVIRONMENT: ${{ inputs.target_environment }}
+          REQUEST_CONFIRMATION: ${{ inputs.confirmation }}
+        run: python deploy/ci/manual_deploy_request.py
+
+  deploy-staging:
+    name: Deployment blocked pending Lite-compatible procedure
+    needs: validate-request
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      vars.MANUAL_STAGING_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: manual-staging
+    steps:
+      - name: Stop before any server access
+        run: |
+          echo "::error::Deployment is disabled until a Lite-compatible procedure is reviewed and tested."
+          exit 1
