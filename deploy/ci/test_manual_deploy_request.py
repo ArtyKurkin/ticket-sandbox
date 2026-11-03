@@ -32,9 +32,38 @@ class ManualRequestTests(unittest.TestCase):
         ])
 
     def test_main_revision_is_validated_against_real_local_git_objects(self):
-        sha = subprocess.check_output(["git", "rev-parse", "origin/main"], cwd=ROOT, text=True).strip()
-        result = request.validate_request(**self.arguments(revision=sha, confirmation=f"DEPLOY STAGING {sha}"))
-        self.assertEqual(result["revision"], sha)
+        # CI checkouts may contain only a PR/feature ref. Own the fixture's refs
+        # instead of relying on origin/main in the repository running the tests.
+        environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        environment.update(
+            GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
+            GIT_AUTHOR_NAME="CI fixture", GIT_AUTHOR_EMAIL="ci-fixture@example.invalid",
+            GIT_COMMITTER_NAME="CI fixture", GIT_COMMITTER_EMAIL="ci-fixture@example.invalid",
+        )
+        with tempfile.TemporaryDirectory(prefix="manual-request-git-") as directory, patch.dict(os.environ, environment, clear=True):
+            def git(*arguments, input=None):
+                return subprocess.run(
+                    ["git", *arguments], cwd=directory, input=input,
+                    capture_output=True, text=True, check=True,
+                ).stdout.strip()
+
+            git("init", "--bare", "--object-format=sha1")
+            tree = git("hash-object", "-t", "tree", "--stdin", input="")
+            sha = git("commit-tree", tree, "-m", "Main history fixture")
+            arguments = self.arguments(root=Path(directory), revision=sha, confirmation=f"DEPLOY STAGING {sha}")
+            # A real commit without a known main history must still fail closed.
+            with self.assertRaisesRegex(request.RequestError, "revision_must_be_reachable_from_main"):
+                request.validate_request(**arguments)
+            main_tip = git("commit-tree", tree, "-p", sha, "-m", "Later main commit fixture")
+            git("update-ref", "refs/remotes/origin/main", main_tip)
+            result = request.validate_request(**arguments)
+            self.assertEqual(result["revision"], sha)
+            # A real, unrelated commit must not pass the ancestry check either.
+            unrelated = git("commit-tree", tree, "-m", "Unrelated history fixture")
+            with self.assertRaisesRegex(request.RequestError, "revision_must_be_reachable_from_main"):
+                request.validate_request(**self.arguments(
+                    root=Path(directory), revision=unrelated, confirmation=f"DEPLOY STAGING {unrelated}",
+                ))
 
     def test_push_branch_dispatch_and_production_are_rejected_before_git(self):
         for changes in ({"event": "push"}, {"workflow_ref": "refs/heads/feature/example"}, {"target": "production"}):
