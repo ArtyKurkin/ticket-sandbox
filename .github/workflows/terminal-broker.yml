@@ -1,7 +1,7 @@
 name: Terminal Broker v2
 on:
   pull_request:
-    paths: ['terminal/**', 'training_tasks/**', 'requirements.txt', 'experiments/terminal_broker/**', 'sandbox/**', 'config/**', 'deploy/nginx/**', '.github/workflows/terminal-broker.yml']
+    paths: ['terminal/**', 'training_tasks/**', 'requirements.txt', 'experiments/terminal_broker/**', 'sandbox/**', 'config/**', 'deploy/nginx/**', 'deploy/tests/test_gateway_dns.py', 'deploy/tests/fixtures/gateway_backend.py', '.github/workflows/terminal-broker.yml']
   push:
     branches: [feature/terminal-broker-v2]
   workflow_dispatch:
@@ -11,6 +11,19 @@ concurrency:
   group: terminal-broker-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  gateway-dns:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install PyYAML==6.0.2
+      - name: Check nginx routing and Web IP replacement in an isolated project
+        env:
+          RUN_GATEWAY_DNS_TESTS: '1'
+        run: python -m unittest discover -s deploy/tests -p test_gateway_dns.py -v
   broker:
     runs-on: ubuntu-latest
     timeout-minutes: 30
