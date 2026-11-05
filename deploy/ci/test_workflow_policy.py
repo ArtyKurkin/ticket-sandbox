@@ -90,6 +90,20 @@ class WorkflowPolicyTests(unittest.TestCase):
         with self.assertRaises(policy.PolicyError):
             policy.automatic_boundary(extra)
 
+    def test_pinned_hosted_ubuntu_is_allowed_for_browser_jobs(self):
+        workflow = policy.load(ROOT / ".github/workflows/terminal-broker.yml")
+        policy.automatic_boundary(workflow)
+        for name in ("broker", "fullstack"):
+            self.assertEqual(workflow["jobs"][name]["runs-on"], "ubuntu-24.04")
+
+    def test_pinned_runner_does_not_bypass_remote_or_secret_restrictions(self):
+        for step in ({"run": "ssh production true"}, {"run": "echo ${{ secrets.SERVER_KEY }}"}):
+            workflow = {"on": {"pull_request": ""}, "jobs": {"browser": {
+                "runs-on": "ubuntu-24.04", "steps": [step],
+            }}}
+            with self.subTest(step=step), self.assertRaises(policy.PolicyError):
+                policy.automatic_boundary(workflow)
+
     def test_policy_job_cannot_be_skipped_by_an_if_condition(self):
         self.ci["jobs"]["workflow-policy"]["if"] = "false"
         with self.assertRaises(policy.PolicyError):

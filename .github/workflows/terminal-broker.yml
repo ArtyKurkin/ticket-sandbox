@@ -25,7 +25,8 @@ jobs:
           RUN_GATEWAY_DNS_TESTS: '1'
         run: python -m unittest discover -s deploy/tests -p test_gateway_dns.py -v
   broker:
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 supports Ubuntu 24.04, not ubuntu-latest's 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       DEBUG: 'True'
@@ -98,7 +99,8 @@ jobs:
           name: terminal-broker-image-compatibility
           path: /tmp/tb2-audit
   fullstack:
-    runs-on: ubuntu-latest
+    # Keep the browser OS compatible with the pinned Playwright release.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4

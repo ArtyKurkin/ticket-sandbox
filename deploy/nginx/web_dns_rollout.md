@@ -106,6 +106,45 @@ DB_ENGINE=django.db.backends.sqlite3 DB_NAME=:memory: \
 
 Production не опрашивался; hosted CI в этот локальный результат не входит.
 
+## Исправление CI после a4b3e8f
+
+В [запуске PR #7](https://github.com/ArtyKurkin/ticket-sandbox/actions/runs/42001309260)
+`broker` упал на `Install browser test dependencies`, `fullstack` — на
+`Install Chromium`, до браузерных проверок. GitHub API подтвердил шаги;
+полные фрагменты ошибок предоставил оператор (скачивание логов API требует
+авторизации). В обоих случаях npm успешно установил Playwright 1.56.1,
+а `playwright install --with-deps chromium` сообщил:
+
+```text
+Cannot install dependencies for ubuntu26.04-x64 with Playwright 1.56.1!
+ERROR: Playwright does not support chromium on ubuntu26.04-x64
+```
+
+Причина — переход `ubuntu-latest` на Ubuntu 26.04, несовместимую с закреплённым
+Playwright. Те же шаги уже падали [03.11 на 9d32300](https://github.com/ArtyKurkin/ticket-sandbox/actions/runs/41623480646),
+до DNS-правки; текст старых логов не получен. Установка браузера и runner label
+в `a4b3e8f` не менялись. Только два браузерных job закреплены на `ubuntu-24.04`.
+CI policy разрешает этот GitHub-hosted образ; запреты remote hosts, secrets
+и deployment сохраняются и проверяются тестами.
+
+Отдельно выявлена связанная с DNS-правкой регрессия **тестового** генератора
+`fullstack_start.py`: замена только `http://web:8000` не переписывала значение
+`set $web_upstream web:8000`. Fullstack Web имеет отдельное имя для каждого режима,
+алиаса `web` в его сети нет. Генератор теперь заменяет адрес `web:8000` и в
+переменной, и в literal URLs. Основной production nginx-конфиг не меняется.
+Второй Docker-тест использует настоящий генератор и Web с именем fullstack,
+проверяет HTTP/auth/redirect/WebSocket и смену IP без nginx reload.
+Ожидание после recreate учитывает отдельные DNS-кеши workers: успешный health
+в одном worker ещё не означает обновления auth-кеша в другом.
+
+Проверки исправления: **46 Broker/PTY**, **64 Django**, **26 CI policy** — PASS.
+Оба изолированных Docker-сценария — PASS (38,5 с суммарно): fullstack hostname
+восстановил HTTP за 8,6 с, основной конфиг — за 9,0 с. В обоих `nginx -t`,
+HTTP/auth/redirect, старый/новый WebSocket, `healthy` и неизменность PID nginx
+прошли; 8 существовавших контейнеров не изменились.
+Отрицательный контроль со старым генератором не получил даже начальный HTTP 200
+при том же отдельном hostname; ожидаемый FAIL воспроизведён в disposable lab.
+
 ## Безопасное внедрение — только после отдельного разрешения
 
 1. Рассмотреть diff и результаты CI, выполнить lab-тест выше. Не делать общий

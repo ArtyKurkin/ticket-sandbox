@@ -92,7 +92,7 @@ def automatic_boundary(workflow):
     require(not any(re.search(r"\bsecrets\s*[.\[]", s) for s in strings(workflow)), "automatic_workflow_must_not_access_secrets")
     require("DOCKER_HOST" not in set(strings(workflow)), "remote_docker_environment_forbidden")
     for job in workflow.get("jobs", {}).values():
-        require(job.get("runs-on") == "ubuntu-latest", "automatic_jobs_must_use_hosted_test_runners")
+        require(job.get("runs-on") in ("ubuntu-latest", "ubuntu-24.04"), "automatic_jobs_must_use_hosted_test_runners")
         require(not set(job) & {"environment", "secrets", "uses"}, "automatic_deployment_or_reusable_job_forbidden")
         for step in job.get("steps", []):
             if "uses" in step:

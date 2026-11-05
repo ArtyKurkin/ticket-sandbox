@@ -37,7 +37,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/_fixture_auth_seen":
             return self.reply(200, Handler.last_auth)
         if self.path == "/redirect/":
-            return self.reply(302, headers={"Location": "http://web:8000/redirected/?x=1"})
+            upstream = os.environ.get("UPSTREAM_HOST", "web:8000")
+            return self.reply(302, headers={"Location": f"http://{upstream}/redirected/?x=1"})
         if self.path == "/healthz/" and self.headers.get("X-Forwarded-Proto") != "https":
             return self.reply(301, headers={
                 "Location": "https://" + self.headers["Host"] + self.path,

@@ -25,6 +25,11 @@ NGINX_CONFIG = ROOT / "deploy/nginx/docker/default.conf"
 
 @unittest.skipUnless(os.environ.get("RUN_GATEWAY_DNS_TESTS") == "1", "opt-in Docker lab")
 class GatewayDNSRecreationTests(unittest.TestCase):
+    web_service = "web"
+
+    def nginx_config(self):
+        return NGINX_CONFIG.read_text()
+
     def docker(self, *args):
         result = subprocess.run(
             ["docker", *args], capture_output=True, text=True, timeout=120,
@@ -114,6 +119,7 @@ class GatewayDNSRecreationTests(unittest.TestCase):
         self.assertEqual(auth["headers"]["Host"], "training.fixture:8443")
         self.assertEqual(auth["headers"]["Cookie"], "sessionid=fixture")
         self.assertEqual(auth["headers"]["X-Forwarded-Proto"], "https")
+        return True
 
     def open_websocket(self):
         sock = socket.create_connection(("127.0.0.1", self.port), timeout=3)
@@ -161,7 +167,7 @@ class GatewayDNSRecreationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix=self.project + "-") as directory:
             directory = Path(directory)
             self.compose_path = directory / "compose.json"
-            shutil.copy(NGINX_CONFIG, directory / "default.conf")
+            (directory / "default.conf").write_text(self.nginx_config())
             shutil.copy(Path(__file__).parent / "fixtures/gateway_backend.py", directory / "backend.py")
             self.docker("network", "create", "--label", f"gateway-dns-test={self.project}", network)
             try:
@@ -175,7 +181,8 @@ class GatewayDNSRecreationTests(unittest.TestCase):
                 }
                 config = {
                     "services": {
-                        "web": {**peer, "environment": {"GENERATION": "before"},
+                        self.web_service: {**peer, "environment": {
+                            "GENERATION": "before", "UPSTREAM_HOST": f"{self.web_service}:8000"},
                                 "networks": {"fixture": {"ipv4_address": old_ip}}},
                         "terminal-peer": {**peer, "networks": ["fixture"]},
                         "gateway": {
@@ -204,19 +211,21 @@ class GatewayDNSRecreationTests(unittest.TestCase):
                 # prove that no reload or automatic worker replacement occurred.
                 nginx_processes = self.nginx_processes(gateway)
                 self.assertTrue(nginx_processes)
-                old_web = self.compose("ps", "-q", "web")
-                config["services"]["web"]["networks"]["fixture"]["ipv4_address"] = new_ip
-                config["services"]["web"]["environment"]["GENERATION"] = "after"
+                old_web = self.compose("ps", "-q", self.web_service)
+                config["services"][self.web_service]["networks"]["fixture"]["ipv4_address"] = new_ip
+                config["services"][self.web_service]["environment"]["GENERATION"] = "after"
                 self.compose_path.write_text(json.dumps(config))
                 started = time.monotonic()
-                self.compose("up", "-d", "--no-deps", "--force-recreate", "web")
-                web = self.compose("ps", "-q", "web")
+                self.compose("up", "-d", "--no-deps", "--force-recreate", self.web_service)
+                web = self.compose("ps", "-q", self.web_service)
                 self.assertNotEqual(old_web, web)
                 actual_ip = self.inspect(web)["NetworkSettings"]["Networks"][network]["IPAddress"]
                 self.assertEqual(actual_ip, new_ip)
                 self.wait_for(lambda: self.request("/healthz/")[0] == 200, "DNS recovery")
                 recovered = time.monotonic() - started
-                self.assert_routes("after")
+                # Resolver caches are per worker. A successful health request in
+                # one worker does not imply auth caches in others have expired.
+                self.wait_for(lambda: self.assert_routes("after"), "HTTP/auth DNS recovery")
                 self.assert_websocket_echo(websocket)
                 self.assert_websocket_echo(self.open_websocket())
                 self.wait_for(lambda: self.inspect(gateway)["State"]["Health"]["Status"] == "healthy", "healthy after recreation")
@@ -235,3 +244,13 @@ class GatewayDNSRecreationTests(unittest.TestCase):
                     for name, identity in existing.items():
                         self.assertEqual(self.identity(name), identity, "Existing container changed")
                     print(f"Unchanged pre-existing containers: {len(existing)}", flush=True)
+
+
+class FullstackGatewayDNSRecreationTests(GatewayDNSRecreationTests):
+    # No 'web' DNS alias: the fullstack lab has one hostname per gateway mode.
+    web_service = "tc-tb2-dns-docker-network-web"
+
+    def nginx_config(self):
+        from experiments.terminal_broker.fullstack_start import network_gateway_config
+
+        return network_gateway_config(self.web_service)
