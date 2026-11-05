@@ -662,48 +662,19 @@ Celery worker проверяется через `celery inspect ping`.
 
 ## CI/CD
 
-GitHub Actions выполняет CI и staging deploy.
+GitHub Actions выполняет hosted CI. Автоматический staging/production deployment
+отключён; `manual-deploy.yml` — hard-blocked manual-only шаблон.
+`migrate` в CI обслуживает только временную SQLite fixture на runner.
 
-### CI
+Актуальные роли, image pins, фиксированный Compose-набор и безопасные отдельные
+обновления описаны в [runbook](deploy/manual_releases.md), граница CI/CD —
+в [deploy/ci_cd.md](deploy/ci_cd.md). Исходные корневые Compose сохраняют dev/base
+назначение; действующие server overrides не подменяются ими автоматически.
 
-```text
-makemigrations --check --dry-run
-python manage.py check
-python manage.py check --deploy
-migrate
-sync_training_tasks --dry-run --strict
-python manage.py test sandbox traineediary assessment
-```
-
-### Staging deploy
-
-```text
-fetch exact target commit
-  ↓
-check Docker socket GID
-  ↓
-docker compose config
-  ↓
-build web + worker
-  ↓
-start/wait db
-  ↓
-migrate via web
-  ↓
-sync_training_tasks via web
-  ↓
-build_task_images via worker
-  ↓
-start/wait web + worker
-  ↓
-force-recreate gateway
-  ↓
-compose ps
-  ↓
-HTTPS smoke-check
-```
-
-Gateway пересоздаётся после web, чтобы nginx не использовал старый IP пересозданного контейнера.
+Gateway динамически разрешает Web через Docker DNS. Его обязательное пересоздание
+после Web больше не требуется. Изменение только nginx-конфига: in-place запись
+в bind source с сохранением inode, проверка видимого контейнеру файла,
+`nginx -t` и graceful reload — [процедура](deploy/nginx/web_dns_rollout.md).
 
 ---
 

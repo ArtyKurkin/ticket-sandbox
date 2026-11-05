@@ -16,6 +16,8 @@ README — короткая входная точка в проект. Боле�
 - `CONTRIBUTING.md` — правила разработки, добавления заданий, тестов;
 - `STAGING_CHECKLIST.md` — ручная проверка staging после деплоя;
 - `CHANGELOG.md` — история крупных изменений.
+- [Документация и исторические отчёты](docs/README.md).
+- [Ручные релизы и фиксированный Compose-набор](deploy/manual_releases.md); автоматический deploy отключён.
 
 ---
 
@@ -123,7 +125,8 @@ python manage.py seed_stages
 
 ## Общая архитектура
 
-Текущая staging/production-схема контейнерного runtime:
+Базовая схема контейнерного runtime (актуальный Lite topology и версии ролей —
+в [runbook ручных релизов](deploy/manual_releases.md)):
 
 ```text
 Browser
@@ -693,61 +696,22 @@ sync_training_tasks --dry-run --strict
 python manage.py test sandbox traineediary assessment
 ```
 
-### Deploy staging
+### Ручные релизы
 
-Deploy выполняется после успешных тестов при push в `main`.
+Автоматического deployment из GitHub Actions нет. `manual-deploy.yml` остаётся
+заблокированным шаблоном; push/merge в main запускает CI, а не серверные операции.
+CI-команда `migrate` выше относится только к изолированной SQLite fixture runner.
 
-Актуальная схема:
+Обновление production выполняется по отдельному разрешению и по одной роли:
+[runbook, image pins, preflight и rollback](deploy/manual_releases.md).
+Серверные release/Lite overrides не входят в Git; два базовых файла не заменяют
+их автоматически. Не выполнять общий `up`, миграции или rebuild всех ролей
+ради обновления одного Web.
 
-```text
-fetch exact target commit
-        |
-        v
-check Docker socket GID
-        |
-        v
-docker compose config
-        |
-        v
-build web + worker images
-        |
-        v
-start/wait PostgreSQL
-        |
-        v
-migrate via web
-        |
-        v
-sync_training_tasks via web
-        |
-        v
-build_task_images via worker
-        |
-        v
-start/wait web + worker
-        |
-        v
-force-recreate gateway
-        |
-        v
-show compose status
-        |
-        v
-HTTPS smoke-check:
-  /healthz/
-  /
-  /admin/login/
-```
-
-Gateway пересоздаётся после `web`, чтобы nginx не оставался привязан к старому IP пересозданного web-контейнера и не отдавал `502`.
-
-Dependencies и static входят в Docker image. На сервере больше не нужны отдельные:
-
-```text
-pip install
-collectstatic
-systemctl restart ticket-sandbox
-```
+Gateway использует динамический Docker DNS для Web. После пересоздания Web
+nginx reload/recreate не нужен. Изменение bind-mounted nginx config требует
+проверки inode, `nginx -t` и graceful reload: [инструкция](deploy/nginx/web_dns_rollout.md).
+Dependencies и static входят в image, host pip/collectstatic/systemd не требуются.
 
 ---
 

@@ -1,5 +1,9 @@
 # STAGING CHECKLIST
 
+Актуальная процедура обновления — [ручные релизы](deploy/manual_releases.md).
+Ниже есть базовые Compose-примеры диагностики; они не задают полный production
+release/Lite набор и не заменяют сверку серверных overrides перед изменениями.
+
 Чеклист ручной проверки Training Platform после деплоя на staging.
 
 Цель — убедиться, что проект работает не только по тестам и CI/CD, но и в полном пользовательском сценарии: стажёр открывает задание, запускает окружение через Celery worker, работает в терминале, проходит автопроверку, отправляет текст на ручную проверку и может открыть историю попыток.
@@ -432,33 +436,23 @@ docker compose \
 
 ## 25. CI/CD
 
-- [ ] GitHub Actions tests job зелёный.
-- [ ] GitHub Actions deploy-staging job зелёный после merge/push в `main`.
-- [ ] Deploy summary содержит успешные шаги:
-  - Fetch latest code;
-  - Check Docker socket GID;
-  - Validate Docker Compose config;
-  - Build application images;
-  - Start database;
-  - Run migrations;
-  - Sync training tasks in strict mode;
-  - Build task images;
-  - Start application;
-  - Recreate gateway;
-  - Show Docker Compose status;
-  - Check staging healthz;
-  - Check staging homepage;
-  - Check staging admin login.
-- [ ] После автоматического deploy staging реально открывается в браузере.
-- [ ] Gateway не отдаёт `502` после пересоздания web.
+- [ ] Hosted tests и workflow policy зелёные; automatic deploy отключён.
+- [ ] Manual staging workflow остаётся заблокированным.
+- [ ] Staging доказанно изолирован от production; название каталога этого не доказывает.
+- [ ] Отдельное разрешение на ручной rollout получено.
+- [ ] Image pins каждой роли, runtime env и полный набор файлов сверены по
+  [runbook](deploy/manual_releases.md); серверные overrides сохранены.
+- [ ] Меняется одна согласованная роль; DB/Redis и остальные роли не пересоздаются.
+- [ ] Есть rollback pins/config и pre/post snapshots; миграции не запускаются попутно.
 
 ## 26. Gateway после deploy
 
-- [ ] Gateway пересоздан после нового web.
-- [ ] `docker compose ps` показывает gateway healthy.
-- [ ] `/` отдаёт ответ без `502`.
-- [ ] `/healthz/` отдаёт `200`.
-- [ ] Terminal WebSocket работает после deploy.
+- [ ] `healthy`, HTTP 200 на `/healthz/` с правильным Host и HTTPS scheme.
+- [ ] После смены IP Web доступ восстановился без nginx reload/recreate.
+- [ ] HTTP routes, новая terminal auth и WebSocket работают.
+- [ ] Для отдельного config update сохранён bind inode, проверены candidate и
+  видимый контейнеру файл; `nginx -t` прошёл до graceful reload.
+- [ ] Неожиданных изменений service IDs/images/volumes нет.
 
 ## 27. Cleanup
 

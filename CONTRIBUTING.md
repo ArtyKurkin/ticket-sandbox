@@ -411,36 +411,18 @@ docker compose \
 
 ## CI/CD правила
 
-Deploy staging выполняется только после зелёного tests job при push в `main`.
+Push/PR запускает CI, автоматический deployment отключён. Manual staging workflow
+остается hard-blocked. Границы и проверки: [deploy/ci_cd.md](deploy/ci_cd.md).
 
-Не возвращать host deployment шаги:
+Production release требует отдельного разрешения, image pins каждой роли и полного
+проверенного Compose-набора: [runbook](deploy/manual_releases.md). Не переносить
+локальные `make up` и Compose management-command примеры в production rollout.
+Не добавлять миграции, task sync/build или массовое пересоздание как побочный шаг
+обычного обновления роли. Dependencies/static входят в image.
 
-```text
-pip install на сервере
-collectstatic на сервере
-systemctl restart ticket-sandbox
-```
-
-Dependencies и static входят в application image.
-
-Актуальный deploy должен сохранять последовательность:
-
-```text
-fetch exact commit
-check Docker socket GID
-compose config
-build web + worker
-start db
-migrate via web
-sync tasks via web
-build task images via worker
-start web + worker
-force-recreate gateway
-compose ps
-external smoke checks
-```
-
-Gateway пересоздаётся после web, потому что nginx внутри долгоживущего контейнера может сохранить старый IP пересозданного `web` и начать отдавать `502`.
+Gateway обновляет IP Web через Docker DNS; force-recreate после Web не нужен.
+Для правки bind-mounted config сохранить inode и выполнить `nginx -t` + graceful
+reload по [инструкции](deploy/nginx/web_dns_rollout.md).
 
 ---
 
@@ -610,4 +592,4 @@ git push
 6. `start`, `restart`, `check.sh` выполняются через worker.
 7. Gateway/terminal работают после пересоздания web.
 8. После этого создаётся PR в `main` и выполняется merge.
-9. Push/merge в `main` должен пройти автоматический staging deploy.
+9. Push/merge в `main` запускает CI; deployment только вручную по отдельному разрешению.

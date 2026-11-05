@@ -31,3 +31,38 @@ backups/
 
 frontend/node_modules/
 static/frontend/
+
+# Private runtime/release files, database exports and local build artifacts.
+*.env
+*.sqlite
+*.sqlite3-*
+*.sqlite-*
+*.db
+*.dump
+*.sql
+*.sql.gz
+*.dump.gz
+*.sql.bz2
+*.sql.xz
+*.pem
+*.key
+*.p12
+*.pfx
+node_modules/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+*.tmp
+*.bak
+*.swp
+/.aws/
+/.ssh/
+/docker-compose.release.yml
+/docker-compose.lite-pilot.yml
+/design-references/
+
+# Reviewed SQL source fixtures are not database exports.
+!training_tasks/**/*.sql
+!**/tests/fixtures/**/*.sql

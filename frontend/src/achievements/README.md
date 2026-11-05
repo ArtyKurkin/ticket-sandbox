@@ -13,7 +13,7 @@ python manage.py runserver
 
 Сначала войти через `/login/`. Backend achievements migrations должны быть
 применены к выбранной локальной БД. Для отдельных API проверок и синтетических
-данных см. `ACHIEVEMENT_BACKEND_FOUNDATION.md` в корне проекта.
+данных см. `docs/reports/achievements/ACHIEVEMENT_BACKEND_FOUNDATION.md` в корне проекта.
 
 ## Данные и отображение
 
@@ -52,7 +52,7 @@ Revision включает также revoke и evidence_disputed. Обычные
 не запускаются: загрузка, фильтр, details, retry и выход из demo не являются
 доказательствами нового события. Компонент анимации сохранён в staff demo.
 Для настоящих уведомлений нужен отдельный read-only event cursor/feed;
-предложение описано в `TROPHY_ROOM_REACT_INTEGRATION.md` в корне проекта.
+предложение описано в `docs/reports/achievements/TROPHY_ROOM_REACT_INTEGRATION.md` в корне проекта.
 
 ## Проверки
 

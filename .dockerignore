@@ -28,3 +28,35 @@ backups/
 
 frontend/node_modules
 static/frontend
+
+# COPY . . must not embed local databases, exports, credentials or server overrides.
+**/*.sqlite
+**/*.sqlite3
+**/*.sqlite3-*
+**/*.sqlite-*
+**/*.db
+**/*.dump
+**/*.sql
+**/*.sql.gz
+**/*.dump.gz
+**/*.sql.bz2
+**/*.sql.xz
+**/*.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/node_modules
+media
+.aws
+.ssh
+.vscode
+design-references
+*.zip
+*.tmp
+*.bak
+docker-compose.release.yml
+docker-compose.lite-pilot.yml
+!training_tasks/**/*.sql
+!**/tests/fixtures/**/*.sql

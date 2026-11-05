@@ -116,24 +116,24 @@ canDemo приходит только из Django is_staff, а не из role te
 
 | Обычная галерея | История на том же разрешении |
 |---|---|
-| [1440×900](docs/trophy-room-integration/real-1440x900.png) | [История 1440×900](docs/trophy-room-integration/history-1440x900.png) |
-| [1280×800](docs/trophy-room-integration/real-1280x800.png) | [История 1280×800](docs/trophy-room-integration/history-1280x800.png) |
-| [768×1024](docs/trophy-room-integration/real-768x1024.png) | [История 768×1024](docs/trophy-room-integration/history-768x1024.png) |
-| [390×844](docs/trophy-room-integration/real-390x844.png) | [История 390×844](docs/trophy-room-integration/history-390x844.png) |
+| [1440×900](../../trophy-room-integration/real-1440x900.png) | [История 1440×900](../../trophy-room-integration/history-1440x900.png) |
+| [1280×800](../../trophy-room-integration/real-1280x800.png) | [История 1280×800](../../trophy-room-integration/history-1280x800.png) |
+| [768×1024](../../trophy-room-integration/real-768x1024.png) | [История 768×1024](../../trophy-room-integration/history-768x1024.png) |
+| [390×844](../../trophy-room-integration/real-390x844.png) | [История 390×844](../../trophy-room-integration/history-390x844.png) |
 
 Одна и та же геометрия speed медальона, разные серверные уровни:
 
 | Бронза | Серебро | Золото | Платина |
 |---|---|---|---|
-| [Снимок](docs/trophy-room-integration/medal-bronze.png) | [Снимок](docs/trophy-room-integration/medal-silver.png) | [Снимок](docs/trophy-room-integration/medal-gold.png) | [Снимок](docs/trophy-room-integration/medal-platinum.png) |
+| [Снимок](../../trophy-room-integration/medal-bronze.png) | [Снимок](../../trophy-room-integration/medal-silver.png) | [Снимок](../../trophy-room-integration/medal-gold.png) | [Снимок](../../trophy-room-integration/medal-platinum.png) |
 
 Дополнительные состояния:
 
-- [Один медальон после повышения](docs/trophy-room-integration/one-medallion-after-upgrade.png), [bronze→platinum без промежуточных событий](docs/trophy-room-integration/bronze-to-platinum-history.png).
-- [Закрытый секрет](docs/trophy-room-integration/secret-locked.png), [ручная тестовая выдача секрета](docs/trophy-room-integration/secret-earned-manual.png), [секрет после отзыва](docs/trophy-room-integration/secret-revoked.png).
-- [Неприменимые награды внутреннего сотрудника](docs/trophy-room-integration/internal.png), [нет полученных наград](docs/trophy-room-integration/no-awards.png), [53 события истории](docs/trophy-room-integration/paginated-history.png).
-- [Staff demo с пометкой](docs/trophy-room-integration/staff-demo.png).
-- [Loading](docs/trophy-room-integration/loading.png), [empty catalogue](docs/trophy-room-integration/empty-catalogue.png), [401](docs/trophy-room-integration/error-401.png), [403](docs/trophy-room-integration/error-403.png), [500](docs/trophy-room-integration/error-500.png), [ошибка сети](docs/trophy-room-integration/error-network.png), [detail 404](docs/trophy-room-integration/detail-404.png).
+- [Один медальон после повышения](../../trophy-room-integration/one-medallion-after-upgrade.png), [bronze→platinum без промежуточных событий](../../trophy-room-integration/bronze-to-platinum-history.png).
+- [Закрытый секрет](../../trophy-room-integration/secret-locked.png), [ручная тестовая выдача секрета](../../trophy-room-integration/secret-earned-manual.png), [секрет после отзыва](../../trophy-room-integration/secret-revoked.png).
+- [Неприменимые награды внутреннего сотрудника](../../trophy-room-integration/internal.png), [нет полученных наград](../../trophy-room-integration/no-awards.png), [53 события истории](../../trophy-room-integration/paginated-history.png).
+- [Staff demo с пометкой](../../trophy-room-integration/staff-demo.png).
+- [Loading](../../trophy-room-integration/loading.png), [empty catalogue](../../trophy-room-integration/empty-catalogue.png), [401](../../trophy-room-integration/error-401.png), [403](../../trophy-room-integration/error-403.png), [500](../../trophy-room-integration/error-500.png), [ошибка сети](../../trophy-room-integration/error-network.png), [detail 404](../../trophy-room-integration/detail-404.png).
 
 ## Локальная проверка и оставшиеся ограничения
 
