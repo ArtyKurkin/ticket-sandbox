@@ -43,14 +43,14 @@ def history_for(journey):
         return None
     for i, visit in enumerate(visits):
         if (visit.started_at < journey.probation_start_date or visit.started_at > today
-                or not stage_applies(visit.stage, journey.stage_scheme, journey.entry_type)):
+                or not stage_applies(visit.effective_stage, journey.stage_scheme, journey.entry_type)):
             return None
         if visit.ended_at is not None and (visit.ended_at < visit.started_at or visit.ended_at > today):
             return None
         if i < len(visits) - 1:
             if visit.ended_at != visits[i + 1].started_at:
                 return None
-        elif (visit.ended_at is not None or visit.stage_id != journey.current_stage_id
+        elif (visit.ended_at is not None or visit.effective_stage.pk != journey.current_stage_id
               or visit.started_at != journey.stage_started_at):
             return None
     return visits

@@ -406,6 +406,15 @@ class TraineeJourney(models.Model):
         ):
             return 100
 
+        # A scheme transfer is not a training transition. Keep the original
+        # time-based calculation until the first real transition after transfer.
+        transfer = getattr(self, "scheme_transfer", None)
+        if transfer is not None and transfer.continues_source_stage(self):
+            basis = transfer.progress_basis
+            fraction = min(self.days_on_stage / max(basis["max_days"], 1), 1)
+            return round((basis["weight_before"] + basis["current_weight"] * fraction)
+                         / max(basis["total_weight"], 1) * 100)
+
         applicable = self._applicable_stages()
 
         total_weight = applicable.aggregate(
@@ -809,6 +818,45 @@ class TraineeJourney(models.Model):
         return previous_stage
 
 
+class StageSchemeTransferBatch(models.Model):
+    """Verified baseline and results of an explicitly executed transfer."""
+
+    source_snapshot_sha256 = models.CharField(max_length=64, unique=True)
+    baseline = models.JSONField()
+    verification = models.JSONField(default=dict)
+    as_of = models.DateField()
+    applied_at = models.DateTimeField(auto_now_add=True)
+    reverted_at = models.DateTimeField(null=True, blank=True)
+
+
+class StageSchemeTransfer(models.Model):
+    """Provenance of a one-time transfer; original histories remain untouched."""
+
+    journey = models.OneToOneField(
+        TraineeJourney, on_delete=models.PROTECT, related_name="scheme_transfer",
+    )
+    batch = models.ForeignKey(StageSchemeTransferBatch, on_delete=models.PROTECT, related_name="transfers")
+    source_scheme = models.CharField(max_length=16, default=StageScheme.LEGACY)
+    source_stage = models.ForeignKey(TraineeStage, on_delete=models.PROTECT, related_name="+")
+    target_stage = models.ForeignKey(TraineeStage, on_delete=models.PROTECT, related_name="+")
+    source_stage_started_at = models.DateField()
+    source_open_history = models.ForeignKey("StageHistory", on_delete=models.PROTECT, related_name="+")
+    source_history_ids = models.JSONField(default=list)
+    progress_basis = models.JSONField()
+    audit_sha256 = models.CharField(max_length=64)
+    source_sha256 = models.CharField(max_length=64)
+    migrated_at = models.DateTimeField(auto_now_add=True)
+
+    def continues_source_stage(self, journey):
+        return (
+            journey.stage_scheme == StageScheme.UNIFIED
+            and self.batch.reverted_at is None
+            and journey.current_stage_id == self.target_stage_id
+            and journey.stage_started_at == self.source_stage_started_at
+            and journey.stage_history.filter(pk=self.source_open_history_id, ended_at=None).exists()
+        )
+
+
 class StageHistory(models.Model):
     journey = models.ForeignKey(
         TraineeJourney, on_delete=models.CASCADE, related_name="stage_history",
@@ -820,6 +868,13 @@ class StageHistory(models.Model):
         User, on_delete=models.SET_NULL, null=True, related_name="+",
     )
     note = models.TextField(blank=True)
+
+    @property
+    def effective_stage(self):
+        """Project transferred theory into the new scheme without editing history."""
+        from .services.scheme_transfer import effective_history_stage
+
+        return effective_history_stage(self)
 
     class Meta:
         ordering = ["-started_at"]

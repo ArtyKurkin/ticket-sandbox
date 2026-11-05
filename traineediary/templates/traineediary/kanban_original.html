@@ -1,0 +1,23 @@
+{% extends "traineediary/_base.html" %}
+{% block title %}Прежняя программа — история{% endblock %}
+{% block content %}
+<h1>Прежняя программа — снимок перед переносом</h1>
+<p>Историческое представление только для чтения. Текущие этапы могут отличаться;
+  переносы и показатели здесь не изменяются.</p>
+<p><a href="{% url 'traineediary:trainees_kanban' %}">Вернуться к текущему канбану</a></p>
+<table>
+  <thead><tr><th>Сотрудник</th><th>Исходный этап</th><th>Начало этапа</th><th>Перенос схемы</th></tr></thead>
+  <tbody>
+  {% for transfer in transfers %}
+    <tr>
+      <td><a href="{% url 'traineediary:trainee_detail' transfer.journey_id %}">{{ transfer.journey.user.get_full_name|default:transfer.journey.user.username }}</a></td>
+      <td>{{ transfer.source_stage.name }}</td>
+      <td>{{ transfer.source_stage_started_at|date:"d.m.Y" }}</td>
+      <td>{{ transfer.migrated_at|date:"d.m.Y H:i" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">Переносов схемы пока нет.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

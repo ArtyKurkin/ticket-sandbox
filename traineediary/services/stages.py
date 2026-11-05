@@ -48,7 +48,7 @@ def journey_stages(journey, *, include_current=False, history_entries=None):
     if include_current:
         extra_ids.add(journey.current_stage_id)
     if history_entries is not None:
-        extra_ids.update(entry.stage_id for entry in history_entries)
+        extra_ids.update(entry.effective_stage.pk for entry in history_entries)
     return TraineeStage.objects.filter(
         Q(pk__in=selected.values("pk")) | Q(pk__in=extra_ids),
     ).order_by("order", "id")
