@@ -50,20 +50,20 @@ achievements/
     test_events.py
     test_api.py
     test_concurrency.py
-ACHIEVEMENT_BACKEND_FOUNDATION.md
+docs/reports/achievements/ACHIEVEMENT_BACKEND_FOUNDATION.md
 ```
 
 Изменены только следующие существующие файлы относительно состояния на начало задачи:
 
 | Файл | Изменение |
 |---|---|
-| [config/settings.py](config/settings.py) | Регистрация приложения |
-| [config/urls.py](config/urls.py) | `/api/achievements/` |
-| [roadmap/services/confirmations.py](roadmap/services/confirmations.py) | Durable событие confirmed/revoked внутри существующей atomic |
-| [sandbox/services/checks.py](sandbox/services/checks.py) | Событие только успешно сохранённой технической зачётной проверки L1 в её atomic |
-| [sandbox/services/completions.py](sandbox/services/completions.py) | Событие при создании completion, включая явное legacy restore |
-| [traineediary/models.py](traineediary/models.py) | События подтверждённого перехода и успешного ИС в существующих atomic |
-| [traineediary/views/weekly_metrics.py](traineediary/views/weekly_metrics.py) | Сохранение метрики через narrow service: metric + source event в одной atomic |
+| [config/settings.py](../../../config/settings.py) | Регистрация приложения |
+| [config/urls.py](../../../config/urls.py) | `/api/achievements/` |
+| [roadmap/services/confirmations.py](../../../roadmap/services/confirmations.py) | Durable событие confirmed/revoked внутри существующей atomic |
+| [sandbox/services/checks.py](../../../sandbox/services/checks.py) | Событие только успешно сохранённой технической зачётной проверки L1 в её atomic |
+| [sandbox/services/completions.py](../../../sandbox/services/completions.py) | Событие при создании completion, включая явное legacy restore |
+| [traineediary/models.py](../../../traineediary/models.py) | События подтверждённого перехода и успешного ИС в существующих atomic |
+| [traineediary/views/weekly_metrics.py](../../../traineediary/views/weekly_metrics.py) | Сохранение метрики через narrow service: metric + source event в одной atomic |
 
 Начальные хеши существующих файлов сохранены для проверки. Все остальные существовавшие файлы совпали с начальным состоянием, включая React, отчёт аудита, документы и результаты задач 7–9. Повторная сборка существующего frontend выполнена для имеющихся Django integration tests; исходники не менялись. Commit, push, merge и деплой не выполнялись.
 

@@ -17,7 +17,7 @@ Roadmap агрегирует существующие источники без 
 - `roadmap/views.py`, `roadmap/urls.py` — session API с CSRF.
 - `roadmap/tests/__init__.py`, `roadmap/tests/test_roadmap.py` — модели, API, доказательства и конкурентные действия.
 - `roadmap/examples/new_hire.json`, `roadmap/examples/internal_transfer.json` — полные ответы API для синтетических стажёров, включая все восемь станций.
-- `ROADMAP_BACKEND_FOUNDATION.md` — контракт, правила, проверки и ограничения.
+- `docs/reports/roadmap/ROADMAP_BACKEND_FOUNDATION.md` — контракт, правила, проверки и ограничения.
 
 Изменены только `config/settings.py` (приложение) и `config/urls.py` (API). Существующие механизмы Sandbox, TraineeDiary, frontend и production-конфигурация не изменены.
 

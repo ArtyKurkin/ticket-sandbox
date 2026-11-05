@@ -1,0 +1,14 @@
+# Opt-in profile for the already-enabled Lite topology; not a migration procedure.
+x-lite-env: &lite-env
+  TERMINAL_BROKER_ENABLED: "true"
+  TERMINAL_BROKER_IMAGE: ${BROKER_IMAGE:?Set the reviewed Broker Lite image}
+  TERMINAL_BROKER_TTYD_IMAGE: ${TTYD_IMAGE:?Set the reviewed Lite ttyd image}
+  TERMINAL_BROKER_AUTHORIZATION_URL: ${BROKER_AUTHORIZATION_URL:?Set the private Web callback URL}
+
+services:
+  web:
+    environment: *lite-env
+  worker:
+    environment: *lite-env
+  terminal_scheduler:
+    environment: *lite-env

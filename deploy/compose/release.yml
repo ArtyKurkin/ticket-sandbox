@@ -1,0 +1,21 @@
+# Opt-in only: never included by default Compose discovery.
+# Requires Docker Compose >= 2.24.4; remove source builds and replace env_file lists.
+services:
+  web:
+    image: ${WEB_IMAGE:?Set WEB_IMAGE to an immutable image reference}
+    build: !reset null
+    env_file: !override ["${TP_RUNTIME_ENV_FILE:?Set absolute runtime env path}"]
+  worker:
+    image: ${WORKER_IMAGE:?Set WORKER_IMAGE to an immutable image reference}
+    build: !reset null
+    env_file: !override ["${TP_RUNTIME_ENV_FILE:?Set absolute runtime env path}"]
+  terminal_scheduler:
+    image: ${SCHEDULER_IMAGE:?Set SCHEDULER_IMAGE to an immutable image reference}
+    build: !reset null
+    env_file: !override ["${TP_RUNTIME_ENV_FILE:?Set absolute runtime env path}"]
+  gateway:
+    image: ${GATEWAY_IMAGE:?Set GATEWAY_IMAGE to the reviewed nginx image}
+  db:
+    image: ${POSTGRES_IMAGE:?Preserve the current PostgreSQL image reference}
+  redis:
+    image: ${REDIS_IMAGE:?Preserve the current Redis image reference}

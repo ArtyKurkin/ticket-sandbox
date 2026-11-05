@@ -68,7 +68,7 @@ Staff-демо включается кнопками 1/8, 3/8, 6/8, 8/8 и вы�
 
 Teachbase задаётся через ROADMAP_TEACHBASE_URL и ROADMAP_TEACHBASE_ALLOWED_HOSTS. По умолчанию переход не настроен; отображается серверная причина без кнопки. HTTPS и точный разрешённый хост проверяются Django, а клиент получает валидированный список хостов в bootstrap. Неприменимые этапы и COMING SOON не имеют действий; демо не показывает рабочие ссылки.
 
-Клиент поддерживает staff endpoint через переданный Django roadmapApiUrl; публичный выбор чужой адаптации не создавался, текущая страница открывает только собственный Roadmap. Подробности и скриншоты: [ROADMAP_ACTIONS_NAVIGATION.md](../../../ROADMAP_ACTIONS_NAVIGATION.md).
+Клиент поддерживает staff endpoint через переданный Django roadmapApiUrl; публичный выбор чужой адаптации не создавался, текущая страница открывает только собственный Roadmap. Подробности и скриншоты: [ROADMAP_ACTIONS_NAVIGATION.md](../../../docs/reports/roadmap/ROADMAP_ACTIONS_NAVIGATION.md).
 
 ## Отличия и проверки
 
@@ -85,6 +85,6 @@ Pixel-perfect соответствие не утверждается.
 Frontend unit-тесты покрывают расчёт позиций, недостаток места и порядок состояний.
 Django-тесты проверяют сессии, role flag, URL и production manifest/collectstatic.
 
-Интеграция Django API выполнена. Полный отчёт, ограничения и скриншоты: [ROADMAP_REACT_INTEGRATION.md](../../../ROADMAP_REACT_INTEGRATION.md).
+Интеграция Django API выполнена. Полный отчёт, ограничения и скриншоты: [ROADMAP_REACT_INTEGRATION.md](../../../docs/reports/roadmap/ROADMAP_REACT_INTEGRATION.md).
 
 Следующая система достижений требует отдельной задачи.

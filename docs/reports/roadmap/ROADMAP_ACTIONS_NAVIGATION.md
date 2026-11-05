@@ -86,7 +86,7 @@ React получает actionExternalHosts из Django bootstrap, причём �
 
 - `roadmap/services/actions.py` — политика серверных действий и проверка учебной конфигурации.
 - `roadmap/tests/test_actions.py` — 13 тестов навигации, прав, безопасных URL и SELECT-only GET.
-- `ROADMAP_ACTIONS_NAVIGATION.md` — этот отчёт.
+- `docs/reports/roadmap/ROADMAP_ACTIONS_NAVIGATION.md` — этот отчёт.
 - `docs/roadmap-actions/*.png` — девять скриншотов.
 
 Изменены относительно начала задачи 9:
@@ -99,7 +99,7 @@ React получает actionExternalHosts из Django bootstrap, причём �
 - `frontend/src/roadmap/types.ts`, `useRoadmap.ts`, `RoadmapPage.tsx` — доставка серверного allowlist в API-клиент.
 - `frontend/src/roadmap/presentation.ts`, `StageDetails.tsx` — проверка доступности каждого действия, сообщения и существующая кнопка-ссылка.
 - `frontend/tests/roadmap-api.test.cjs` — тесты реальных, отключённых, внешних и staff-only действий; обновление фикстур.
-- `frontend/src/roadmap/README.md`, `ROADMAP_BACKEND_FOUNDATION.md`, `ROADMAP_REACT_INTEGRATION.md` — ссылки на новый контракт; предыдущие результаты проверок сохранены.
+- `frontend/src/roadmap/README.md`, `docs/reports/roadmap/ROADMAP_BACKEND_FOUNDATION.md`, `docs/reports/roadmap/ROADMAP_REACT_INTEGRATION.md` — ссылки на новый контракт; предыдущие результаты проверок сохранены.
 
 Новую модель или миграцию создавать не понадобилось. `config/urls.py` не менялся в задаче 9; его незакоммиченное изменение задачи 7 сохранено. Sandbox, TraineeDiary, Trophy Room, фон, SVG art, шрифты, route geometry, CSS и positionCard совпадают со снимком начала задачи. Generated static/frontend обновлён сборкой и остаётся исключённым из Git.
 
@@ -132,18 +132,18 @@ PostgreSQL в задаче 9 не проверялся: механизмы за�
 
 Sandbox после технического завершения с тремя доработками и рабочей кнопкой:
 
-- [1920×1080](docs/roadmap-actions/sandbox-1920x1080.png)
-- [1600×1280](docs/roadmap-actions/sandbox-1600x1280.png)
-- [1440×900](docs/roadmap-actions/sandbox-1440x900.png)
-- [390×844](docs/roadmap-actions/sandbox-390x844.png)
+- [1920×1080](../../roadmap-actions/sandbox-1920x1080.png)
+- [1600×1280](../../roadmap-actions/sandbox-1600x1280.png)
+- [1440×900](../../roadmap-actions/sandbox-1440x900.png)
+- [390×844](../../roadmap-actions/sandbox-390x844.png)
 
 Остальные карточки:
 
-- [Teachbase не настроен](docs/roadmap-actions/training-unconfigured.png)
-- [Teachbase: явно настроенный синтетический тестовый URL](docs/roadmap-actions/training-configured-test.png)
-- [Обычный стажёр: ограничение персонального дневника](docs/roadmap-actions/trainee-progress-limit.png)
-- [Staff: просмотр адаптации](docs/roadmap-actions/staff-adaptation.png)
-- [Staff: просмотр прекращённого ИС](docs/roadmap-actions/staff-probation-result.png)
+- [Teachbase не настроен](../../roadmap-actions/training-unconfigured.png)
+- [Teachbase: явно настроенный синтетический тестовый URL](../../roadmap-actions/training-configured-test.png)
+- [Обычный стажёр: ограничение персонального дневника](../../roadmap-actions/trainee-progress-limit.png)
+- [Staff: просмотр адаптации](../../roadmap-actions/staff-adaptation.png)
+- [Staff: просмотр прекращённого ИС](../../roadmap-actions/staff-probation-result.png)
 
 Внешний HTTPS-адрес в браузерном тесте не является назначенной программой Teachbase. Проверялось открытие настроенной ссылки с локальным перехватом запроса; доступность или содержание реального внешнего учебного сервиса не утверждается.
 

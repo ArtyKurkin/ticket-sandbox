@@ -28,7 +28,7 @@
 - `frontend/src/roadmap/useRoadmap.ts` — жизненный цикл запроса, AbortController и retry.
 - `frontend/src/roadmap/presentation.ts` — сопоставление по ID, безопасное форматирование, подсветка и изолированное демо.
 - `frontend/tests/helpers.cjs`, `frontend/tests/roadmap-api.test.cjs` — тесты контракта, API-клиента и рендера; без новых зависимостей.
-- `ROADMAP_REACT_INTEGRATION.md`, `docs/roadmap-integration/before/*.png`, `docs/roadmap-integration/after/*.png` — отчёт и 17 скриншотов браузерной проверки.
+- `docs/reports/roadmap/ROADMAP_REACT_INTEGRATION.md`, `docs/roadmap-integration/before/*.png`, `docs/roadmap-integration/after/*.png` — отчёт и 17 скриншотов браузерной проверки.
 
 Generated `static/frontend/` обновлён production-сборкой; каталог уже исключён из Git. Не менялись шаблон, frontend bootstrap entrypoint, SVG art, фон, шрифты, алгоритм positionCard и компоненты Trophy Room.
 
@@ -84,12 +84,12 @@ Staff-демо использует отдельные локальные сос
 
 | Размер | До интеграции | После интеграции |
 |---|---|---|
-| 1920×1080 | [Исходный](docs/roadmap-integration/before/1920x1080.png) | [Внешний найм](docs/roadmap-integration/after/external-1920x1080.png) |
-| 1600×1280 | [Исходный](docs/roadmap-integration/before/1600x1280.png) | [Внешний найм](docs/roadmap-integration/after/external-1600x1280.png) |
-| 1440×900 | [Исходный](docs/roadmap-integration/before/1440x900.png) | [Внешний найм](docs/roadmap-integration/after/external-1440x900.png) |
-| 390×844 | [Исходный](docs/roadmap-integration/before/390x844.png) | [Внешний найм](docs/roadmap-integration/after/external-390x844.png) |
+| 1920×1080 | [Исходный](../../roadmap-integration/before/1920x1080.png) | [Внешний найм](../../roadmap-integration/after/external-1920x1080.png) |
+| 1600×1280 | [Исходный](../../roadmap-integration/before/1600x1280.png) | [Внешний найм](../../roadmap-integration/after/external-1600x1280.png) |
+| 1440×900 | [Исходный](../../roadmap-integration/before/1440x900.png) | [Внешний найм](../../roadmap-integration/after/external-1440x900.png) |
+| 390×844 | [Исходный](../../roadmap-integration/before/390x844.png) | [Внешний найм](../../roadmap-integration/after/external-390x844.png) |
 
-Дополнительные состояния: [COMING SOON](docs/roadmap-integration/after/coming-soon-1440x900.png), [внутренний перевод](docs/roadmap-integration/after/internal-1440x900.png), [прекращение](docs/roadmap-integration/after/terminated-1440x900.png), [успех](docs/roadmap-integration/after/success-1440x900.png), [возврат](docs/roadmap-integration/after/return-1440x900.png), [legacy](docs/roadmap-integration/after/legacy-1440x900.png), [staff-демо](docs/roadmap-integration/after/staff-demo-1440x900.png), [загрузка](docs/roadmap-integration/after/loading-1440x900.png), [ошибка](docs/roadmap-integration/after/error-1440x900.png).
+Дополнительные состояния: [COMING SOON](../../roadmap-integration/after/coming-soon-1440x900.png), [внутренний перевод](../../roadmap-integration/after/internal-1440x900.png), [прекращение](../../roadmap-integration/after/terminated-1440x900.png), [успех](../../roadmap-integration/after/success-1440x900.png), [возврат](../../roadmap-integration/after/return-1440x900.png), [legacy](../../roadmap-integration/after/legacy-1440x900.png), [staff-демо](../../roadmap-integration/after/staff-demo-1440x900.png), [загрузка](../../roadmap-integration/after/loading-1440x900.png), [ошибка](../../roadmap-integration/after/error-1440x900.png).
 
 Изменения относительно исходного дизайна ограничены новым содержимым: реальный счётчик вместо 1/8, удаление трофеев, отдельная строка состояния адаптации, новые плашки, уведомления/метрики и явный переключатель демо. Toolbar может занимать меньше строк без старых демо/трофеев. Карточки с большим количеством реальных данных выше прежних и используют существующий резерв прокручиваемого пространства. Фон, SVG, маршрут, шрифты, координаты, отступы основных элементов и positionCard не переработаны. Pixel-perfect соответствие не утверждается: содержание и состояния намеренно отличаются.
 
