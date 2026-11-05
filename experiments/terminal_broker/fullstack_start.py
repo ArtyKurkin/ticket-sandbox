@@ -5,10 +5,15 @@ from pathlib import Path
 import secrets
 import time
 
-import docker
+
+def network_gateway_config(web_host):
+    # Include the variable value as well as literal URLs (e.g. proxy_redirect).
+    return Path('deploy/nginx/docker/default.conf').read_text().replace('web:8000', f'{web_host}:8000')
 
 
 def main():
+    import docker
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--host-source', required=True)
     parser.add_argument('--host-state', required=True)
@@ -101,7 +106,7 @@ def main():
             config = config.replace('logs/nginx.pid', '/tmp/nginx.pid')
             dest = '/etc/nginx/nginx.conf'
         else:
-            config = Path('deploy/nginx/docker/default.conf').read_text().replace('http://web:8000', f'http://{web_host}:8000')
+            config = network_gateway_config(web_host)
             dest = '/etc/nginx/conf.d/default.conf'
         (root / (mode + '.conf')).write_text(config)
         kwargs = {'network_mode': 'host'} if mode == 'host_port' else {
